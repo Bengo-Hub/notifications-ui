@@ -28,15 +28,40 @@ func NewHealthHandler(log *zap.Logger, db dbPinger, cache *redis.Client, events 
 	return &HealthHandler{log: log, db: db, cache: cache, events: events}
 }
 
-func (h *HealthHandler) Liveness(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"status": "ok", "service": "notifications-app"})
+type livenessResponse struct {
+	Status  string `json:"status" example:"ok"`
+	Service string `json:"service" example:"notifications-app"`
 }
 
+type readinessResponse struct {
+	Status       string            `json:"status" example:"OK"`
+	Dependencies map[string]string `json:"dependencies"`
+}
+
+// Liveness returns the service status without touching external deps.
+// @Summary Service liveness probe
+// @Description Returns OK when the API process is running.
+// @Tags Health
+// @Produce json
+// @Success 200 {object} livenessResponse
+// @Router /healthz [get]
+func (h *HealthHandler) Liveness(c *gin.Context) {
+	c.JSON(http.StatusOK, livenessResponse{Status: "ok", Service: "notifications-app"})
+}
+
+// Readiness checks upstream dependencies.
+// @Summary Readiness probe
+// @Description Validates connectivity to Postgres, Redis, and NATS (when configured).
+// @Tags Health
+// @Produce json
+// @Success 200 {object} readinessResponse
+// @Failure 503 {object} readinessResponse
+// @Router /readyz [get]
 func (h *HealthHandler) Readiness(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Second)
 	defer cancel()
 
-	issues := gin.H{}
+	issues := map[string]string{}
 
 	if h.db != nil {
 		if err := h.db.Ping(ctx); err != nil {
@@ -59,12 +84,19 @@ func (h *HealthHandler) Readiness(c *gin.Context) {
 		status = http.StatusServiceUnavailable
 	}
 
-	c.JSON(status, gin.H{
-		"status":       http.StatusText(status),
-		"dependencies": issues,
+	c.JSON(status, readinessResponse{
+		Status:       http.StatusText(status),
+		Dependencies: issues,
 	})
 }
 
+// Metrics exposes Prometheus metrics.
+// @Summary Prometheus metrics
+// @Description Exposes Prometheus metrics for scraping.
+// @Tags Health
+// @Produce plain
+// @Success 200 {string} string "Prometheus metrics payload"
+// @Router /metrics [get]
 func (h *HealthHandler) Metrics(c *gin.Context) {
 	promhttp.Handler().ServeHTTP(c.Writer, c.Request)
 }

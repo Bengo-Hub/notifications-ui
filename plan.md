@@ -60,23 +60,45 @@
 
 ## Roadmap & Sprints (Priority Order)
 1. **Sprint 0 – Foundations (Week 1)**
-   - Repository setup, CI/CD pipeline, base project structure, infrastructure-as-code skeleton, observability baseline.
+   - [x] Repository setup
+   - [x] CI/CD pipeline with centralized `devops-k8s` workflows
+   - [x] Base project structure and observability (health, metrics)
 2. **Sprint 1 – Tenancy & Provider Core (Weeks 2-3)**
-   - Organisation/branch data model, onboarding APIs, template CRUD, localization, provider credential storage, SendGrid + Twilio connectors, basic send API.
+   - [ ] Organisation/branch data model
+   - [ ] Onboarding APIs
+   - [x] Provider credential storage (envconfig)
+   - [x] Basic send API (`POST /v1/{tenantId}/notifications/messages`)
+   - [x] SendGrid + Twilio provider adapters (initial integration)
+   - [x] Filesystem templates with ready-to-use samples (email/sms/push)
+   - [ ] Template CRUD & localization
 3. **Sprint 2 – Delivery Engine & Idempotency (Weeks 4-5)**
-   - Message queue workers, retry logic, rate limiter, delivery status tracking, webhook dispatcher.
+   - [x] NATS JetStream queue workers
+   - [x] Idempotency with Redis (24h TTL)
+   - [ ] Rate limiter
+   - [ ] Delivery status tracking
+   - [ ] Webhook dispatcher
 4. **Sprint 3 – Preferences & Compliance (Weeks 6-7)**
-   - Subscription APIs, suppression lists, double opt-in workflows, consent logging, audit APIs.
+   - [ ] Subscription APIs
+   - [ ] Suppression lists
+   - [ ] Double opt-in workflows
+   - [ ] Consent logging, audit APIs
 5. **Sprint 4 – Multi-Provider & Campaigns (Weeks 8-9)**
-   - Africa’s Talking, custom SMS interface, Mailgun/SMTP fallback, batch scheduling, throttling, segmentation filters.
+   - [ ] Africa’s Talking, custom SMS interface
+   - [ ] Mailgun/SMTP fallback
+   - [ ] Batch scheduling, throttling, segmentation filters
 6. **Sprint 5 – Treasury & Invoice Workflows (Weeks 10-11)**
-   - Event ingestion for invoice lifecycle, templated invoice emails/SMS with payment links, dunning automation, attachment generation, tenant-specific branding overrides.
+   - [ ] Event ingestion for invoice lifecycle
+   - [ ] Dunning automation and attachments
+   - [ ] Tenant-specific branding overrides
 7. **Sprint 6 – Event Ingestion & Integrations (Weeks 12-13)**
-   - NATS/Kafka consumers for broader ecosystem, mapping engine enhancements, contract tests with Food Delivery backend and treasury service, SDK updates.
+   - [ ] Consumers for broader ecosystem and contract tests
+   - [ ] Go/TS SDK updates
 8. **Sprint 7 – Observability & Admin (Weeks 14-15)**
-   - Metrics dashboards, alerting policies, admin endpoints, provider health checks, sandbox mode.
+   - [ ] Metrics dashboards and alerting policies
+   - [ ] Admin endpoints, provider health checks, sandbox mode
 9. **Sprint 8 – Hardening & Launch (Weeks 16-17)**
-   - Performance tuning, failover drills, security review, documentation, production readiness review.
+   - [ ] Performance tuning, failover drills, security review
+   - [ ] Documentation and production readiness review
 
 ## Backlog Ideas
 - AI-assisted template writing & subject line scoring, in-app messaging channel, WhatsApp Business integration, voice/IVR support, sentiment analysis on responses, predictive send-time optimization.

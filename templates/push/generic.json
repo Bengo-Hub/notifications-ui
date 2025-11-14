@@ -1,0 +1,7 @@
+{
+  "title": "{{ .title }}",
+  "body": "{{ .body }}",
+  "deep_link": "{{ .deep_link }}"
+}
+
+

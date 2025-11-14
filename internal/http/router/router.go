@@ -2,6 +2,7 @@ package router
 
 import (
 	"github.com/gin-gonic/gin"
+	httpSwagger "github.com/swaggo/http-swagger"
 	"go.uber.org/zap"
 
 	handlers "github.com/bengobox/notifications-app/internal/http/handlers"
@@ -21,6 +22,7 @@ func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handler
 	r.GET("/healthz", health.Liveness)
 	r.GET("/readyz", health.Readiness)
 	r.GET("/metrics", health.Metrics)
+	r.GET("/swagger/*any", gin.WrapH(httpSwagger.WrapHandler))
 
 	api := r.Group("/v1")
 	{

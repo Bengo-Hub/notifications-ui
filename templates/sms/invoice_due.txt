@@ -1,0 +1,3 @@
+Hi {{ .name }}, invoice {{ .invoice_number }} of {{ .amount }} is due on {{ .due_date }}. Pay now: {{ .payment_link }} - {{ .brand }}
+
+

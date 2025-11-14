@@ -18,10 +18,22 @@ make tidy
 make run
 ```
 
+For step-by-step local setup (Redis + NATS + Postgres), see:
+- [docs/local-testing.md](docs/local-testing.md)
+
+### API Documentation
+
+- Swagger UI: http://localhost:4002/swagger/index.html
+- Regenerate the OpenAPI spec after updating handler annotations:
+  ```bash
+  swag init -g cmd/api/main.go -o internal/http/docs
+  ```
+
 Port mapping:
 
 - Local development serves the API on **http://localhost:4002**.
 - In Kubernetes, the Helm chart overrides `NOTIFICATIONS_HTTP_PORT` to **4000** so all backend workloads expose a unified ingress port.
+- Production ingress: `https://notifications.codevertexitsolutions.com`
 
 ### Environment Variables
 
@@ -62,6 +74,7 @@ Detailed docs live under `docs/` and are indexed in [`docs/documentation-guide.m
 - [`docs/testing-strategy.md`](docs/testing-strategy.md) – testing pyramid, tooling, coverage
 - [`docs/channel-routing.md`](docs/channel-routing.md) – provider selection, failover logic
 - [`docs/api-contracts.md`](docs/api-contracts.md) – REST/webhook/event schema conventions
+- [`docs/local-testing.md`](docs/local-testing.md) – quick local run with Docker
 
 ## Community & Governance
 

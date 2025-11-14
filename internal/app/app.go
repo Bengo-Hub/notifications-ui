@@ -59,8 +59,8 @@ func New(ctx context.Context) (*App, error) {
 	templateLoader := templates.New(cfg.Templates)
 
 	healthHandler := handlers.NewHealthHandler(log, dbPool, redisClient, natsConn)
-	notificationHandler := handlers.NewNotificationHandler()
-	templateHandler := handlers.NewTemplateHandler()
+	notificationHandler := handlers.NewNotificationHandler(log, natsConn, redisClient, cfg.Events)
+	templateHandler := handlers.NewTemplateHandler(templateLoader)
 
 	ginRouter := router.New(log, healthHandler, notificationHandler, templateHandler)
 
