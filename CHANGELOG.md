@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 - NATS JetStream publisher and worker consumer
 - Filesystem template loader and ready-to-use templates (email/sms/push)
 - Initial provider integrations: SendGrid (email), Twilio (sms)
+- SSO integration: JWT enforcement via Auth Service (configurable), API key fallback
+- Tenant branding support and base email layout (header/footer, CSS)
 - Local testing guide and README updates (links to docs, production URL)
 
 ### Changed

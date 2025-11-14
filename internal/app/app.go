@@ -21,6 +21,7 @@ import (
 	"github.com/bengobox/notifications-app/internal/platform/events"
 	"github.com/bengobox/notifications-app/internal/platform/templates"
 	"github.com/bengobox/notifications-app/internal/shared/logger"
+	"github.com/bengobox/notifications-app/internal/shared/middleware"
 )
 
 type App struct {
@@ -62,7 +63,8 @@ func New(ctx context.Context) (*App, error) {
 	notificationHandler := handlers.NewNotificationHandler(log, natsConn, redisClient, cfg.Events)
 	templateHandler := handlers.NewTemplateHandler(templateLoader)
 
-	ginRouter := router.New(log, healthHandler, notificationHandler, templateHandler)
+	jwtValidator := middleware.NewJWTValidator(cfg.Security.JWKSURL, cfg.Security.Issuer, cfg.Security.Audience, cfg.Security.RequireJWT)
+	ginRouter := router.New(log, healthHandler, notificationHandler, templateHandler, cfg.Security.APIKey, jwtValidator)
 
 	httpServer := &http.Server{
 		Addr:              fmt.Sprintf("%s:%d", cfg.HTTP.Host, cfg.HTTP.Port),

@@ -1,11 +1,10 @@
-<!doctype html>
-<html>
-  <body>
-    <p>Hello {{ .name }},</p>
-    <p>Your invoice {{ .invoice_number }} of {{ .amount }} is due on {{ .due_date }}.</p>
-    <p>Please pay using this link: {{ .payment_link }}</p>
-    <p>Regards,<br/>{{ .brand }}</p>
-  </body>
-</html>
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p>Your invoice {{ .invoice_number }} of {{ .amount }} is due on {{ .due_date }}.</p>
+  <p>
+    <a class="button" href="{{ .payment_link }}">Pay Now</a>
+  </p>
+  <p class="muted">Regards,<br/>{{ or .brand_name .brand }}</p>
+{{ end }}
 
 

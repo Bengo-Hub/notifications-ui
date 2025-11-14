@@ -1,10 +1,10 @@
-<!doctype html>
-<html>
-  <body>
-    <p>Hello {{ .name }},</p>
-    <p>Your payment of {{ .amount }} for order {{ .order_id }} was successful.</p>
-    <p>Thank you,<br/>{{ .brand }}</p>
-  </body>
-</html>
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p>Your payment of {{ .amount }} for order {{ .order_id }} was successful.</p>
+  <p>
+    <a class="button" href="{{ .order_link }}">View Order</a>
+  </p>
+  <p class="muted">Thank you,<br/>{{ or .brand_name .brand }}</p>
+{{ end }}
 
 

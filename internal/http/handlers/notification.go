@@ -26,12 +26,12 @@ type NotificationHandler struct {
 }
 
 type CreateMessageRequest struct {
-	Channel  string         `json:"channel" binding:"required"`
-	Tenant   string         `json:"tenant" binding:"required"`
-	Template string         `json:"template" binding:"required"`
-	Data     map[string]any `json:"data" binding:"required"`
-	To       []string       `json:"to" binding:"required,min=1"`
-	Metadata map[string]any `json:"metadata"`
+	Channel  string         `json:"channel" binding:"required" example:"email"`
+	Tenant   string         `json:"tenant" binding:"required" example:"bengobox"`
+	Template string         `json:"template" binding:"required" example:"invoice_due"`
+	Data     map[string]any `json:"data" binding:"required" swaggertype:"object" example:"{\"name\":\"Jane\",\"invoice_number\":\"INV-1001\",\"amount\":\"KES 1,200\",\"due_date\":\"2025-11-30\",\"payment_link\":\"https://pay.example.com/invoices/INV-1001\",\"brand_name\":\"BengoBox\"}"`
+	To       []string       `json:"to" binding:"required,min=1" example:"customer@example.com"`
+	Metadata map[string]any `json:"metadata" swaggertype:"object" example:"{\"subject\":\"Invoice INV-1001 is due\",\"provider\":\"smtp\"}"`
 }
 
 func NewNotificationHandler(log *zap.Logger, natsConn *nats.Conn, cache *redis.Client, eventsCfg config.EventsConfig) *NotificationHandler {
@@ -60,8 +60,27 @@ type errorResponse struct {
 // @Produce json
 // @Param tenantId path string true "Tenant identifier"
 // @Param request body CreateMessageRequest true "Message payload"
+// @Example request
+//
+//	{
+//	  "channel": "email",
+//	  "tenant": "bengobox",
+//	  "template": "invoice_due",
+//	  "to": ["customer@example.com"],
+//	  "data": {
+//	    "name": "Jane",
+//	    "invoice_number": "INV-1001",
+//	    "amount": "KES 1,200",
+//	    "due_date": "2025-11-30",
+//	    "payment_link": "https://pay.example.com/invoices/INV-1001",
+//	    "brand_name": "BengoBox"
+//	  },
+//	  "metadata": { "subject": "Invoice INV-1001 is due", "provider": "smtp" }
+//	}
+//
 // @Success 202 {object} enqueueResponse
 // @Failure 400 {object} errorResponse
+// @Security ApiKeyAuth
 // @Router /v1/{tenantId}/notifications/messages [post]
 func (h *NotificationHandler) Enqueue(c *gin.Context) {
 	var req CreateMessageRequest

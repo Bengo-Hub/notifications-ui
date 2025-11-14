@@ -5,8 +5,48 @@
 - `POST /v1/{tenantId}/notifications/messages`
   - Create notification intent with channel metadata, template reference, personalization data
   - Response: `202 Accepted` with `{ status: "queued", requestId: "..." }`
+  - Sample payloads:
+
+```json
+{
+  "channel": "email",
+  "tenant": "bengobox",
+  "template": "invoice_due",
+  "to": ["customer@example.com"],
+  "data": {
+    "name": "Jane",
+    "invoice_number": "INV-1001",
+    "amount": "KES 1,200",
+    "due_date": "2025-11-30",
+    "payment_link": "https://pay.example.com/invoices/INV-1001",
+    "brand_name": "BengoBox",             // optional overrides; if absent, defaults from DB or tenant slug
+    "brand_email": "hello@bengobox.com",  // optional
+    "brand_phone": "+254700000000",       // optional
+    "brand_logo_url": "https://cdn.example.com/logo.png" // optional
+  },
+  "metadata": {
+    "subject": "Invoice INV-1001 is due",
+    "provider": "smtp"
+  }
+}
+```
+
+```json
+{
+  "channel": "sms",
+  "tenant": "bengobox",
+  "template": "otp",
+  "to": ["+254700000000"],
+  "data": { "otp": "123456", "ttl_minutes": 5, "brand_name": "BengoBox" },
+  "metadata": { "provider": "africastalking" }
+}
+```
+
 - `GET /v1/{tenantId}/templates`
   - List available templates for tenant (id, channel, locale)
+
+- `GET /v1/{tenantId}/templates/{id}?channel=email|sms|push`
+  - Fetch raw template content for preview or client-side rendering
 
 All responses include `X-Request-ID` header for traceability. Error responses follow RFC 7807.
 
@@ -45,5 +85,5 @@ All responses include `X-Request-ID` header for traceability. Error responses fo
 
 ## Authentication
 
-- REST endpoints protected with JWT service accounts (Auth middleware to be added).
+- REST endpoints protected with JWT service accounts (Auth Service JWKS). Optional API key fallback.
 - Webhooks validated via provider signatures; responses use 2xx for success, 5xx to trigger retries.

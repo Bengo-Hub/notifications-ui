@@ -1,0 +1,10 @@
+{{ define "content" }}
+  <p>Welcome {{ .name }},</p>
+  <p>We're excited to have you at {{ or .brand_name "our platform" }}.</p>
+  <p>
+    <a class="button" href="{{ .getting_started_link }}">Get Started</a>
+  </p>
+  <p class="muted">Cheers,<br/>{{ or .brand_name .brand }}</p>
+{{ end }}
+
+

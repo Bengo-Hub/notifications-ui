@@ -39,6 +39,13 @@ Port mapping:
 
 All configuration keys prefixed with `NOTIFICATIONS_`. See [`config/app.env.example`](config/app.env.example) for channel/provider keys and defaults.
 
+Security (SSO via Auth Service):
+- `NOTIFICATIONS_REQUIRE_JWT=true`
+- `NOTIFICATIONS_JWKS_URL=http://localhost:4101/api/v1/.well-known/jwks.json` (point to Auth Service in your env)
+- `NOTIFICATIONS_JWT_ISSUER=auth-service`
+- `NOTIFICATIONS_JWT_AUDIENCE=notifications`
+- Optional fallback: `NOTIFICATIONS_API_KEY` for service-to-service without JWT in dev
+
 ### Common Commands
 
 | Command | Description |

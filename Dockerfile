@@ -5,6 +5,7 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
+
 RUN CGO_ENABLED=0 go build -o /out/notifications ./cmd/api
 RUN CGO_ENABLED=0 go build -o /out/worker ./cmd/worker
 

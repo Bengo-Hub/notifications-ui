@@ -15,7 +15,11 @@ import (
 // @version 0.1.0
 // @description HTTP API for the BengoBox notifications service.
 // @BasePath /
-// @Schemes http
+// @schemes http https
+// @host notifications.codevertexitsolutions.com
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name X-API-Key
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()

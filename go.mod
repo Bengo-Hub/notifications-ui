@@ -3,6 +3,7 @@ module github.com/bengobox/notifications-app
 go 1.23.0
 
 require (
+	entgo.io/ent v0.13.1
 	github.com/gin-gonic/gin v1.10.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.5.5

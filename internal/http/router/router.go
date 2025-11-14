@@ -9,7 +9,7 @@ import (
 	"github.com/bengobox/notifications-app/internal/shared/middleware"
 )
 
-func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handlers.NotificationHandler, templates *handlers.TemplateHandler) *gin.Engine {
+func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handlers.NotificationHandler, templates *handlers.TemplateHandler, apiKey string, jwt *middleware.JWTValidator) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 
 	r := gin.New()
@@ -25,6 +25,7 @@ func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handler
 	r.GET("/swagger/*any", gin.WrapH(httpSwagger.WrapHandler))
 
 	api := r.Group("/v1")
+	api.Use(middleware.AuthAny(jwt, apiKey))
 	{
 		tenant := api.Group("/:tenantId")
 		{
@@ -36,6 +37,7 @@ func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handler
 			tmpl := tenant.Group("/templates")
 			{
 				tmpl.GET("", templates.List)
+				tmpl.GET("/:id", templates.Get)
 			}
 		}
 	}

@@ -18,6 +18,7 @@ type Config struct {
 	Events    EventsConfig
 	Providers ProviderConfig
 	Templates TemplateConfig
+	Security  SecurityConfig
 }
 
 type AppConfig struct {
@@ -57,23 +58,44 @@ type EventsConfig struct {
 }
 
 type ProviderConfig struct {
-	SendGridAPIKey     string `envconfig:"SENDGRID_API_KEY"`
-	MailgunDomain      string `envconfig:"MAILGUN_DOMAIN"`
-	MailgunAPIKey      string `envconfig:"MAILGUN_API_KEY"`
-	TwilioAccountSID   string `envconfig:"TWILIO_ACCOUNT_SID"`
-	TwilioAuthToken    string `envconfig:"TWILIO_AUTH_TOKEN"`
-	AfricasTalkingKey  string `envconfig:"AFRICAS_TALKING_KEY"`
-	FCMServiceAccount  string `envconfig:"FCM_SERVICE_ACCOUNT"`
-	APNSCert           string `envconfig:"APNS_CERT"`
-	APNSKey            string `envconfig:"APNS_KEY"`
-	DefaultEmailSender string `envconfig:"DEFAULT_EMAIL_SENDER" default:"Urban Cafe <hello@bengobox.com>"`
-	DefaultSMSSender   string `envconfig:"DEFAULT_SMS_SENDER" default:"BengoBox"`
-	DefaultPushTopic   string `envconfig:"DEFAULT_PUSH_TOPIC" default:"general"`
+	SendGridAPIKey         string `envconfig:"SENDGRID_API_KEY"`
+	MailgunDomain          string `envconfig:"MAILGUN_DOMAIN"`
+	MailgunAPIKey          string `envconfig:"MAILGUN_API_KEY"`
+	TwilioAccountSID       string `envconfig:"TWILIO_ACCOUNT_SID"`
+	TwilioAuthToken        string `envconfig:"TWILIO_AUTH_TOKEN"`
+	AfricasTalkingKey      string `envconfig:"AFRICAS_TALKING_KEY"`
+	AfricasTalkingUsername string `envconfig:"AFRICAS_TALKING_USERNAME"`
+	VonageAPIKey           string `envconfig:"VONAGE_API_KEY"`
+	VonageAPISecret        string `envconfig:"VONAGE_API_SECRET"`
+	PlivoAuthID            string `envconfig:"PLIVO_AUTH_ID"`
+	PlivoAuthToken         string `envconfig:"PLIVO_AUTH_TOKEN"`
+	SMTPHost               string `envconfig:"SMTP_HOST" default:"localhost"`
+	SMTPPort               int    `envconfig:"SMTP_PORT" default:"1025"`
+	SMTPUsername           string `envconfig:"SMTP_USERNAME"`
+	SMTPPassword           string `envconfig:"SMTP_PASSWORD"`
+	SMTPFrom               string `envconfig:"SMTP_FROM" default:"no-reply@bengobox.com"`
+	SMTPStartTLS           bool   `envconfig:"SMTP_STARTTLS" default:"false"`
+	FCMServiceAccount      string `envconfig:"FCM_SERVICE_ACCOUNT"`
+	APNSCert               string `envconfig:"APNS_CERT"`
+	APNSKey                string `envconfig:"APNS_KEY"`
+	DefaultEmailSender     string `envconfig:"DEFAULT_EMAIL_SENDER" default:"Urban Cafe <hello@bengobox.com>"`
+	DefaultSMSSender       string `envconfig:"DEFAULT_SMS_SENDER" default:"BengoBox"`
+	DefaultPushTopic       string `envconfig:"DEFAULT_PUSH_TOPIC" default:"general"`
 }
 
 type TemplateConfig struct {
 	Directory string        `envconfig:"TEMPLATE_DIRECTORY" default:"./templates"`
 	CacheTTL  time.Duration `envconfig:"TEMPLATE_CACHE_TTL" default:"5m"`
+}
+
+type SecurityConfig struct {
+	// Optional shared API key for protecting /v1 endpoints. If empty, endpoints are open.
+	APIKey string `envconfig:"API_KEY"`
+	// Auth Service SSO (JWT) integration
+	RequireJWT bool   `envconfig:"REQUIRE_JWT" default:"true"`
+	JWKSURL    string `envconfig:"JWKS_URL" default:"http://localhost:4101/api/v1/.well-known/jwks.json"`
+	Issuer     string `envconfig:"JWT_ISSUER" default:"auth-service"`
+	Audience   string `envconfig:"JWT_AUDIENCE" default:"notifications"`
 }
 
 func Load() (*Config, error) {

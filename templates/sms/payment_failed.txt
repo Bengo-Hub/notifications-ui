@@ -1,0 +1,3 @@
+Payment for order {{ .order_id }} failed. Retry: {{ .retry_link }} - {{ or .brand_name "Support" }}
+
+

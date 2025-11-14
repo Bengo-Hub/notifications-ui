@@ -27,6 +27,9 @@ Optional provider keys for live delivery:
 ```bash
 docker run -d --name redis -p 6381:6379 redis:7
 docker run -d --name nats -p 4222:4222 nats:2 -js
+
+# MailHog for SMTP (default email provider)
+docker run -d --name mailhog -p 1025:1025 -p 8025:8025 mailhog/mailhog
 ```
 
 ## 3) Start API
@@ -36,6 +39,26 @@ go run ./cmd/api
 ```
 
 The API serves on `http://localhost:4002`.
+
+If JWT is required (`NOTIFICATIONS_REQUIRE_JWT=true`), set the Auth Service JWKS URL (default is local):
+- `NOTIFICATIONS_JWKS_URL=http://localhost:4101/api/v1/.well-known/jwks.json`
+
+Test with Bearer token (replace TOKEN with a token from Auth Service):
+
+```bash
+curl -s -X POST http://localhost:4002/v1/bengobox/notifications/messages \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-ID: bengobox" \
+  -d '{
+        "channel":"email",
+        "tenant":"bengobox",
+        "template":"payment_success",
+        "to":["dev@bengobox.com"],
+        "data":{"name":"Jane","amount":"KES 1,200","order_id":"ORD-101","order_link":"https://example.com/orders/ORD-101","brand_name":"BengoBox"},
+        "metadata":{"subject":"Payment Received"}
+      }'
+```
 
 ## 4) Start Worker
 
@@ -58,9 +81,11 @@ curl -s -X POST http://localhost:4002/v1/bengobox/notifications/messages \
         "tenant":"bengobox",
         "template":"payment_success",
         "to":["dev@bengobox.com"],
-        "data":{"name":"Jane","amount":"KES 1,200","order_id":"ORD-101","brand":"BengoBox"},
+        "data":{"name":"Jane","amount":"KES 1,200","order_id":"ORD-101","order_link":"https://example.com/orders/ORD-101","brand_name":"BengoBox"},
         "metadata":{"subject":"Payment Received"}
       }'
+
+Open `http://localhost:8025` to view the captured email in MailHog.
 ```
 
 List templates:

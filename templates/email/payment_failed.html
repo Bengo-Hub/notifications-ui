@@ -1,0 +1,10 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p>Your recent payment attempt for order {{ .order_id }} failed.</p>
+  <p>
+    <a class="button" href="{{ .retry_link }}">Retry Payment</a>
+  </p>
+  <p class="muted">If you need help, contact {{ or .brand_email "support@example.com" }}.</p>
+{{ end }}
+
+
