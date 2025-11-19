@@ -40,15 +40,17 @@ func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handler
 	r.Use(middleware.Logging(log))
 	r.Use(middleware.Recover(log))
 
-	r.GET("/healthz", health.Liveness)
-	r.GET("/readyz", health.Readiness)
-	r.GET("/metrics", health.Metrics)
 	// Swagger UI - custom handler like auth-service
 	r.GET("/v1/docs/*any", handlers.SwaggerUI)
 
 	api := r.Group("/api/v1")
 	// Serve OpenAPI spec (public, no auth required)
 	api.GET("/openapi.json", handlers.OpenAPIJSON)
+	
+	// Health endpoints under /api/v1
+	api.GET("/healthz", health.Liveness)
+	api.GET("/readyz", health.Readiness)
+	api.GET("/metrics", health.Metrics)
 
 	// Apply auth middleware if configured, otherwise allow API key
 	if authMiddleware != nil {

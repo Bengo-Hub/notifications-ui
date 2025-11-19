@@ -97,19 +97,12 @@ func convertSwagger2ToOpenAPI3(swagger2Spec map[string]interface{}) map[string]i
 		openAPI3["security"] = security
 	}
 
-	// Convert paths - paths in Swagger 2.0 are relative to basePath
+	// Convert paths - all paths should use /api/v1 prefix
+	// In Swagger 2.0, paths are relative to basePath
 	// In OpenAPI 3.0, paths are absolute
-	// Root-level paths (healthz, metrics, readyz) should stay at root
-	// API paths should be prepended with basePath
-	basePath := ""
-	if bp, ok := swagger2Spec["basePath"].(string); ok {
+	basePath := "/api/v1"
+	if bp, ok := swagger2Spec["basePath"].(string); ok && bp != "" {
 		basePath = strings.TrimSuffix(bp, "/")
-	}
-
-	rootLevelPaths := map[string]bool{
-		"/healthz": true,
-		"/metrics": true,
-		"/readyz":  true,
 	}
 
 	if paths, ok := swagger2Spec["paths"].(map[string]interface{}); ok {
@@ -120,8 +113,8 @@ func convertSwagger2ToOpenAPI3(swagger2Spec map[string]interface{}) map[string]i
 				path = "/" + path
 			}
 
-			// Keep root-level paths as-is, prepend basePath to API paths
-			if !rootLevelPaths[path] && basePath != "" && !strings.HasPrefix(path, basePath) {
+			// Prepend basePath to all paths if not already present
+			if basePath != "" && !strings.HasPrefix(path, basePath) {
 				path = basePath + path
 			}
 			// Convert $ref references in path items
@@ -199,6 +192,18 @@ func OpenAPIJSON(c *gin.Context) {
 func SwaggerUI(c *gin.Context) {
 	c.Header("Content-Type", "text/html; charset=utf-8")
 	c.Header("Access-Control-Allow-Origin", "*")
+	
+	// Determine the current server URL
+	currentProtocol := "http"
+	if c.Request.TLS != nil || c.GetHeader("X-Forwarded-Proto") == "https" {
+		currentProtocol = "https"
+	}
+	currentHost := c.Request.Host
+	if currentHost == "" {
+		currentHost = c.Request.Header.Get("Host")
+	}
+	currentServer := currentProtocol + "://" + currentHost
+	
 	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(`<!DOCTYPE html>
 <html>
   <head>
@@ -223,8 +228,13 @@ func SwaggerUI(c *gin.Context) {
           persistAuthorization: true,
           tryItOutEnabled: true,
           requestInterceptor: (request) => {
-            // Ensure CORS headers are included
+            // Ensure CORS headers are included and use proper URL scheme
             request.credentials = 'omit';
+            // Ensure request URL uses http or https scheme
+            if (request.url && !request.url.match(/^https?:\/\//)) {
+              // If relative URL, make it absolute using current origin
+              request.url = window.location.origin + request.url;
+            }
             return request;
           },
           responseInterceptor: (response) => {
