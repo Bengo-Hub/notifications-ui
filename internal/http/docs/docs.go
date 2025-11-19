@@ -81,8 +81,13 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/{tenantId}/notifications/messages": {
+        "/{tenantId}/notifications/messages": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Accepts a notification payload and queues it for downstream processing.",
                 "consumes": [
                     "application/json"
@@ -128,8 +133,13 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/{tenantId}/templates": {
+        "/{tenantId}/templates": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Returns the default set of notification templates available to the tenant.",
                 "produces": [
                     "application/json"
@@ -156,44 +166,65 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/{tenantId}/templates/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns the raw template content for preview or client-side rendering.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Templates"
+                ],
+                "summary": "Get template content",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tenant identifier",
+                        "name": "tenantId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Template identifier",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Channel (email|sms|push)",
+                        "name": "channel",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.templateGetResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.errorResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
         "handlers.CreateMessageRequest": {
-            "type": "object",
-            "required": [
-                "channel",
-                "data",
-                "template",
-                "tenant",
-                "to"
-            ],
-            "properties": {
-                "channel": {
-                    "type": "string"
-                },
-                "data": {
-                    "type": "object",
-                    "additionalProperties": {}
-                },
-                "metadata": {
-                    "type": "object",
-                    "additionalProperties": {}
-                },
-                "template": {
-                    "type": "string"
-                },
-                "tenant": {
-                    "type": "string"
-                },
-                "to": {
-                    "type": "array",
-                    "minItems": 1,
-                    "items": {
-                        "type": "string"
-                    }
-                }
-            }
+            "type": "object"
         },
         "handlers.enqueueResponse": {
             "type": "object",
@@ -245,6 +276,23 @@ const docTemplate = `{
                 }
             }
         },
+        "handlers.templateGetResponse": {
+            "type": "object",
+            "properties": {
+                "channel": {
+                    "type": "string"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "mimeType": {
+                    "type": "string"
+                }
+            }
+        },
         "handlers.templateListResponse": {
             "type": "object",
             "properties": {
@@ -269,14 +317,27 @@ const docTemplate = `{
                 }
             }
         }
+    },
+    "securityDefinitions": {
+        "ApiKeyAuth": {
+            "type": "apiKey",
+            "name": "X-API-Key",
+            "in": "header"
+        },
+        "bearerAuth": {
+            "description": "JWT token from auth-service. Format: Bearer {token}",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
     }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "0.1.0",
-	Host:             "",
-	BasePath:         "/",
+	Host:             "notifications.codevertexitsolutions.com",
+	BasePath:         "/api/v1",
 	Schemes:          []string{"http", "https"},
 	Title:            "Notifications Service API",
 	Description:      "HTTP API for the BengoBox notifications service.",

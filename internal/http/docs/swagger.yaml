@@ -1,33 +1,6 @@
-schemes:
-  - http
-  - https
-basePath: /
+basePath: /api/v1
 definitions:
   handlers.CreateMessageRequest:
-    properties:
-      channel:
-        type: string
-      data:
-        additionalProperties: {}
-        type: object
-      metadata:
-        additionalProperties: {}
-        type: object
-      template:
-        type: string
-      tenant:
-        type: string
-      to:
-        items:
-          type: string
-        minItems: 1
-        type: array
-    required:
-    - channel
-    - data
-    - template
-    - tenant
-    - to
     type: object
   handlers.enqueueResponse:
     properties:
@@ -63,6 +36,17 @@ definitions:
         example: OK
         type: string
     type: object
+  handlers.templateGetResponse:
+    properties:
+      channel:
+        type: string
+      content:
+        type: string
+      id:
+        type: string
+      mimeType:
+        type: string
+    type: object
   handlers.templateListResponse:
     properties:
       templates:
@@ -79,16 +63,103 @@ definitions:
         example: payment_success
         type: string
     type: object
+host: notifications.codevertexitsolutions.com
 info:
   contact: {}
-  description: |
-    HTTP API for the BengoBox notifications service.
-    
-    **Authentication**: All protected endpoints require a Bearer token from auth-service.
-    Include the token in the Authorization header: `Authorization: Bearer {token}`
+  description: HTTP API for the BengoBox notifications service.
   title: Notifications Service API
   version: 0.1.0
 paths:
+  /{tenantId}/notifications/messages:
+    post:
+      consumes:
+      - application/json
+      description: Accepts a notification payload and queues it for downstream processing.
+      parameters:
+      - description: Tenant identifier
+        in: path
+        name: tenantId
+        required: true
+        type: string
+      - description: Message payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/handlers.enqueueResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.errorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Queue notification message
+      tags:
+      - Notifications
+  /{tenantId}/templates:
+    get:
+      description: Returns the default set of notification templates available to
+        the tenant.
+      parameters:
+      - description: Tenant identifier
+        in: path
+        name: tenantId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.templateListResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: List notification templates
+      tags:
+      - Templates
+  /{tenantId}/templates/{id}:
+    get:
+      description: Returns the raw template content for preview or client-side rendering.
+      parameters:
+      - description: Tenant identifier
+        in: path
+        name: tenantId
+        required: true
+        type: string
+      - description: Template identifier
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Channel (email|sms|push)
+        in: query
+        name: channel
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.templateGetResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.errorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get template content
+      tags:
+      - Templates
   /healthz:
     get:
       description: Returns OK when the API process is running.
@@ -132,75 +203,17 @@ paths:
       summary: Readiness probe
       tags:
       - Health
-  /v1/{tenantId}/notifications/messages:
-    post:
-      consumes:
-      - application/json
-      description: Accepts a notification payload and queues it for downstream processing.
-      parameters:
-      - description: Tenant identifier
-        in: path
-        name: tenantId
-        required: true
-        type: string
-      - description: Message payload
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/handlers.CreateMessageRequest'
-      produces:
-      - application/json
-      responses:
-        "202":
-          description: Accepted
-          schema:
-            $ref: '#/definitions/handlers.enqueueResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/handlers.errorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/handlers.errorResponse'
-      security:
-      - bearerAuth: []
-      summary: Queue notification message
-      tags:
-      - Notifications
-  /v1/{tenantId}/templates:
-    get:
-      description: Returns the default set of notification templates available to
-        the tenant.
-      parameters:
-      - description: Tenant identifier
-        in: path
-        name: tenantId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/handlers.templateListResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/handlers.errorResponse'
-      security:
-      - bearerAuth: []
-      summary: List notification templates
-      tags:
-      - Templates
 schemes:
 - http
+- https
 securityDefinitions:
-  bearerAuth:
-    type: apiKey
-    name: Authorization
+  ApiKeyAuth:
     in: header
-    description: "JWT token from auth-service. Format: Bearer {token}"
+    name: X-API-Key
+    type: apiKey
+  bearerAuth:
+    description: 'JWT token from auth-service. Format: Bearer {token}'
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

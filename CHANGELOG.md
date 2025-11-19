@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 - Standardized Swagger documentation path to `/v1/docs` (previously `/swagger/*`)
 - Updated Swagger specifications to support both HTTP and HTTPS schemes
 - Swagger UI now automatically detects and uses the correct protocol (HTTP/HTTPS) based on request
+- Fixed Swagger UI to correctly load API definition from `/v1/docs/swagger/doc.json`
 
 ## [0.2.0] - 2025-11-14
 
