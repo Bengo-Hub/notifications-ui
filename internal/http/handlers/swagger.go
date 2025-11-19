@@ -12,6 +12,37 @@ import (
 //go:embed swagger.json
 var swaggerSpec []byte
 
+// convertRefs recursively converts Swagger 2.0 $ref paths to OpenAPI 3.0 format
+// Changes #/definitions/... to #/components/schemas/...
+func convertRefs(data interface{}) interface{} {
+	switch v := data.(type) {
+	case map[string]interface{}:
+		result := make(map[string]interface{})
+		for key, value := range v {
+			if key == "$ref" {
+				if refStr, ok := value.(string); ok {
+					// Convert #/definitions/... to #/components/schemas/...
+					if strings.HasPrefix(refStr, "#/definitions/") {
+						value = strings.Replace(refStr, "#/definitions/", "#/components/schemas/", 1)
+					}
+				}
+				result[key] = value
+			} else {
+				result[key] = convertRefs(value)
+			}
+		}
+		return result
+	case []interface{}:
+		result := make([]interface{}, len(v))
+		for i, item := range v {
+			result[i] = convertRefs(item)
+		}
+		return result
+	default:
+		return v
+	}
+}
+
 // convertSwagger2ToOpenAPI3 converts Swagger 2.0 spec to OpenAPI 3.0 format
 func convertSwagger2ToOpenAPI3(swagger2Spec map[string]interface{}) map[string]interface{} {
 	openAPI3 := make(map[string]interface{})
@@ -93,9 +124,18 @@ func convertSwagger2ToOpenAPI3(swagger2Spec map[string]interface{}) map[string]i
 			if !rootLevelPaths[path] && basePath != "" && !strings.HasPrefix(path, basePath) {
 				path = basePath + path
 			}
-			convertedPaths[path] = pathItem
+			// Convert $ref references in path items
+			convertedPaths[path] = convertRefs(pathItem)
 		}
 		openAPI3["paths"] = convertedPaths
+	}
+
+	// Convert $ref references in components/schemas as well
+	if components, ok := openAPI3["components"].(map[string]interface{}); ok {
+		if schemas, ok := components["schemas"].(map[string]interface{}); ok {
+			components["schemas"] = convertRefs(schemas)
+		}
+		openAPI3["components"] = components
 	}
 
 	return openAPI3
