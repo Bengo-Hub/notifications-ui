@@ -4,12 +4,93 @@ import (
 	_ "embed"
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
 //go:embed swagger.json
 var swaggerSpec []byte
+
+// convertSwagger2ToOpenAPI3 converts Swagger 2.0 spec to OpenAPI 3.0 format
+func convertSwagger2ToOpenAPI3(swagger2Spec map[string]interface{}) map[string]interface{} {
+	openAPI3 := make(map[string]interface{})
+	
+	// Set OpenAPI version
+	openAPI3["openapi"] = "3.0.3"
+	
+	// Copy info
+	if info, ok := swagger2Spec["info"].(map[string]interface{}); ok {
+		openAPI3["info"] = info
+	}
+	
+	// Convert servers - add both local and production
+	openAPI3["servers"] = []map[string]interface{}{
+		{
+			"url":         "http://notifications.codevertex.local:4002",
+			"description": "Local development (HTTP)",
+		},
+		{
+			"url":         "https://notifications.codevertex.local:4002",
+			"description": "Local development (HTTPS)",
+		},
+		{
+			"url":         "https://notifications.codevrtexitsolutions.com",
+			"description": "Production",
+		},
+	}
+	
+	// Copy components (security schemes, schemas)
+	components := make(map[string]interface{})
+	
+	// Convert security definitions to security schemes
+	if securityDefs, ok := swagger2Spec["securityDefinitions"].(map[string]interface{}); ok {
+		securitySchemes := make(map[string]interface{})
+		for key, value := range securityDefs {
+			securitySchemes[key] = value
+		}
+		components["securitySchemes"] = securitySchemes
+	}
+	
+	// Copy definitions to schemas
+	if definitions, ok := swagger2Spec["definitions"].(map[string]interface{}); ok {
+		components["schemas"] = definitions
+	}
+	
+	if len(components) > 0 {
+		openAPI3["components"] = components
+	}
+	
+	// Copy security
+	if security, ok := swagger2Spec["security"].([]interface{}); ok {
+		openAPI3["security"] = security
+	}
+	
+	// Convert paths - paths in Swagger 2.0 are relative to basePath
+	// In OpenAPI 3.0, paths are absolute, so we prepend basePath if it exists
+	basePath := ""
+	if bp, ok := swagger2Spec["basePath"].(string); ok {
+		basePath = strings.TrimSuffix(bp, "/")
+	}
+	
+	if paths, ok := swagger2Spec["paths"].(map[string]interface{}); ok {
+		convertedPaths := make(map[string]interface{})
+		for path, pathItem := range paths {
+			// Prepend basePath if it exists and path doesn't already start with it
+			if basePath != "" && !strings.HasPrefix(path, basePath) {
+				// Ensure path starts with /
+				if !strings.HasPrefix(path, "/") {
+					path = "/" + path
+				}
+				path = basePath + path
+			}
+			convertedPaths[path] = pathItem
+		}
+		openAPI3["paths"] = convertedPaths
+	}
+	
+	return openAPI3
+}
 
 // OpenAPIJSON serves the OpenAPI/Swagger JSON specification
 func OpenAPIJSON(c *gin.Context) {
@@ -23,19 +104,37 @@ func OpenAPIJSON(c *gin.Context) {
 		return
 	}
 
-	// Parse the Swagger spec and remove the host field to use relative URLs
+	// Parse the Swagger spec
 	var spec map[string]interface{}
 	if err := json.Unmarshal(swaggerSpec, &spec); err == nil {
-		// Remove host field so Swagger UI uses relative URLs based on current page
-		delete(spec, "host")
-		// Re-marshal the spec
-		if modifiedSpec, err := json.Marshal(spec); err == nil {
-			c.Header("Content-Type", "application/json")
-			c.Header("Access-Control-Allow-Origin", "*")
-			c.Header("Access-Control-Allow-Methods", "GET, OPTIONS")
-			c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key")
-			c.Data(http.StatusOK, "application/json", modifiedSpec)
-			return
+		// Check if it's Swagger 2.0 and convert to OpenAPI 3.0
+		if swaggerVersion, ok := spec["swagger"].(string); ok && strings.HasPrefix(swaggerVersion, "2.") {
+			openAPI3Spec := convertSwagger2ToOpenAPI3(spec)
+			if modifiedSpec, err := json.Marshal(openAPI3Spec); err == nil {
+				c.Header("Content-Type", "application/json")
+				c.Header("Access-Control-Allow-Origin", "*")
+				c.Header("Access-Control-Allow-Methods", "GET, OPTIONS")
+				c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key")
+				c.Data(http.StatusOK, "application/json", modifiedSpec)
+				return
+			}
+		} else {
+			// Already OpenAPI 3.0, just ensure servers are set
+			if _, hasServers := spec["servers"]; !hasServers {
+				spec["servers"] = []map[string]interface{}{
+					{"url": "http://notifications.codevertex.local:4002", "description": "Local development (HTTP)"},
+					{"url": "https://notifications.codevertex.local:4002", "description": "Local development (HTTPS)"},
+					{"url": "https://notifications.codevrtexitsolutions.com", "description": "Production"},
+				}
+			}
+			if modifiedSpec, err := json.Marshal(spec); err == nil {
+				c.Header("Content-Type", "application/json")
+				c.Header("Access-Control-Allow-Origin", "*")
+				c.Header("Access-Control-Allow-Methods", "GET, OPTIONS")
+				c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key")
+				c.Data(http.StatusOK, "application/json", modifiedSpec)
+				return
+			}
 		}
 	}
 
@@ -72,7 +171,16 @@ func SwaggerUI(c *gin.Context) {
           layout: "BaseLayout",
           deepLinking: true,
           filter: true,
-          persistAuthorization: true
+          persistAuthorization: true,
+          tryItOutEnabled: true,
+          requestInterceptor: (request) => {
+            // Ensure CORS headers are included
+            request.credentials = 'omit';
+            return request;
+          },
+          responseInterceptor: (response) => {
+            return response;
+          }
         })
       }
     </script>
