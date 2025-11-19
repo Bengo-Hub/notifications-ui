@@ -67,21 +67,30 @@ func convertSwagger2ToOpenAPI3(swagger2Spec map[string]interface{}) map[string]i
 	}
 	
 	// Convert paths - paths in Swagger 2.0 are relative to basePath
-	// In OpenAPI 3.0, paths are absolute, so we prepend basePath if it exists
+	// In OpenAPI 3.0, paths are absolute
+	// Root-level paths (healthz, metrics, readyz) should stay at root
+	// API paths should be prepended with basePath
 	basePath := ""
 	if bp, ok := swagger2Spec["basePath"].(string); ok {
 		basePath = strings.TrimSuffix(bp, "/")
 	}
 	
+	rootLevelPaths := map[string]bool{
+		"/healthz": true,
+		"/metrics": true,
+		"/readyz":  true,
+	}
+	
 	if paths, ok := swagger2Spec["paths"].(map[string]interface{}); ok {
 		convertedPaths := make(map[string]interface{})
 		for path, pathItem := range paths {
-			// Prepend basePath if it exists and path doesn't already start with it
-			if basePath != "" && !strings.HasPrefix(path, basePath) {
-				// Ensure path starts with /
-				if !strings.HasPrefix(path, "/") {
-					path = "/" + path
-				}
+			// Ensure path starts with /
+			if !strings.HasPrefix(path, "/") {
+				path = "/" + path
+			}
+			
+			// Keep root-level paths as-is, prepend basePath to API paths
+			if !rootLevelPaths[path] && basePath != "" && !strings.HasPrefix(path, basePath) {
 				path = basePath + path
 			}
 			convertedPaths[path] = pathItem
