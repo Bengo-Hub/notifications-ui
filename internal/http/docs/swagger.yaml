@@ -1,8 +1,8 @@
 basePath: /api/v1
 definitions:
-  handlers.CreateMessageRequest:
+  internal_http_handlers.CreateMessageRequest:
     type: object
-  handlers.enqueueResponse:
+  internal_http_handlers.enqueueResponse:
     properties:
       requestId:
         example: req_123
@@ -11,13 +11,13 @@ definitions:
         example: queued
         type: string
     type: object
-  handlers.errorResponse:
+  internal_http_handlers.errorResponse:
     properties:
       error:
         example: validation failed
         type: string
     type: object
-  handlers.livenessResponse:
+  internal_http_handlers.livenessResponse:
     properties:
       service:
         example: notifications-app
@@ -26,7 +26,7 @@ definitions:
         example: ok
         type: string
     type: object
-  handlers.readinessResponse:
+  internal_http_handlers.readinessResponse:
     properties:
       dependencies:
         additionalProperties:
@@ -36,7 +36,7 @@ definitions:
         example: OK
         type: string
     type: object
-  handlers.templateGetResponse:
+  internal_http_handlers.templateGetResponse:
     properties:
       channel:
         type: string
@@ -47,14 +47,14 @@ definitions:
       mimeType:
         type: string
     type: object
-  handlers.templateListResponse:
+  internal_http_handlers.templateListResponse:
     properties:
       templates:
         items:
-          $ref: '#/definitions/handlers.templateSummary'
+          $ref: '#/definitions/internal_http_handlers.templateSummary'
         type: array
     type: object
-  handlers.templateSummary:
+  internal_http_handlers.templateSummary:
     properties:
       channel:
         example: email
@@ -63,7 +63,7 @@ definitions:
         example: payment_success
         type: string
     type: object
-host: notifications.codevertexitsolutions.com
+host: notifications.codevrtexitsolutions.com
 info:
   contact: {}
   description: HTTP API for the BengoBox notifications service.
@@ -86,19 +86,20 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/handlers.CreateMessageRequest'
+          $ref: '#/definitions/internal_http_handlers.CreateMessageRequest'
       produces:
       - application/json
       responses:
         "202":
           description: Accepted
           schema:
-            $ref: '#/definitions/handlers.enqueueResponse'
+            $ref: '#/definitions/internal_http_handlers.enqueueResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/handlers.errorResponse'
+            $ref: '#/definitions/internal_http_handlers.errorResponse'
       security:
+      - bearerAuth: []
       - ApiKeyAuth: []
       summary: Queue notification message
       tags:
@@ -119,8 +120,9 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/handlers.templateListResponse'
+            $ref: '#/definitions/internal_http_handlers.templateListResponse'
       security:
+      - bearerAuth: []
       - ApiKeyAuth: []
       summary: List notification templates
       tags:
@@ -150,12 +152,13 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/handlers.templateGetResponse'
+            $ref: '#/definitions/internal_http_handlers.templateGetResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/handlers.errorResponse'
+            $ref: '#/definitions/internal_http_handlers.errorResponse'
       security:
+      - bearerAuth: []
       - ApiKeyAuth: []
       summary: Get template content
       tags:
@@ -169,7 +172,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/handlers.livenessResponse'
+            $ref: '#/definitions/internal_http_handlers.livenessResponse'
       summary: Service liveness probe
       tags:
       - Health
@@ -195,11 +198,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/handlers.readinessResponse'
+            $ref: '#/definitions/internal_http_handlers.readinessResponse'
         "503":
           description: Service Unavailable
           schema:
-            $ref: '#/definitions/handlers.readinessResponse'
+            $ref: '#/definitions/internal_http_handlers.readinessResponse'
       summary: Readiness probe
       tags:
       - Health

@@ -80,6 +80,7 @@ type errorResponse struct {
 //
 // @Success 202 {object} enqueueResponse
 // @Failure 400 {object} errorResponse
+// @Security bearerAuth
 // @Security ApiKeyAuth
 // @Router /{tenantId}/notifications/messages [post]
 func (h *NotificationHandler) Enqueue(c *gin.Context) {

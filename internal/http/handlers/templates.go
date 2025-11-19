@@ -39,6 +39,7 @@ type templateGetResponse struct {
 // @Produce json
 // @Param tenantId path string true "Tenant identifier"
 // @Success 200 {object} templateListResponse
+// @Security bearerAuth
 // @Security ApiKeyAuth
 // @Router /{tenantId}/templates [get]
 func (h *TemplateHandler) List(c *gin.Context) {
@@ -60,6 +61,7 @@ func (h *TemplateHandler) List(c *gin.Context) {
 // @Param channel query string true "Channel (email|sms|push)"
 // @Success 200 {object} templateGetResponse
 // @Failure 404 {object} errorResponse
+// @Security bearerAuth
 // @Security ApiKeyAuth
 // @Router /{tenantId}/templates/{id} [get]
 func (h *TemplateHandler) Get(c *gin.Context) {

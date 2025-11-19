@@ -22,11 +22,13 @@ func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handler
 	r.GET("/healthz", health.Liveness)
 	r.GET("/readyz", health.Readiness)
 	r.GET("/metrics", health.Metrics)
-	// Swagger UI - mount swaggerFiles.Handler at /v1/docs
-	// This will serve the spec at /v1/docs/swagger/doc.json
-	r.GET("/v1/docs/*any", handlers.SwaggerHandler())
+	// Swagger UI - custom handler like auth-service
+	r.GET("/v1/docs/*", handlers.SwaggerUI)
 
 	api := r.Group("/api/v1")
+	// Serve OpenAPI spec (public, no auth required)
+	api.GET("/openapi.json", handlers.OpenAPIJSON)
+
 	// Apply auth middleware if configured, otherwise allow API key
 	if authMiddleware != nil {
 		api.Use(authclient.GinMiddleware(authMiddleware))

@@ -29,7 +29,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.livenessResponse"
+                            "$ref": "#/definitions/internal_http_handlers.livenessResponse"
                         }
                     }
                 }
@@ -69,13 +69,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.readinessResponse"
+                            "$ref": "#/definitions/internal_http_handlers.readinessResponse"
                         }
                     },
                     "503": {
                         "description": "Service Unavailable",
                         "schema": {
-                            "$ref": "#/definitions/handlers.readinessResponse"
+                            "$ref": "#/definitions/internal_http_handlers.readinessResponse"
                         }
                     }
                 }
@@ -84,6 +84,9 @@ const docTemplate = `{
         "/{tenantId}/notifications/messages": {
             "post": {
                 "security": [
+                    {
+                        "bearerAuth": []
+                    },
                     {
                         "ApiKeyAuth": []
                     }
@@ -113,7 +116,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.CreateMessageRequest"
+                            "$ref": "#/definitions/internal_http_handlers.CreateMessageRequest"
                         }
                     }
                 ],
@@ -121,13 +124,13 @@ const docTemplate = `{
                     "202": {
                         "description": "Accepted",
                         "schema": {
-                            "$ref": "#/definitions/handlers.enqueueResponse"
+                            "$ref": "#/definitions/internal_http_handlers.enqueueResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/handlers.errorResponse"
+                            "$ref": "#/definitions/internal_http_handlers.errorResponse"
                         }
                     }
                 }
@@ -136,6 +139,9 @@ const docTemplate = `{
         "/{tenantId}/templates": {
             "get": {
                 "security": [
+                    {
+                        "bearerAuth": []
+                    },
                     {
                         "ApiKeyAuth": []
                     }
@@ -161,7 +167,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.templateListResponse"
+                            "$ref": "#/definitions/internal_http_handlers.templateListResponse"
                         }
                     }
                 }
@@ -170,6 +176,9 @@ const docTemplate = `{
         "/{tenantId}/templates/{id}": {
             "get": {
                 "security": [
+                    {
+                        "bearerAuth": []
+                    },
                     {
                         "ApiKeyAuth": []
                     }
@@ -209,13 +218,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.templateGetResponse"
+                            "$ref": "#/definitions/internal_http_handlers.templateGetResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/handlers.errorResponse"
+                            "$ref": "#/definitions/internal_http_handlers.errorResponse"
                         }
                     }
                 }
@@ -223,10 +232,10 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "handlers.CreateMessageRequest": {
+        "internal_http_handlers.CreateMessageRequest": {
             "type": "object"
         },
-        "handlers.enqueueResponse": {
+        "internal_http_handlers.enqueueResponse": {
             "type": "object",
             "properties": {
                 "requestId": {
@@ -239,7 +248,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.errorResponse": {
+        "internal_http_handlers.errorResponse": {
             "type": "object",
             "properties": {
                 "error": {
@@ -248,7 +257,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.livenessResponse": {
+        "internal_http_handlers.livenessResponse": {
             "type": "object",
             "properties": {
                 "service": {
@@ -261,7 +270,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.readinessResponse": {
+        "internal_http_handlers.readinessResponse": {
             "type": "object",
             "properties": {
                 "dependencies": {
@@ -276,7 +285,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.templateGetResponse": {
+        "internal_http_handlers.templateGetResponse": {
             "type": "object",
             "properties": {
                 "channel": {
@@ -293,18 +302,18 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.templateListResponse": {
+        "internal_http_handlers.templateListResponse": {
             "type": "object",
             "properties": {
                 "templates": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/handlers.templateSummary"
+                        "$ref": "#/definitions/internal_http_handlers.templateSummary"
                     }
                 }
             }
         },
-        "handlers.templateSummary": {
+        "internal_http_handlers.templateSummary": {
             "type": "object",
             "properties": {
                 "channel": {
@@ -336,7 +345,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "0.1.0",
-	Host:             "notifications.codevertexitsolutions.com",
+	Host:             "notifications.codevrtexitsolutions.com",
 	BasePath:         "/api/v1",
 	Schemes:          []string{"http", "https"},
 	Title:            "Notifications Service API",
