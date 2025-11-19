@@ -2,6 +2,7 @@
 bin/
 dist/
 coverage/
+*.exe
 
 # Go
 *.test
