@@ -23,17 +23,11 @@ func OpenAPIJSON(c *gin.Context) {
 		return
 	}
 
-	// Parse the Swagger spec and dynamically set the host
+	// Parse the Swagger spec and remove the host field to use relative URLs
 	var spec map[string]interface{}
 	if err := json.Unmarshal(swaggerSpec, &spec); err == nil {
-		// Set host to the current request's host (protocol + host)
-		host := c.Request.Host
-		if host == "" {
-			host = c.Request.Header.Get("Host")
-		}
-		if host != "" {
-			spec["host"] = host
-		}
+		// Remove host field so Swagger UI uses relative URLs based on current page
+		delete(spec, "host")
 		// Re-marshal the spec
 		if modifiedSpec, err := json.Marshal(spec); err == nil {
 			c.Header("Content-Type", "application/json")
