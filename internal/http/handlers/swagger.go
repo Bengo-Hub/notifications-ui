@@ -192,18 +192,7 @@ func OpenAPIJSON(c *gin.Context) {
 func SwaggerUI(c *gin.Context) {
 	c.Header("Content-Type", "text/html; charset=utf-8")
 	c.Header("Access-Control-Allow-Origin", "*")
-	
-	// Determine the current server URL
-	currentProtocol := "http"
-	if c.Request.TLS != nil || c.GetHeader("X-Forwarded-Proto") == "https" {
-		currentProtocol = "https"
-	}
-	currentHost := c.Request.Host
-	if currentHost == "" {
-		currentHost = c.Request.Header.Get("Host")
-	}
-	currentServer := currentProtocol + "://" + currentHost
-	
+
 	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(`<!DOCTYPE html>
 <html>
   <head>
