@@ -2,6 +2,7 @@ package handlers
 
 import (
 	_ "embed"
+	"encoding/json"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -21,6 +22,30 @@ func OpenAPIJSON(c *gin.Context) {
 		c.Status(http.StatusNoContent)
 		return
 	}
+
+	// Parse the Swagger spec and dynamically set the host
+	var spec map[string]interface{}
+	if err := json.Unmarshal(swaggerSpec, &spec); err == nil {
+		// Set host to the current request's host (protocol + host)
+		host := c.Request.Host
+		if host == "" {
+			host = c.Request.Header.Get("Host")
+		}
+		if host != "" {
+			spec["host"] = host
+		}
+		// Re-marshal the spec
+		if modifiedSpec, err := json.Marshal(spec); err == nil {
+			c.Header("Content-Type", "application/json")
+			c.Header("Access-Control-Allow-Origin", "*")
+			c.Header("Access-Control-Allow-Methods", "GET, OPTIONS")
+			c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key")
+			c.Data(http.StatusOK, "application/json", modifiedSpec)
+			return
+		}
+	}
+
+	// Fallback to original spec if modification fails
 	c.Header("Content-Type", "application/json")
 	c.Header("Access-Control-Allow-Origin", "*")
 	c.Header("Access-Control-Allow-Methods", "GET, OPTIONS")

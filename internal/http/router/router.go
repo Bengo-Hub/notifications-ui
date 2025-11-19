@@ -14,6 +14,23 @@ func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handler
 
 	r := gin.New()
 	r.Use(gin.Recovery())
+	
+	// CORS middleware for Swagger UI and API requests
+	r.Use(func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key, X-Tenant-ID, X-Request-ID")
+		c.Header("Access-Control-Allow-Credentials", "true")
+		c.Header("Access-Control-Max-Age", "3600")
+		
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+		
+		c.Next()
+	})
+	
 	r.Use(middleware.RequestID())
 	r.Use(middleware.Tenant())
 	r.Use(middleware.Logging(log))
