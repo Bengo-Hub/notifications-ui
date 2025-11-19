@@ -46,7 +46,7 @@ func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handler
 	api := r.Group("/api/v1")
 	// Serve OpenAPI spec (public, no auth required)
 	api.GET("/openapi.json", handlers.OpenAPIJSON)
-	
+
 	// Health endpoints under /api/v1
 	api.GET("/healthz", health.Liveness)
 	api.GET("/readyz", health.Readiness)
