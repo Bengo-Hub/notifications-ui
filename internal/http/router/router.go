@@ -23,7 +23,7 @@ func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handler
 	r.GET("/readyz", health.Readiness)
 	r.GET("/metrics", health.Metrics)
 	// Swagger UI - custom handler like auth-service
-	r.GET("/v1/docs/*", handlers.SwaggerUI)
+	r.GET("/v1/docs/*any", handlers.SwaggerUI)
 
 	api := r.Group("/api/v1")
 	// Serve OpenAPI spec (public, no auth required)
