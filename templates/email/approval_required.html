@@ -1,0 +1,20 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p>Your approval is required.</p>
+  <p><strong>Request Type:</strong> {{ .request_type }}</p>
+  <p><strong>Request ID:</strong> {{ .request_id }}</p>
+  {{ if .requested_by }}
+  <p><strong>Requested By:</strong> {{ .requested_by }}</p>
+  {{ end }}
+  {{ if .amount }}
+  <p><strong>Amount:</strong> {{ .amount }}</p>
+  {{ end }}
+  {{ if .description }}
+  <p><strong>Description:</strong> {{ .description }}</p>
+  {{ end }}
+  <p>
+    <a class="button" href="{{ .approval_link }}">Review Request</a>
+  </p>
+  <p class="muted">Please review and approve or reject this request.</p>
+{{ end }}
+

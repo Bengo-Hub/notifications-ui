@@ -1,0 +1,10 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p>Multi-factor authentication (MFA) has been enabled for your account.</p>
+  <p>If you didn't enable this, please secure your account immediately:</p>
+  <p>
+    <a class="button" href="{{ .security_link }}">Review Security Settings</a>
+  </p>
+  <p class="muted">For your security, we'll notify you whenever MFA settings change.</p>
+{{ end }}
+

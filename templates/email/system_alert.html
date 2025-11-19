@@ -1,0 +1,20 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p><strong>System Alert:</strong> {{ .alert_title }}</p>
+  <p><strong>Severity:</strong> {{ .severity }}</p>
+  <p><strong>Time:</strong> {{ .alert_time }}</p>
+  {{ if .alert_message }}
+  <p>{{ .alert_message }}</p>
+  {{ end }}
+  {{ if .affected_systems }}
+  <p><strong>Affected Systems:</strong> {{ .affected_systems }}</p>
+  {{ end }}
+  {{ if .action_required }}
+  <p><strong>Action Required:</strong> {{ .action_required }}</p>
+  {{ end }}
+  <p>
+    <a class="button" href="{{ .alert_link }}">View Alert</a>
+  </p>
+  <p class="muted">Please review and take appropriate action.</p>
+{{ end }}
+

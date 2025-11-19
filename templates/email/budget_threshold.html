@@ -1,0 +1,12 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p>Your budget for {{ .budget_name }} has reached {{ .threshold_percent }}% of the allocated amount.</p>
+  <p><strong>Budget:</strong> {{ .budget_amount }}</p>
+  <p><strong>Spent:</strong> {{ .spent_amount }}</p>
+  <p><strong>Remaining:</strong> {{ .remaining_amount }}</p>
+  <p>
+    <a class="button" href="{{ .budget_link }}">View Budget</a>
+  </p>
+  <p class="muted">Please review your spending to stay within budget.</p>
+{{ end }}
+

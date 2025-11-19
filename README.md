@@ -23,7 +23,7 @@ For step-by-step local setup (Redis + NATS + Postgres), see:
 
 ### API Documentation
 
-- Swagger UI: http://localhost:4002/swagger/index.html
+- Swagger UI: `https://notifications.codevertex.local:4002/v1/docs/` (local HTTPS) or `http://localhost:4002/v1/docs/` (local HTTP)
 - Regenerate the OpenAPI spec after updating handler annotations:
   ```bash
   swag init -g cmd/api/main.go -o internal/http/docs
@@ -31,9 +31,10 @@ For step-by-step local setup (Redis + NATS + Postgres), see:
 
 Port mapping:
 
-- Local development serves the API on **http://localhost:4002**.
+- Local development serves the API on **https://notifications.codevertex.local:4002** (HTTPS with mkcert) or **http://localhost:4002** (HTTP).
 - In Kubernetes, the Helm chart overrides `NOTIFICATIONS_HTTP_PORT` to **4000** so all backend workloads expose a unified ingress port.
-- Production ingress: `https://notifications.codevertexitsolutions.com`
+- Production ingress: `https://notifications.codevrtexitsolutions.com`
+- **API Base Path:** All API endpoints are under `/api/v1/`
 
 ### Environment Variables
 
@@ -41,8 +42,8 @@ All configuration keys prefixed with `NOTIFICATIONS_`. See [`config/app.env.exam
 
 Security (SSO via Auth Service):
 - `NOTIFICATIONS_REQUIRE_JWT=true`
-- `NOTIFICATIONS_JWKS_URL=http://localhost:4101/api/v1/.well-known/jwks.json` (point to Auth Service in your env)
-- `NOTIFICATIONS_JWT_ISSUER=auth-service`
+- `NOTIFICATIONS_JWKS_URL=https://auth.codevertex.local:4101/api/v1/.well-known/jwks.json` (point to Auth Service in your env)
+- `NOTIFICATIONS_JWT_ISSUER=https://auth.codevertex.local:4101`
 - `NOTIFICATIONS_JWT_AUDIENCE=notifications`
 - Optional fallback: `NOTIFICATIONS_API_KEY` for service-to-service without JWT in dev
 

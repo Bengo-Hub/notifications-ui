@@ -1,0 +1,15 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p>Thank you for your payment of {{ .amount }}.</p>
+  <p><strong>Transaction ID:</strong> {{ .transaction_id }}</p>
+  <p><strong>Payment Method:</strong> {{ .payment_method }}</p>
+  <p><strong>Date:</strong> {{ .payment_date }}</p>
+  {{ if .invoice_number }}
+  <p><strong>Invoice:</strong> {{ .invoice_number }}</p>
+  {{ end }}
+  <p>
+    <a class="button" href="{{ .receipt_link }}">View Receipt</a>
+  </p>
+  <p class="muted">This is your payment confirmation.</p>
+{{ end }}
+

@@ -1,0 +1,16 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p>Purchase order has been approved.</p>
+  <p><strong>PO Number:</strong> {{ .po_number }}</p>
+  <p><strong>Supplier:</strong> {{ .supplier_name }}</p>
+  <p><strong>Total Amount:</strong> {{ .total_amount }}</p>
+  <p><strong>Items:</strong> {{ .item_count }} item(s)</p>
+  {{ if .expected_delivery }}
+  <p><strong>Expected Delivery:</strong> {{ .expected_delivery }}</p>
+  {{ end }}
+  <p>
+    <a class="button" href="{{ .po_link }}">View Purchase Order</a>
+  </p>
+  <p class="muted">The order will be sent to the supplier.</p>
+{{ end }}
+

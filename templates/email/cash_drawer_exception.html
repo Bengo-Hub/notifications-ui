@@ -1,0 +1,17 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p>A cash drawer exception has been detected.</p>
+  <p><strong>Outlet:</strong> {{ .outlet_name }}</p>
+  <p><strong>Device:</strong> {{ .device_id }}</p>
+  <p><strong>Exception Type:</strong> {{ .exception_type }}</p>
+  <p><strong>Amount:</strong> {{ .amount }}</p>
+  <p><strong>Time:</strong> {{ .exception_time }}</p>
+  {{ if .description }}
+  <p><strong>Details:</strong> {{ .description }}</p>
+  {{ end }}
+  <p>
+    <a class="button" href="{{ .exception_link }}">Review Exception</a>
+  </p>
+  <p class="muted">Please review and take appropriate action.</p>
+{{ end }}
+

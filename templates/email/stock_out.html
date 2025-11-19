@@ -1,0 +1,20 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p><strong>URGENT:</strong> Stock out detected for {{ .item_name }}.</p>
+  <p><strong>Item SKU:</strong> {{ .item_sku }}</p>
+  <p><strong>Warehouse/Outlet:</strong> {{ .location }}</p>
+  <p><strong>Time:</strong> {{ .stockout_time }}</p>
+  {{ if .affected_orders }}
+  <p><strong>Affected Orders:</strong> {{ .affected_orders }}</p>
+  {{ end }}
+  <p>
+    <a class="button" href="{{ .item_link }}">View Item</a>
+  </p>
+  {{ if .purchase_order_link }}
+  <p>
+    <a class="button" href="{{ .purchase_order_link }}">Create Purchase Order</a>
+  </p>
+  {{ end }}
+  <p class="muted">Immediate action required.</p>
+{{ end }}
+

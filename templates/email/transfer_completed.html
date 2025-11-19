@@ -1,0 +1,16 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p>Stock transfer has been completed.</p>
+  <p><strong>Transfer ID:</strong> {{ .transfer_id }}</p>
+  <p><strong>From:</strong> {{ .from_location }}</p>
+  <p><strong>To:</strong> {{ .to_location }}</p>
+  <p><strong>Completed At:</strong> {{ .completed_at }}</p>
+  {{ if .received_by }}
+  <p><strong>Received By:</strong> {{ .received_by }}</p>
+  {{ end }}
+  <p>
+    <a class="button" href="{{ .transfer_link }}">View Transfer</a>
+  </p>
+  <p class="muted">Stock levels have been updated.</p>
+{{ end }}
+

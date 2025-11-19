@@ -1,0 +1,16 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p>A stock transfer has been created.</p>
+  <p><strong>Transfer ID:</strong> {{ .transfer_id }}</p>
+  <p><strong>From:</strong> {{ .from_location }}</p>
+  <p><strong>To:</strong> {{ .to_location }}</p>
+  <p><strong>Items:</strong> {{ .item_count }} item(s)</p>
+  {{ if .expected_arrival }}
+  <p><strong>Expected Arrival:</strong> {{ .expected_arrival }}</p>
+  {{ end }}
+  <p>
+    <a class="button" href="{{ .transfer_link }}">View Transfer</a>
+  </p>
+  <p class="muted">Track the transfer status in your dashboard.</p>
+{{ end }}
+

@@ -2,14 +2,14 @@ package router
 
 import (
 	"github.com/gin-gonic/gin"
-	httpSwagger "github.com/swaggo/http-swagger"
 	"go.uber.org/zap"
 
+	authclient "github.com/Bengo-Hub/shared-auth-client"
 	handlers "github.com/bengobox/notifications-app/internal/http/handlers"
 	"github.com/bengobox/notifications-app/internal/shared/middleware"
 )
 
-func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handlers.NotificationHandler, templates *handlers.TemplateHandler, apiKey string, jwt *middleware.JWTValidator) *gin.Engine {
+func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handlers.NotificationHandler, templates *handlers.TemplateHandler, apiKey string, authMiddleware *authclient.AuthMiddleware) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 
 	r := gin.New()
@@ -22,10 +22,21 @@ func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handler
 	r.GET("/healthz", health.Liveness)
 	r.GET("/readyz", health.Readiness)
 	r.GET("/metrics", health.Metrics)
-	r.GET("/swagger/*any", gin.WrapH(httpSwagger.WrapHandler))
+	r.GET("/v1/docs/*any", handlers.SwaggerHandler())
 
-	api := r.Group("/v1")
-	api.Use(middleware.AuthAny(jwt, apiKey))
+	api := r.Group("/api/v1")
+	// Apply auth middleware if configured, otherwise allow API key
+	if authMiddleware != nil {
+		api.Use(authclient.GinMiddleware(authMiddleware))
+	} else if apiKey != "" {
+		api.Use(func(c *gin.Context) {
+			if c.GetHeader("X-API-Key") != apiKey {
+				c.AbortWithStatusJSON(401, gin.H{"error": "unauthorized"})
+				return
+			}
+			c.Next()
+		})
+	}
 	{
 		tenant := api.Group("/:tenantId")
 		{

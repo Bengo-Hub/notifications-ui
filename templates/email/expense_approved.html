@@ -1,0 +1,15 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p>Your expense request for {{ .amount }} has been approved.</p>
+  <p><strong>Expense ID:</strong> {{ .expense_id }}</p>
+  <p><strong>Category:</strong> {{ .category }}</p>
+  <p><strong>Date:</strong> {{ .expense_date }}</p>
+  {{ if .reimbursement_amount }}
+  <p><strong>Reimbursement Amount:</strong> {{ .reimbursement_amount }}</p>
+  {{ end }}
+  <p>
+    <a class="button" href="{{ .expense_link }}">View Expense</a>
+  </p>
+  <p class="muted">The reimbursement will be processed according to your organization's policy.</p>
+{{ end }}
+

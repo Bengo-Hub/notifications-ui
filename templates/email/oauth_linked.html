@@ -1,0 +1,10 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p>Your {{ .provider }} account has been successfully linked to your {{ or .brand_name "BengoBox" }} account.</p>
+  <p>You can now sign in using {{ .provider }}.</p>
+  <p>
+    <a class="button" href="{{ .account_link }}">Manage Account</a>
+  </p>
+  <p class="muted">If you didn't link this account, please contact support immediately.</p>
+{{ end }}
+

@@ -1,0 +1,15 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p>Your payout of {{ .amount }} has been completed.</p>
+  <p><strong>Payout ID:</strong> {{ .payout_id }}</p>
+  <p><strong>Method:</strong> {{ .payout_method }}</p>
+  <p><strong>Date:</strong> {{ .payout_date }}</p>
+  {{ if .reference_number }}
+  <p><strong>Reference:</strong> {{ .reference_number }}</p>
+  {{ end }}
+  <p>
+    <a class="button" href="{{ .payout_link }}">View Details</a>
+  </p>
+  <p class="muted">The funds should appear in your account within 1-3 business days.</p>
+{{ end }}
+

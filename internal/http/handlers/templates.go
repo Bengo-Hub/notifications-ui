@@ -40,7 +40,7 @@ type templateGetResponse struct {
 // @Param tenantId path string true "Tenant identifier"
 // @Success 200 {object} templateListResponse
 // @Security ApiKeyAuth
-// @Router /v1/{tenantId}/templates [get]
+// @Router /{tenantId}/templates [get]
 func (h *TemplateHandler) List(c *gin.Context) {
 	summaries, _ := h.loader.List(c.Request.Context())
 	resp := templateListResponse{Templates: make([]templateSummary, 0, len(summaries))}
@@ -61,7 +61,7 @@ func (h *TemplateHandler) List(c *gin.Context) {
 // @Success 200 {object} templateGetResponse
 // @Failure 404 {object} errorResponse
 // @Security ApiKeyAuth
-// @Router /v1/{tenantId}/templates/{id} [get]
+// @Router /{tenantId}/templates/{id} [get]
 func (h *TemplateHandler) Get(c *gin.Context) {
 	id := c.Param("id")
 	channel := c.Query("channel")

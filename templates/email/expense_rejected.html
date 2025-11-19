@@ -1,0 +1,13 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p>Your expense request for {{ .amount }} has been rejected.</p>
+  <p><strong>Expense ID:</strong> {{ .expense_id }}</p>
+  {{ if .rejection_reason }}
+  <p><strong>Reason:</strong> {{ .rejection_reason }}</p>
+  {{ end }}
+  <p>
+    <a class="button" href="{{ .expense_link }}">View Expense</a>
+  </p>
+  <p class="muted">If you have questions, please contact your finance team.</p>
+{{ end }}
+

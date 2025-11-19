@@ -1,0 +1,14 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p>Your delivery route has been updated.</p>
+  <p><strong>Route ID:</strong> {{ .route_id }}</p>
+  <p><strong>Reason:</strong> {{ .update_reason }}</p>
+  {{ if .new_eta }}
+  <p><strong>New Estimated Arrival:</strong> {{ .new_eta }}</p>
+  {{ end }}
+  <p>
+    <a class="button" href="{{ .tracking_link }}">Track Delivery</a>
+  </p>
+  <p class="muted">We're working to ensure timely delivery.</p>
+{{ end }}
+

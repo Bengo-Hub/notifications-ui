@@ -1,0 +1,15 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p>Your requested report is ready.</p>
+  <p><strong>Report Name:</strong> {{ .report_name }}</p>
+  <p><strong>Report Type:</strong> {{ .report_type }}</p>
+  <p><strong>Generated At:</strong> {{ .generated_at }}</p>
+  {{ if .date_range }}
+  <p><strong>Date Range:</strong> {{ .date_range }}</p>
+  {{ end }}
+  <p>
+    <a class="button" href="{{ .report_link }}">Download Report</a>
+  </p>
+  <p class="muted">The report will be available for {{ .retention_days }} days.</p>
+{{ end }}
+

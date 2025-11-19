@@ -1,0 +1,15 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p>You've earned {{ .points }} loyalty points!</p>
+  <p><strong>Order ID:</strong> {{ .order_id }}</p>
+  <p><strong>Points Earned:</strong> {{ .points }}</p>
+  <p><strong>Total Points:</strong> {{ .total_points }}</p>
+  {{ if .points_value }}
+  <p><strong>Points Value:</strong> {{ .points_value }}</p>
+  {{ end }}
+  <p>
+    <a class="button" href="{{ .loyalty_link }}">View Rewards</a>
+  </p>
+  <p class="muted">Thank you for your loyalty!</p>
+{{ end }}
+

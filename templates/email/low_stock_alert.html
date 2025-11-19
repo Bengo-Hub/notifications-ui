@@ -1,0 +1,21 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p>Low stock alert for {{ .item_name }}.</p>
+  <p><strong>Item SKU:</strong> {{ .item_sku }}</p>
+  <p><strong>Current Stock:</strong> {{ .current_stock }} {{ .unit }}</p>
+  <p><strong>Minimum Threshold:</strong> {{ .min_threshold }} {{ .unit }}</p>
+  <p><strong>Warehouse/Outlet:</strong> {{ .location }}</p>
+  {{ if .reorder_quantity }}
+  <p><strong>Recommended Reorder:</strong> {{ .reorder_quantity }} {{ .unit }}</p>
+  {{ end }}
+  <p>
+    <a class="button" href="{{ .item_link }}">View Item</a>
+  </p>
+  {{ if .purchase_order_link }}
+  <p>
+    <a class="button" href="{{ .purchase_order_link }}">Create Purchase Order</a>
+  </p>
+  {{ end }}
+  <p class="muted">Please reorder soon to avoid stockouts.</p>
+{{ end }}
+

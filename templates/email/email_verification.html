@@ -1,0 +1,9 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p>Welcome to {{ or .brand_name "BengoBox" }}! Please verify your email address to complete your registration.</p>
+  <p>
+    <a class="button" href="{{ .verification_link }}">Verify Email</a>
+  </p>
+  <p class="muted">This link expires in {{ .ttl_minutes }} minutes. If you didn't create an account, you can safely ignore this email.</p>
+{{ end }}
+

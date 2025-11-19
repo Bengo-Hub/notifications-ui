@@ -1,0 +1,17 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p>Your delivery ETA has been updated.</p>
+  <p><strong>Order ID:</strong> {{ .order_id }}</p>
+  <p><strong>New Estimated Arrival:</strong> {{ .new_eta }}</p>
+  {{ if .previous_eta }}
+  <p><strong>Previous ETA:</strong> {{ .previous_eta }}</p>
+  {{ end }}
+  {{ if .delay_reason }}
+  <p><strong>Reason:</strong> {{ .delay_reason }}</p>
+  {{ end }}
+  <p>
+    <a class="button" href="{{ .tracking_link }}">Track Delivery</a>
+  </p>
+  <p class="muted">We'll keep you updated on any further changes.</p>
+{{ end }}
+

@@ -1,0 +1,15 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p>Your POS license is due for renewal.</p>
+  <p><strong>License ID:</strong> {{ .license_id }}</p>
+  <p><strong>Expiry Date:</strong> {{ .expiry_date }}</p>
+  <p><strong>Days Remaining:</strong> {{ .days_remaining }}</p>
+  {{ if .renewal_amount }}
+  <p><strong>Renewal Amount:</strong> {{ .renewal_amount }}</p>
+  {{ end }}
+  <p>
+    <a class="button" href="{{ .renewal_link }}">Renew License</a>
+  </p>
+  <p class="muted">Please renew before the expiry date to avoid service interruption.</p>
+{{ end }}
+

@@ -1,0 +1,17 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p>Invoice {{ .invoice_number }} for {{ .amount }} has been sent to you.</p>
+  {{ if .due_date }}
+  <p><strong>Due Date:</strong> {{ .due_date }}</p>
+  {{ end }}
+  <p>
+    <a class="button" href="{{ .invoice_link }}">View Invoice</a>
+  </p>
+  {{ if .payment_link }}
+  <p>
+    <a class="button" href="{{ .payment_link }}">Pay Now</a>
+  </p>
+  {{ end }}
+  <p class="muted">Please review and pay by the due date.</p>
+{{ end }}
+

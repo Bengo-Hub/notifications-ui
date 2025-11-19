@@ -1,0 +1,11 @@
+{
+  "title": "Order Confirmed",
+  "body": "Your order {{ .order_id }} has been confirmed",
+  "deep_link": "{{ .order_link }}",
+  "data": {
+    "type": "order_placed",
+    "order_id": "{{ .order_id }}",
+    "total": "{{ .total_amount }}"
+  }
+}
+

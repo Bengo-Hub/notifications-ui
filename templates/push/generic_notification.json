@@ -1,0 +1,10 @@
+{
+  "title": "{{ .title }}",
+  "body": "{{ .body }}",
+  "deep_link": "{{ .deep_link }}",
+  "data": {
+    {{ if .notification_type }}"type": "{{ .notification_type }}",{{ end }}
+    {{ if .notification_id }}"id": "{{ .notification_id }}"{{ end }}
+  }
+}
+

@@ -1,0 +1,10 @@
+{
+  "title": "Order Ready",
+  "body": "Your order {{ .order_id }} is ready!",
+  "deep_link": "{{ .order_link }}",
+  "data": {
+    "type": "order_ready",
+    "order_id": "{{ .order_id }}"
+  }
+}
+

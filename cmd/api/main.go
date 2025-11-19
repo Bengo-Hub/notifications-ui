@@ -14,9 +14,13 @@ import (
 // @title Notifications Service API
 // @version 0.1.0
 // @description HTTP API for the BengoBox notifications service.
-// @BasePath /
+// @BasePath /api/v1
 // @schemes http https
 // @host notifications.codevertexitsolutions.com
+// @securityDefinitions.apikey bearerAuth
+// @in header
+// @name Authorization
+// @description JWT token from auth-service. Format: Bearer {token}
 // @securityDefinitions.apikey ApiKeyAuth
 // @in header
 // @name X-API-Key

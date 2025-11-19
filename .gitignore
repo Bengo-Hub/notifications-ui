@@ -13,6 +13,10 @@ coverage/
 .env.*.local
 config/*.env
 
+# TLS certificates (mkcert generated)
+config/certs/*.pem
+config/certs/*.key
+
 # IDE
 .vscode/
 .idea/

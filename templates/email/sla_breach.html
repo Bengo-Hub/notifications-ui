@@ -1,0 +1,16 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p>This is an alert that a service level agreement (SLA) has been breached.</p>
+  <p><strong>Task ID:</strong> {{ .task_id }}</p>
+  <p><strong>Order ID:</strong> {{ .order_id }}</p>
+  <p><strong>SLA Type:</strong> {{ .sla_type }}</p>
+  <p><strong>Breach Time:</strong> {{ .breach_time }}</p>
+  {{ if .expected_completion }}
+  <p><strong>Expected Completion:</strong> {{ .expected_completion }}</p>
+  {{ end }}
+  <p>
+    <a class="button" href="{{ .task_link }}">View Task</a>
+  </p>
+  <p class="muted">Please review and take appropriate action.</p>
+{{ end }}
+

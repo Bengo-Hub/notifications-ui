@@ -1,0 +1,11 @@
+{
+  "title": "Driver Arriving",
+  "body": "Your driver is arriving! ETA: {{ .estimated_arrival }}",
+  "deep_link": "{{ .tracking_link }}",
+  "data": {
+    "type": "delivery_arriving",
+    "order_id": "{{ .order_id }}",
+    "eta": "{{ .estimated_arrival }}"
+  }
+}
+

@@ -81,7 +81,7 @@ type errorResponse struct {
 // @Success 202 {object} enqueueResponse
 // @Failure 400 {object} errorResponse
 // @Security ApiKeyAuth
-// @Router /v1/{tenantId}/notifications/messages [post]
+// @Router /{tenantId}/notifications/messages [post]
 func (h *NotificationHandler) Enqueue(c *gin.Context) {
 	var req CreateMessageRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

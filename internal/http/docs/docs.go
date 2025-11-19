@@ -277,7 +277,7 @@ var SwaggerInfo = &swag.Spec{
 	Version:          "0.1.0",
 	Host:             "",
 	BasePath:         "/",
-	Schemes:          []string{"http"},
+	Schemes:          []string{"http", "https"},
 	Title:            "Notifications Service API",
 	Description:      "HTTP API for the BengoBox notifications service.",
 	InfoInstanceName: "swagger",

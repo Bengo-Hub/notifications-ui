@@ -1,0 +1,16 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p>A stock adjustment has been made.</p>
+  <p><strong>Adjustment ID:</strong> {{ .adjustment_id }}</p>
+  <p><strong>Item:</strong> {{ .item_name }} ({{ .item_sku }})</p>
+  <p><strong>Location:</strong> {{ .location }}</p>
+  <p><strong>Adjustment Type:</strong> {{ .adjustment_type }}</p>
+  <p><strong>Quantity:</strong> {{ .quantity }} {{ .unit }}</p>
+  <p><strong>Reason:</strong> {{ .reason }}</p>
+  <p><strong>Adjusted By:</strong> {{ .adjusted_by }}</p>
+  <p>
+    <a class="button" href="{{ .adjustment_link }}">View Adjustment</a>
+  </p>
+  <p class="muted">Stock levels have been updated accordingly.</p>
+{{ end }}
+

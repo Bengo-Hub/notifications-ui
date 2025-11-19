@@ -33,6 +33,8 @@ type HTTPConfig struct {
 	ReadTimeout  time.Duration `envconfig:"HTTP_READ_TIMEOUT" default:"15s"`
 	WriteTimeout time.Duration `envconfig:"HTTP_WRITE_TIMEOUT" default:"15s"`
 	IdleTimeout  time.Duration `envconfig:"HTTP_IDLE_TIMEOUT" default:"60s"`
+	TLSCertFile  string        `envconfig:"TLS_CERT_FILE"`
+	TLSKeyFile   string        `envconfig:"TLS_KEY_FILE"`
 }
 
 type PostgresConfig struct {
@@ -93,8 +95,8 @@ type SecurityConfig struct {
 	APIKey string `envconfig:"API_KEY"`
 	// Auth Service SSO (JWT) integration
 	RequireJWT bool   `envconfig:"REQUIRE_JWT" default:"true"`
-	JWKSURL    string `envconfig:"JWKS_URL" default:"http://localhost:4101/api/v1/.well-known/jwks.json"`
-	Issuer     string `envconfig:"JWT_ISSUER" default:"auth-service"`
+	JWKSURL    string `envconfig:"JWKS_URL" default:"https://auth.codevertex.local:4101/api/v1/.well-known/jwks.json"`
+	Issuer     string `envconfig:"JWT_ISSUER" default:"https://auth.codevertex.local:4101"`
 	Audience   string `envconfig:"JWT_AUDIENCE" default:"notifications"`
 }
 

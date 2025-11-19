@@ -1,8 +1,9 @@
 # Notifications Service Delivery Plan
 
 ## Vision & Mandate
-- Provide a reusable, low-latency communications platform for all BengoBox products (Food Delivery, ERP, billing, etc.) handling transactional and marketing messages across email, SMS, and push channels.
+- Provide a reusable, low-latency communications platform for all BengoBox products (Cafe, ERP, billing, etc.) handling transactional and marketing messages across email, SMS, and push channels.
 - Centralize template management, provider orchestration, compliance logging, and user preference management while exposing simple APIs and event-driven interfaces.
+- **Entity Ownership**: This service owns all notification entities: templates, delivery logs, provider settings, tenant branding, user preferences, and campaigns. All other services call notifications-app APIs to send messages but never store notification delivery state. Services emit events (e.g., `invoice_created`, `order.ready`) consumed by notifications-app. See `docs/cross-service-entity-ownership.md` for complete ownership matrix.
 
 ## Technical Foundations
 - **Language & Framework:** Go 1.22, Hexagonal architecture, Gin/Fiber HTTP layer, gRPC gateway for high-throughput integrations.
@@ -10,6 +11,7 @@
 - **Queue/Eventing:** NATS JetStream or Kafka for inbound events, AWS SQS-compatible adapter for managed deployments.
 - **Infrastructure:** Containerized with Docker, Helm charts for k8s, GitHub Actions CI/CD, Terraform modules for cloud provisioning, OpenTelemetry instrumentation, Prometheus metrics.
 - **Security:** mTLS between services, JWT-based client auth, secret rotation via Vault, per-tenant API keys, signed webhooks, organisation/branch-aware RBAC.
+- **Auth-Service SSO Integration:** ✅ **COMPLETED** - Integrated `shared/auth-client` v0.1.0 library for production-ready JWT validation using JWKS from auth-service. Replaced custom JWT validator with production-ready JWKS-based validation. All protected `/v1/{tenantId}` routes require valid Bearer tokens. Falls back to API key auth if JWT not configured. Swagger documentation updated with BearerAuth security definition. **Deployment:** Uses monorepo `replace` directives with versioned dependency (`v0.1.0`). Go workspace (`go.work`) handles local development automatically. Each service has independent DevOps workflows and can be deployed separately while sharing the auth library. See `shared/auth-client/DEPLOYMENT.md` and `shared/auth-client/TAGGING.md` for details.
 
 ## Runtime Ports
 - **Local development:** default HTTP port **4002** to stay distinct from Food Delivery backend (4000) and Treasury service (4001).

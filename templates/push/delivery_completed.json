@@ -1,0 +1,10 @@
+{
+  "title": "Delivery Completed",
+  "body": "Your order {{ .order_id }} has been delivered",
+  "deep_link": "{{ .order_link }}",
+  "data": {
+    "type": "delivery_completed",
+    "order_id": "{{ .order_id }}"
+  }
+}
+

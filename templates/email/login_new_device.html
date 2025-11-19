@@ -1,0 +1,14 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p>We noticed a login from a new device or location:</p>
+  <ul>
+    <li><strong>Device:</strong> {{ .device_info }}</li>
+    <li><strong>Location:</strong> {{ .location }}</li>
+    <li><strong>Time:</strong> {{ .login_time }}</li>
+  </ul>
+  <p>If this was you, no action is needed. If not, please secure your account:</p>
+  <p>
+    <a class="button" href="{{ .security_link }}">Secure Account</a>
+  </p>
+{{ end }}
+

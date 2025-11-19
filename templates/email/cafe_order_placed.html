@@ -1,0 +1,17 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p>Thank you for your order!</p>
+  <p><strong>Order ID:</strong> {{ .order_id }}</p>
+  <p><strong>Total:</strong> {{ .total_amount }}</p>
+  {{ if .estimated_prep_time }}
+  <p><strong>Estimated Prep Time:</strong> {{ .estimated_prep_time }} minutes</p>
+  {{ end }}
+  {{ if .delivery_address }}
+  <p><strong>Delivery Address:</strong> {{ .delivery_address }}</p>
+  {{ end }}
+  <p>
+    <a class="button" href="{{ .order_link }}">Track Order</a>
+  </p>
+  <p class="muted">We'll notify you when your order is ready.</p>
+{{ end }}
+

@@ -1,0 +1,10 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p>Your account has been temporarily locked due to multiple failed login attempts.</p>
+  <p>For your security, please wait {{ .lockout_minutes }} minutes before trying again, or reset your password:</p>
+  <p>
+    <a class="button" href="{{ .reset_link }}">Reset Password</a>
+  </p>
+  <p class="muted">If you didn't attempt to log in, please contact support immediately.</p>
+{{ end }}
+

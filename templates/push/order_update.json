@@ -1,0 +1,11 @@
+{
+  "title": "{{ .title }}",
+  "body": "{{ .body }}",
+  "deep_link": "{{ .order_link }}",
+  "data": {
+    "type": "order_update",
+    "order_id": "{{ .order_id }}",
+    "status": "{{ .status }}"
+  }
+}
+

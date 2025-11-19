@@ -1,0 +1,17 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p>Weather conditions may affect your delivery.</p>
+  <p><strong>Order ID:</strong> {{ .order_id }}</p>
+  <p><strong>Weather Alert:</strong> {{ .weather_condition }}</p>
+  {{ if .new_eta }}
+  <p><strong>Updated ETA:</strong> {{ .new_eta }}</p>
+  {{ end }}
+  {{ if .advisory_message }}
+  <p>{{ .advisory_message }}</p>
+  {{ end }}
+  <p>
+    <a class="button" href="{{ .tracking_link }}">Track Delivery</a>
+  </p>
+  <p class="muted">We're monitoring conditions and will keep you updated.</p>
+{{ end }}
+

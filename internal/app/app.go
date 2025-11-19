@@ -2,9 +2,11 @@ package app
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -13,6 +15,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 
+	authclient "github.com/Bengo-Hub/shared-auth-client"
 	"github.com/bengobox/notifications-app/internal/config"
 	handlers "github.com/bengobox/notifications-app/internal/http/handlers"
 	router "github.com/bengobox/notifications-app/internal/http/router"
@@ -21,7 +24,6 @@ import (
 	"github.com/bengobox/notifications-app/internal/platform/events"
 	"github.com/bengobox/notifications-app/internal/platform/templates"
 	"github.com/bengobox/notifications-app/internal/shared/logger"
-	"github.com/bengobox/notifications-app/internal/shared/middleware"
 )
 
 type App struct {
@@ -63,8 +65,34 @@ func New(ctx context.Context) (*App, error) {
 	notificationHandler := handlers.NewNotificationHandler(log, natsConn, redisClient, cfg.Events)
 	templateHandler := handlers.NewTemplateHandler(templateLoader)
 
-	jwtValidator := middleware.NewJWTValidator(cfg.Security.JWKSURL, cfg.Security.Issuer, cfg.Security.Audience, cfg.Security.RequireJWT)
-	ginRouter := router.New(log, healthHandler, notificationHandler, templateHandler, cfg.Security.APIKey, jwtValidator)
+	// Initialize auth-service JWT validator
+	var authMiddleware *authclient.AuthMiddleware
+	if cfg.Security.RequireJWT {
+		authConfig := authclient.DefaultConfig(
+			cfg.Security.JWKSURL,
+			cfg.Security.Issuer,
+			cfg.Security.Audience,
+		)
+		// For local Docker development, skip TLS verification when connecting to auth-service
+		// This allows mkcert certificates to work from inside containers
+		if strings.Contains(cfg.Security.JWKSURL, "auth.codevertex.local") ||
+			strings.Contains(cfg.Security.JWKSURL, "host.docker.internal") {
+			tr := &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			}
+			authConfig.HTTPClient = &http.Client{
+				Timeout:   10 * time.Second,
+				Transport: tr,
+			}
+		}
+		validator, err := authclient.NewValidator(authConfig)
+		if err != nil {
+			return nil, fmt.Errorf("auth validator init: %w", err)
+		}
+		authMiddleware = authclient.NewAuthMiddleware(validator)
+	}
+
+	ginRouter := router.New(log, healthHandler, notificationHandler, templateHandler, cfg.Security.APIKey, authMiddleware)
 
 	httpServer := &http.Server{
 		Addr:              fmt.Sprintf("%s:%d", cfg.HTTP.Host, cfg.HTTP.Port),
@@ -91,12 +119,22 @@ func (a *App) Run(ctx context.Context) error {
 		gin.SetMode(gin.DebugMode)
 	}
 
-	a.log.Info("notifications service starting", zap.String("addr", a.httpServer.Addr))
-
 	errCh := make(chan error, 1)
-	go func() {
-		errCh <- a.httpServer.ListenAndServe()
-	}()
+	if a.cfg.HTTP.TLSCertFile != "" && a.cfg.HTTP.TLSKeyFile != "" {
+		a.log.Info("notifications service starting with HTTPS",
+			zap.String("addr", a.httpServer.Addr),
+			zap.String("cert", a.cfg.HTTP.TLSCertFile),
+			zap.String("key", a.cfg.HTTP.TLSKeyFile),
+		)
+		go func() {
+			errCh <- a.httpServer.ListenAndServeTLS(a.cfg.HTTP.TLSCertFile, a.cfg.HTTP.TLSKeyFile)
+		}()
+	} else {
+		a.log.Info("notifications service starting with HTTP", zap.String("addr", a.httpServer.Addr))
+		go func() {
+			errCh <- a.httpServer.ListenAndServe()
+		}()
+	}
 
 	select {
 	case <-ctx.Done():

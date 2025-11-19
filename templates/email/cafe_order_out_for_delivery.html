@@ -1,0 +1,17 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <p>Your order is out for delivery!</p>
+  <p><strong>Order ID:</strong> {{ .order_id }}</p>
+  <p><strong>Driver:</strong> {{ .driver_name }}</p>
+  {{ if .estimated_arrival }}
+  <p><strong>Estimated Arrival:</strong> {{ .estimated_arrival }}</p>
+  {{ end }}
+  {{ if .driver_phone }}
+  <p><strong>Driver Contact:</strong> {{ .driver_phone }}</p>
+  {{ end }}
+  <p>
+    <a class="button" href="{{ .tracking_link }}">Track Delivery</a>
+  </p>
+  <p class="muted">You'll receive updates as your order progresses.</p>
+{{ end }}
+

@@ -1,0 +1,11 @@
+{
+  "title": "Delivery Assigned",
+  "body": "Your order {{ .order_id }} has been assigned to {{ .driver_name }}",
+  "deep_link": "{{ .tracking_link }}",
+  "data": {
+    "type": "delivery_assigned",
+    "order_id": "{{ .order_id }}",
+    "driver_name": "{{ .driver_name }}"
+  }
+}
+
