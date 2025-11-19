@@ -15,15 +15,15 @@ var swaggerSpec []byte
 // convertSwagger2ToOpenAPI3 converts Swagger 2.0 spec to OpenAPI 3.0 format
 func convertSwagger2ToOpenAPI3(swagger2Spec map[string]interface{}) map[string]interface{} {
 	openAPI3 := make(map[string]interface{})
-	
+
 	// Set OpenAPI version
 	openAPI3["openapi"] = "3.0.3"
-	
+
 	// Copy info
 	if info, ok := swagger2Spec["info"].(map[string]interface{}); ok {
 		openAPI3["info"] = info
 	}
-	
+
 	// Convert servers - add both local and production
 	openAPI3["servers"] = []map[string]interface{}{
 		{
@@ -39,10 +39,10 @@ func convertSwagger2ToOpenAPI3(swagger2Spec map[string]interface{}) map[string]i
 			"description": "Production",
 		},
 	}
-	
+
 	// Copy components (security schemes, schemas)
 	components := make(map[string]interface{})
-	
+
 	// Convert security definitions to security schemes
 	if securityDefs, ok := swagger2Spec["securityDefinitions"].(map[string]interface{}); ok {
 		securitySchemes := make(map[string]interface{})
@@ -51,21 +51,21 @@ func convertSwagger2ToOpenAPI3(swagger2Spec map[string]interface{}) map[string]i
 		}
 		components["securitySchemes"] = securitySchemes
 	}
-	
+
 	// Copy definitions to schemas
 	if definitions, ok := swagger2Spec["definitions"].(map[string]interface{}); ok {
 		components["schemas"] = definitions
 	}
-	
+
 	if len(components) > 0 {
 		openAPI3["components"] = components
 	}
-	
+
 	// Copy security
 	if security, ok := swagger2Spec["security"].([]interface{}); ok {
 		openAPI3["security"] = security
 	}
-	
+
 	// Convert paths - paths in Swagger 2.0 are relative to basePath
 	// In OpenAPI 3.0, paths are absolute
 	// Root-level paths (healthz, metrics, readyz) should stay at root
@@ -74,13 +74,13 @@ func convertSwagger2ToOpenAPI3(swagger2Spec map[string]interface{}) map[string]i
 	if bp, ok := swagger2Spec["basePath"].(string); ok {
 		basePath = strings.TrimSuffix(bp, "/")
 	}
-	
+
 	rootLevelPaths := map[string]bool{
 		"/healthz": true,
 		"/metrics": true,
 		"/readyz":  true,
 	}
-	
+
 	if paths, ok := swagger2Spec["paths"].(map[string]interface{}); ok {
 		convertedPaths := make(map[string]interface{})
 		for path, pathItem := range paths {
@@ -88,7 +88,7 @@ func convertSwagger2ToOpenAPI3(swagger2Spec map[string]interface{}) map[string]i
 			if !strings.HasPrefix(path, "/") {
 				path = "/" + path
 			}
-			
+
 			// Keep root-level paths as-is, prepend basePath to API paths
 			if !rootLevelPaths[path] && basePath != "" && !strings.HasPrefix(path, basePath) {
 				path = basePath + path
@@ -97,7 +97,7 @@ func convertSwagger2ToOpenAPI3(swagger2Spec map[string]interface{}) map[string]i
 		}
 		openAPI3["paths"] = convertedPaths
 	}
-	
+
 	return openAPI3
 }
 
