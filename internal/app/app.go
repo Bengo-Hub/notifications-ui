@@ -89,7 +89,28 @@ func New(ctx context.Context) (*App, error) {
 		if err != nil {
 			return nil, fmt.Errorf("auth validator init: %w", err)
 		}
-		authMiddleware = authclient.NewAuthMiddleware(validator)
+
+		// Add API key validator if database URL is provided
+		var apiKeyValidator *authclient.APIKeyValidator
+		if cfg.Security.APIKeyDBURL != "" {
+			// Create HTTP client for API key validation
+			apiKeyHTTPClient := &http.Client{Timeout: 10 * time.Second}
+			// For local Docker development, skip TLS verification when connecting to auth-service
+			if strings.Contains(cfg.Security.APIKeyDBURL, "auth.codevertex.local") ||
+				strings.Contains(cfg.Security.APIKeyDBURL, "host.docker.internal") {
+				tr := &http.Transport{
+					TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+				}
+				apiKeyHTTPClient = &http.Client{
+					Timeout:   10 * time.Second,
+					Transport: tr,
+				}
+			}
+			apiKeyValidator = authclient.NewAPIKeyValidator(cfg.Security.APIKeyDBURL, apiKeyHTTPClient)
+			authMiddleware = authclient.NewAuthMiddlewareWithAPIKey(validator, apiKeyValidator)
+		} else {
+			authMiddleware = authclient.NewAuthMiddleware(validator)
+		}
 	}
 
 	ginRouter := router.New(log, healthHandler, notificationHandler, templateHandler, cfg.Security.APIKey, authMiddleware)

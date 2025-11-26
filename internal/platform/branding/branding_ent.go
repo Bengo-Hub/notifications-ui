@@ -1,40 +1,55 @@
-//go:build entgen
-
 package branding
 
 import (
 	"context"
 	"os"
 
-	"github.com/jackc/pgx/v5/pgxpool"
-
-	"github.com/bengobox/notifications-app/internal/ent"
-	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/bengobox/notifications-app/internal/config"
+	"github.com/bengobox/notifications-app/internal/database"
+	"github.com/bengobox/notifications-app/internal/ent/tenantbranding"
 )
 
-// LoadBranding (entgen) uses ent client; db is unused here.
-func LoadBranding(ctx context.Context, _ *pgxpool.Pool, tenantID string) (Info, error) {
-	dsn := os.Getenv("NOTIFICATIONS_POSTGRES_URL")
-	client, err := ent.Open("pgx", dsn)
+// LoadBrandingEnt loads tenant branding using Ent; falls back gracefully if Ent is not compiled.
+func LoadBrandingEnt(ctx context.Context, dbCfg config.PostgresConfig, tenantID string) (Info, error) {
+	dsn := dbCfg.URL
+	if env := os.Getenv("NOTIFICATIONS_POSTGRES_URL"); env != "" {
+		dsn = env
+	}
+	if dsn == "" {
+		return Info{}, nil
+	}
+	client, err := database.NewClient(ctx, config.PostgresConfig{URL: dsn})
 	if err != nil {
 		return Info{}, nil
 	}
 	defer client.Close()
 	b, err := client.TenantBranding.
 		Query().
-		Where(ent.TenantBrandingTenantID(tenantID)).
+		Where(tenantbranding.TenantIDEQ(tenantID)).
 		Only(ctx)
 	if err != nil {
 		return Info{}, nil
 	}
-	return Info{
-		Name:           b.Name,
-		Email:          b.Email,
-		Phone:          b.Phone,
+
+	// Extract data from metadata field
+	info := Info{
 		LogoURL:        b.LogoURL,
 		PrimaryColor:   b.PrimaryColor,
 		SecondaryColor: b.SecondaryColor,
-	}, nil
+	}
+
+	// Extract optional fields from metadata
+	if b.Metadata != nil {
+		if name, ok := b.Metadata["name"].(string); ok {
+			info.Name = name
+		}
+		if email, ok := b.Metadata["email"].(string); ok {
+			info.Email = email
+		}
+		if phone, ok := b.Metadata["phone"].(string); ok {
+			info.Phone = phone
+		}
+	}
+
+	return info, nil
 }
-
-

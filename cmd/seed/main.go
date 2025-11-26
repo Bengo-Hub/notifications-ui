@@ -1,78 +1,153 @@
-//go:build entgen
-// +build entgen
-
 package main
 
 import (
 	"context"
 	"fmt"
 	"log"
-	"os"
-
-	_ "github.com/jackc/pgx/v5/stdlib"
 
 	"github.com/bengobox/notifications-app/internal/config"
+	"github.com/bengobox/notifications-app/internal/database"
 	"github.com/bengobox/notifications-app/internal/ent"
+	"github.com/bengobox/notifications-app/internal/ent/providersetting"
+	"github.com/bengobox/notifications-app/internal/ent/tenantbranding"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	ctx := context.Background()
+	_ = godotenv.Load()
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("config: %v", err)
 	}
-	dsn := cfg.Postgres.URL
-	if env := os.Getenv("NOTIFICATIONS_POSTGRES_URL"); env != "" {
-		dsn = env
-	}
-	client, err := ent.Open("pgx", dsn)
+	ctx := context.Background()
+	client, err := database.NewClient(ctx, cfg.Postgres)
 	if err != nil {
-		log.Fatalf("ent open: %v", err)
+		log.Fatalf("db: %v", err)
 	}
 	defer client.Close()
 
-	// Auto-migrate
-	if err := client.Schema.Create(ctx); err != nil {
+	// Ensure schema exists
+	if err := database.RunMigrations(ctx, client); err != nil {
 		log.Fatalf("migrate: %v", err)
 	}
 
-	// Seed branding
-	if _, err := client.TenantBranding.
-		Create().
-		SetTenantID("bengobox").
-		SetName("BengoBox").
-		SetEmail("hello@bengobox.com").
-		SetPhone("+254700000000").
-		SetLogoURL("https://cdn.bengobox.com/logo.png").
-		SetPrimaryColor("#0F766E").
-		SetSecondaryColor("#134E4A").
-		Save(ctx); err != nil {
-		fmt.Println("seed branding:", err)
-	}
+	// Seed branding with get-or-create logic
+	tenantID := "codevertex"
+	existingBranding, err := client.TenantBranding.
+		Query().
+		Where(tenantbranding.TenantIDEQ(tenantID)).
+		Only(ctx)
 
-	// Seed provider settings
-	seed := []struct {
-		Channel  string
-		Provider string
-		Key      string
-		Value    string
-	}{
-		{"email", "smtp", "host", "localhost"},
-		{"email", "smtp", "port", "1025"},
-		{"sms", "twilio", "from", "BengoBox"},
-	}
-	for _, s := range seed {
-		_, _ = client.ProviderSetting.
-			Create().
-			SetTenantID("bengobox").
-			SetChannel(s.Channel).
-			SetProvider(s.Provider).
-			SetKey(s.Key).
-			SetValue(s.Value).
+	if err != nil {
+		if ent.IsNotFound(err) {
+			// Create new branding record
+			_, err := client.TenantBranding.
+				Create().
+				SetTenantID(tenantID).
+				SetLogoURL("https://codevertexitsolutions.com/wp-content/uploads/2025/05/logonobg-300x69.png").
+				SetPrimaryColor("#0F766E").
+				SetSecondaryColor("#134E4A").
+				SetMetadata(map[string]interface{}{
+					"name":  "CodeVertex",
+					"email": "hello@codevertexitsolutions.com",
+					"phone": "+254700000000",
+				}).
+				Save(ctx)
+			if err != nil {
+				log.Printf("seed branding create: %v", err)
+			} else {
+				fmt.Println("✓ Created branding for tenant:", tenantID)
+			}
+		} else {
+			log.Printf("seed branding query: %v", err)
+		}
+	} else {
+		// Update existing branding if needed
+		updatedBranding, err := existingBranding.Update().
+			SetLogoURL("https://codevertexitsolutions.com/wp-content/uploads/2025/05/logonobg-300x69.png").
+			SetPrimaryColor("#0F766E").
+			SetSecondaryColor("#134E4A").
+			SetMetadata(map[string]interface{}{
+				"name":  "CodeVertex",
+				"email": "hello@codevertexitsolutions.com",
+				"phone": "+254700000000",
+			}).
 			Save(ctx)
+		if err != nil {
+			log.Printf("seed branding update: %v", err)
+		} else {
+			fmt.Println("✓ Updated branding for tenant:", tenantID, "(ID:", updatedBranding.ID, ")")
+		}
 	}
 
-	fmt.Println("ent migration and seed complete")
+	// Seed provider settings with get-or-create logic
+	seedData := []struct {
+		Channel      string // Legacy field name
+		Provider     string // Legacy field name
+		ProviderType string // email, sms, push
+		ProviderName string // smtp, sendgrid, twilio, etc.
+		Key          string
+		Value        string
+		Description  string
+	}{
+		{"email", "smtp", "email", "smtp", "host", "localhost", "SMTP host for email delivery"},
+		{"email", "smtp", "email", "smtp", "port", "1025", "SMTP port for email delivery"},
+		{"sms", "twilio", "sms", "twilio", "from", "CodeVertex", "Twilio sender ID"},
+	}
+
+	for _, data := range seedData {
+		// Check if setting already exists
+		existing, err := client.ProviderSetting.
+			Query().
+			Where(
+				providersetting.TenantIDEQ(tenantID),
+				providersetting.ChannelEQ(data.Channel),
+				providersetting.ProviderEQ(data.Provider),
+				providersetting.ProviderTypeEQ(data.ProviderType),
+				providersetting.ProviderNameEQ(data.ProviderName),
+				providersetting.KeyEQ(data.Key),
+			).
+			Only(ctx)
+
+		if err != nil {
+			if ent.IsNotFound(err) {
+				// Create new provider setting
+				_, err := client.ProviderSetting.
+					Create().
+					SetTenantID(tenantID).
+					SetChannel(data.Channel).
+					SetProvider(data.Provider).
+					SetProviderType(data.ProviderType).
+					SetProviderName(data.ProviderName).
+					SetKey(data.Key).
+					SetValue(data.Value).
+					SetDescription(data.Description).
+					Save(ctx)
+				if err != nil {
+					log.Printf("seed provider setting create: %v", err)
+				} else {
+					fmt.Printf("✓ Created provider setting: %s/%s/%s/%s\n", data.ProviderType, data.ProviderName, data.Key, data.Value)
+				}
+			} else {
+				log.Printf("seed provider setting query: %v", err)
+			}
+		} else {
+			// Update existing setting if needed
+			updated, err := existing.Update().
+				SetChannel(data.Channel).
+				SetProvider(data.Provider).
+				SetProviderType(data.ProviderType).
+				SetProviderName(data.ProviderName).
+				SetValue(data.Value).
+				SetDescription(data.Description).
+				Save(ctx)
+			if err != nil {
+				log.Printf("seed provider setting update: %v", err)
+			} else {
+				fmt.Printf("✓ Updated provider setting: %s/%s/%s/%s (ID: %d)\n", data.ProviderType, data.ProviderName, data.Key, data.Value, updated.ID)
+			}
+		}
+	}
+
+	fmt.Println("✅ Ent migration and seed complete")
 }
-
-

@@ -1,8 +1,2 @@
-//go:build entgen
-// +build entgen
-
+//go:generate go run -mod=mod entgo.io/ent/cmd/ent generate ./schema
 package ent
-
-//go:generate go run entgo.io/ent/cmd/ent generate ./schema
-
-

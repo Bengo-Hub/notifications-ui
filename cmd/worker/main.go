@@ -70,7 +70,7 @@ func main() {
 	if err != nil {
 		logg.Warn("postgres not available for provider overrides", zap.Error(err))
 	}
-	pm := providers.NewManager(dbPool, cfg.Providers)
+	pm := providers.NewManager(dbPool, cfg.Postgres, cfg.Providers)
 
 	durable := "notifications-worker"
 	_, err = js.Subscribe(subject, func(m *nats.Msg) {
@@ -111,7 +111,7 @@ func main() {
 			if _, ok := data["brand_name"]; !ok || data["brand_name"] == "" {
 				data["brand_name"] = msg.TenantID
 			}
-			if b, err := branding.LoadBranding(ctx, dbPool, msg.TenantID); err == nil {
+			if b, err := branding.LoadBranding(ctx, dbPool, cfg.Postgres, msg.TenantID); err == nil {
 				if b.Name != "" {
 					data["brand_name"] = b.Name
 				}

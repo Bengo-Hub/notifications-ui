@@ -1,0 +1,44 @@
+package database
+
+import (
+	"context"
+	"database/sql"
+	"fmt"
+	"time"
+
+	"entgo.io/ent/dialect"
+	entsql "entgo.io/ent/dialect/sql"
+	"github.com/bengobox/notifications-app/internal/config"
+	"github.com/bengobox/notifications-app/internal/ent"
+	_ "github.com/jackc/pgx/v5/stdlib" // register pgx driver
+)
+
+// NewClient initialises an Ent client backed by PostgreSQL.
+func NewClient(ctx context.Context, cfg config.PostgresConfig) (*ent.Client, error) {
+	db, err := sql.Open("pgx", cfg.URL)
+	if err != nil {
+		return nil, fmt.Errorf("open postgres connection: %w", err)
+	}
+
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(25)
+	db.SetConnMaxLifetime(5 * time.Minute)
+
+	if err := db.PingContext(ctx); err != nil {
+		return nil, fmt.Errorf("ping postgres: %w", err)
+	}
+
+	drv := entsql.OpenDB(dialect.Postgres, db)
+	client := ent.NewClient(ent.Driver(drv))
+	return client, nil
+}
+
+// RunMigrations executes Ent schema migrations.
+func RunMigrations(ctx context.Context, client *ent.Client) error {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	defer cancel()
+	if err := client.Schema.Create(ctx); err != nil {
+		return fmt.Errorf("run migrations: %w", err)
+	}
+	return nil
+}

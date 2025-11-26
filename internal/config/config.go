@@ -97,7 +97,9 @@ type SecurityConfig struct {
 	RequireJWT bool   `envconfig:"REQUIRE_JWT" default:"true"`
 	JWKSURL    string `envconfig:"JWKS_URL" default:"https://auth.codevertex.local:4101/api/v1/.well-known/jwks.json"`
 	Issuer     string `envconfig:"JWT_ISSUER" default:"https://auth.codevertex.local:4101"`
-	Audience   string `envconfig:"JWT_AUDIENCE" default:"notifications"`
+	Audience   string `envconfig:"JWT_AUDIENCE" default:"codevertex"`
+	// API key validation database URL (optional, enables API key authentication)
+	APIKeyDBURL string `envconfig:"API_KEY_DB_URL"`
 }
 
 func Load() (*Config, error) {

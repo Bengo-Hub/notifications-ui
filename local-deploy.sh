@@ -23,6 +23,35 @@ require() {
   fi
 }
 
+ensure_database() {
+  if grep -q '^NOTIFICATIONS_POSTGRES_URL=' "$ENV_FILE"; then
+    local db_url
+    db_url="$(grep '^NOTIFICATIONS_POSTGRES_URL=' "$ENV_FILE" | sed 's/^NOTIFICATIONS_POSTGRES_URL=//')"
+    log "Checking database connectivity at ${db_url%%:*}..."
+    
+    # Extract host and port from database URL for basic connectivity check
+    if command -v pg_isready >/dev/null 2>&1; then
+      local db_host db_port
+      db_host="$(echo "$db_url" | sed -n 's/.*@\([^:]*\):.*/\1/p')"
+      db_port="$(echo "$db_url" | sed -n 's/.*:\([0-9]*\)\/.*/\1/p')"
+      
+      # Default values if extraction failed
+      db_host="${db_host:-localhost}"
+      db_port="${db_port:-5432}"
+      
+      # Map localhost for Docker containers
+      if [[ "$db_host" == "localhost" || "$db_host" == "127.0.0.1" ]]; then
+        db_host="host.docker.internal"
+      fi
+      
+      log "Waiting for database at $db_host:$db_port..."
+      timeout 30s sh -c "until pg_isready -h '$db_host' -p '$db_port'; do sleep 1; done" 2>/dev/null || {
+        log "Database may not be ready - continuing anyway"
+      }
+    fi
+  fi
+}
+
 ensure_env() {
   if [[ ! -f "$ENV_FILE" ]]; then
     log "Creating .env from config/app.env.example"
@@ -130,8 +159,9 @@ Usage: $(basename "$0") [command]
 Commands:
   init         Ensure .env exists (from config/app.env.example)
   redis        Ensure Redis (Docker) is running
+  db           Check database connectivity
   build        Build the Docker image
-  up           Init, Redis, then ensure container is running
+  up           Init, DB, Redis, then ensure container is running
   run          Rebuild image and recreate container
   help         Show this help
 
@@ -148,18 +178,23 @@ case "${1:-up}" in
   redis)
     ensure_redis
     ;;
+  db)
+    ensure_database
+    ;;
   build)
     ensure_env
     build_image
     ;;
   run)
     ensure_env
+    ensure_database
     ensure_redis
     build_image
     recreate_container
     ;;
   up)
     ensure_env
+    ensure_database
     ensure_redis
     build_image
     ensure_container

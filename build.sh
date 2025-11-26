@@ -171,6 +171,28 @@ if [[ -n $DEVOPS_DIR && -d $DEVOPS_DIR ]]; then
   popd >/dev/null || true
 fi
 
+# Wait for deployment to be ready and run migrations
+echo "Waiting for deployment to be ready..."
+kubectl -n "$NAMESPACE" rollout status deployment/"$APP_NAME" --timeout=300s || warn "Deployment rollout failed or timed out"
+
+if kubectl -n "$NAMESPACE" get pod -l app="$APP_NAME" --field-selector=status.phase=Running >/dev/null 2>&1; then
+  echo "Running database migrations..."
+  if kubectl -n "$NAMESPACE" exec deployment/"$APP_NAME" -- /app/migrate; then
+    echo "Migrations completed successfully"
+  else
+    warn "Migration failed - continuing anyway"
+  fi
+  
+  echo "Running database seed..."
+  if kubectl -n "$NAMESPACE" exec deployment/"$APP_NAME" -- /app/seed; then
+    echo "Seeding completed successfully"
+  else
+    warn "Seeding failed - may already be seeded"
+  fi
+else
+  warn "No running pods found - skipping migrations/seeding"
+fi
+
 info "Deployment summary"
 echo "  Image      : ${IMAGE_REPO}:${GIT_COMMIT_ID}"
 echo "  Namespace  : ${NAMESPACE}"

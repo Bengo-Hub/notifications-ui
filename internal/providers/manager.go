@@ -10,17 +10,18 @@ import (
 	"github.com/bengobox/notifications-app/internal/config"
 	pcfg "github.com/bengobox/notifications-app/internal/providers/config"
 	"github.com/bengobox/notifications-app/internal/providers/email"
-	smsprov "github.com/bengobox/notifications-app/internal/providers/sms"
+	"github.com/bengobox/notifications-app/internal/providers/sms"
 )
 
 // Manager resolves providers per-tenant with DB overrides and env fallbacks.
 type Manager struct {
-	cfg config.ProviderConfig
-	db  *pgxpool.Pool
+	cfg   config.ProviderConfig
+	db    *pgxpool.Pool
+	dbCfg config.PostgresConfig
 }
 
-func NewManager(db *pgxpool.Pool, cfg config.ProviderConfig) *Manager {
-	return &Manager{db: db, cfg: cfg}
+func NewManager(db *pgxpool.Pool, dbCfg config.PostgresConfig, cfg config.ProviderConfig) *Manager {
+	return &Manager{db: db, dbCfg: dbCfg, cfg: cfg}
 }
 
 func (m *Manager) GetEmailProvider(ctx context.Context, tenantID string, preferred string) (EmailProvider, error) {
@@ -33,7 +34,7 @@ func (m *Manager) GetEmailProvider(ctx context.Context, tenantID string, preferr
 		switch name {
 		case "smtp":
 			// DB override
-			s, _ := pcfg.LoadTenantProviderSettings(ctx, m.db, tenantID, "email", "smtp")
+			s, _ := pcfg.LoadTenantProviderSettings(ctx, m.dbCfg, tenantID, "email", "smtp")
 			host := firstNonEmpty(s["host"], m.cfg.SMTPHost)
 			port := parseInt(firstNonEmpty(s["port"], strconv.Itoa(m.cfg.SMTPPort)))
 			user := firstNonEmpty(s["username"], m.cfg.SMTPUsername)
@@ -50,7 +51,7 @@ func (m *Manager) GetEmailProvider(ctx context.Context, tenantID string, preferr
 			}), nil
 		case "sendgrid":
 			// DB override
-			s, _ := pcfg.LoadTenantProviderSettings(ctx, m.db, tenantID, "email", "sendgrid")
+			s, _ := pcfg.LoadTenantProviderSettings(ctx, m.dbCfg, tenantID, "email", "sendgrid")
 			apiKey := firstNonEmpty(s["api_key"], m.cfg.SendGridAPIKey)
 			from := firstNonEmpty(s["from"], m.cfg.DefaultEmailSender)
 			return &sendGridAdapter{apiKey: apiKey, from: from}, nil
@@ -75,39 +76,29 @@ func (m *Manager) GetSMSProvider(ctx context.Context, tenantID string, preferred
 	for _, name := range dedup(order) {
 		switch name {
 		case "twilio":
-			s, _ := pcfg.LoadTenantProviderSettings(ctx, m.db, tenantID, "sms", "twilio")
+			s, _ := pcfg.LoadTenantProviderSettings(ctx, m.dbCfg, tenantID, "sms", "twilio")
 			sid := firstNonEmpty(s["account_sid"], m.cfg.TwilioAccountSID)
 			token := firstNonEmpty(s["auth_token"], m.cfg.TwilioAuthToken)
 			from := firstNonEmpty(s["from"], m.cfg.DefaultSMSSender)
 			return &twilioAdapter{accountSID: sid, authToken: token, from: from}, nil
 		case "africastalking":
-			s, _ := pcfg.LoadTenantProviderSettings(ctx, m.db, tenantID, "sms", "africastalking")
+			s, _ := pcfg.LoadTenantProviderSettings(ctx, m.dbCfg, tenantID, "sms", "africastalking")
 			user := firstNonEmpty(s["username"], m.cfg.AfricasTalkingUsername)
 			key := firstNonEmpty(s["api_key"], m.cfg.AfricasTalkingKey)
 			from := firstNonEmpty(s["from"], m.cfg.DefaultSMSSender)
-			return smsprov.NewAfricasTalking(smsprov.AfricasTalkingConfig{
-				Username: user,
-				APIKey:   key,
-				From:     from,
-			}), nil
+			return &africasTalkingAdapter{username: user, apiKey: key, from: from}, nil
 		case "vonage":
-			s, _ := pcfg.LoadTenantProviderSettings(ctx, m.db, tenantID, "sms", "vonage")
+			s, _ := pcfg.LoadTenantProviderSettings(ctx, m.dbCfg, tenantID, "sms", "vonage")
 			key := firstNonEmpty(s["api_key"], m.cfg.VonageAPIKey)
 			secret := firstNonEmpty(s["api_secret"], m.cfg.VonageAPISecret)
 			from := firstNonEmpty(s["from"], m.cfg.DefaultSMSSender)
-			return smsprov.NewVonage(smsprov.VonageConfig{
-				APIKey:    key,
-				APISecret: secret,
-				From:      from,
-			}), nil
+			return &vonageAdapter{apiKey: key, apiSecret: secret, from: from}, nil
 		case "plivo":
-			s, _ := pcfg.LoadTenantProviderSettings(ctx, m.db, tenantID, "sms", "plivo")
+			s, _ := pcfg.LoadTenantProviderSettings(ctx, m.dbCfg, tenantID, "sms", "plivo")
 			id := firstNonEmpty(s["auth_id"], m.cfg.PlivoAuthID)
 			token := firstNonEmpty(s["auth_token"], m.cfg.PlivoAuthToken)
 			from := firstNonEmpty(s["from"], m.cfg.DefaultSMSSender)
-			return smsprov.NewPlivo(smsprov.PlivoConfig{
-				AuthID: id, Token: token, From: from,
-			}), nil
+			return &plivoAdapter{authID: id, authToken: token, from: from}, nil
 		}
 	}
 	return &twilioAdapter{accountSID: m.cfg.TwilioAccountSID, authToken: m.cfg.TwilioAuthToken, from: m.cfg.DefaultSMSSender}, nil
@@ -182,5 +173,56 @@ func (t *twilioAdapter) SendSMS(ctx context.Context, from string, to []string, b
 	if from == "" {
 		from = t.from
 	}
-	return smsprov.SendWithTwilio(ctx, t.accountSID, t.authToken, from, to, body)
+	return sms.SendWithTwilio(ctx, t.accountSID, t.authToken, from, to, body)
+}
+
+// africasTalkingAdapter bridges to our existing stub implementation.
+type africasTalkingAdapter struct {
+	username string
+	apiKey   string
+	from     string
+}
+
+func (a *africasTalkingAdapter) Name() string { return "africastalking" }
+
+func (a *africasTalkingAdapter) SendSMS(ctx context.Context, from string, to []string, body string) error {
+	if from == "" {
+		from = a.from
+	}
+	provider := sms.NewAfricasTalking(sms.AfricasTalkingConfig{Username: a.username, APIKey: a.apiKey, From: from})
+	return provider.SendSMS(ctx, from, to, body)
+}
+
+// vonageAdapter bridges to our existing stub implementation.
+type vonageAdapter struct {
+	apiKey    string
+	apiSecret string
+	from      string
+}
+
+func (v *vonageAdapter) Name() string { return "vonage" }
+
+func (v *vonageAdapter) SendSMS(ctx context.Context, from string, to []string, body string) error {
+	if from == "" {
+		from = v.from
+	}
+	provider := sms.NewVonage(sms.VonageConfig{APIKey: v.apiKey, APISecret: v.apiSecret, From: from})
+	return provider.SendSMS(ctx, from, to, body)
+}
+
+// plivoAdapter bridges to our existing stub implementation.
+type plivoAdapter struct {
+	authID    string
+	authToken string
+	from      string
+}
+
+func (p *plivoAdapter) Name() string { return "plivo" }
+
+func (p *plivoAdapter) SendSMS(ctx context.Context, from string, to []string, body string) error {
+	if from == "" {
+		from = p.from
+	}
+	provider := sms.NewPlivo(sms.PlivoConfig{AuthID: p.authID, Token: p.authToken, From: from})
+	return provider.SendSMS(ctx, from, to, body)
 }

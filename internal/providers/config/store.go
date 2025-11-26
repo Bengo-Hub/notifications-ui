@@ -2,44 +2,45 @@ package config
 
 import (
 	"context"
-	"errors"
-	"strings"
+	"os"
 
-	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/bengobox/notifications-app/internal/config"
+	"github.com/bengobox/notifications-app/internal/database"
+	"github.com/bengobox/notifications-app/internal/ent/providersetting"
 )
 
 type Settings map[string]string
 
-// LoadTenantProviderSettings loads provider settings for a tenant/channel/provider from DB.
-// Falls back to empty result when table doesn't exist or no rows present.
-func LoadTenantProviderSettings(ctx context.Context, db *pgxpool.Pool, tenantID, channel, provider string) (Settings, error) {
-	if db == nil {
+// LoadTenantProviderSettings loads provider settings for a tenant/channel/provider using Ent.
+func LoadTenantProviderSettings(ctx context.Context, dbCfg config.PostgresConfig, tenantID, channel, provider string) (Settings, error) {
+	dsn := dbCfg.URL
+	if env := os.Getenv("NOTIFICATIONS_POSTGRES_URL"); env != "" {
+		dsn = env
+	}
+	if dsn == "" {
 		return Settings{}, nil
 	}
-	const q = `
-SELECT key, value
-FROM provider_settings
-WHERE tenant_id = $1 AND channel = $2 AND provider = $3
-`
-	rows, err := db.Query(ctx, q, tenantID, channel, provider)
+	client, err := database.NewClient(ctx, config.PostgresConfig{URL: dsn})
 	if err != nil {
-		// fallback if table missing
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) {
-			if strings.EqualFold(pgErr.Code, "42P01") { // undefined_table
-				return Settings{}, nil
-			}
-		}
-		return Settings{}, nil
+		return Settings{}, err
 	}
-	defer rows.Close()
+	defer client.Close()
+
+	rows, err := client.ProviderSetting.
+		Query().
+		Where(
+			providersetting.TenantIDEQ(tenantID),
+			providersetting.ChannelEQ(channel),
+			providersetting.ProviderEQ(provider),
+		).
+		All(ctx)
+	if err != nil {
+		return Settings{}, err
+	}
+
 	out := Settings{}
-	for rows.Next() {
-		var k, v string
-		if scanErr := rows.Scan(&k, &v); scanErr == nil {
-			out[k] = v
-		}
+	for _, r := range rows {
+		out[r.Key] = r.Value
 	}
 	return out, nil
 }

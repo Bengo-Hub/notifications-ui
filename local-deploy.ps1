@@ -11,6 +11,36 @@ if ($PSScriptRoot) {
 } else {
   $ROOT_DIR = Split-Path -Parent $MyInvocation.MyCommand.Path
 }
+
+function Invoke-DatabaseMigrations {
+  if (-not (Get-Command go -ErrorAction SilentlyContinue)) {
+    Write-Log "Go not installed; skipping migrations."
+    return
+  }
+
+  if (-not (Test-Path -LiteralPath $MIGRATE_CMD)) {
+    Write-Log "Migration command not found; skipping."
+    return
+  }
+
+  Write-Log "Running database migrations"
+  & go run "$MIGRATE_CMD"
+}
+
+function Invoke-DataSeed {
+  if (-not (Get-Command go -ErrorAction SilentlyContinue)) {
+    Write-Log "Go not installed; skipping seed."
+    return
+  }
+
+  if (-not (Test-Path -LiteralPath $SEED_CMD)) {
+    Write-Log "Seed command not found; skipping."
+    return
+  }
+
+  Write-Log "Seeding initial data"
+  & go run "$SEED_CMD"
+}
 Set-Location $ROOT_DIR
 
 $APP_PORT = 4002
@@ -22,12 +52,14 @@ $ENV_FILE = Join-Path $ROOT_DIR ".env"
 $EXAMPLE_ENV = Join-Path $ROOT_DIR "config\app.env.example"
 $TEMPLATES_DIR = Join-Path $ROOT_DIR "templates"
 $CERTS_DIR = Join-Path $ROOT_DIR "config\certs"
+ $MIGRATE_CMD = Join-Path $ROOT_DIR "cmd\migrate"
+ $SEED_CMD = Join-Path $ROOT_DIR "cmd\seed"
 
 function Write-Log([string] $Message) {
   Write-Host "[local-deploy] $Message"
 }
 
-function Require-Command([string] $Cmd) {
+function Test-CommandAvailable([string] $Cmd) {
   if (-not (Get-Command $Cmd -ErrorAction SilentlyContinue)) {
     throw "Missing required command: $Cmd"
   }
@@ -94,7 +126,7 @@ function Start-RedisDependency {
 }
 
 function Invoke-ServiceImageBuild {
-  Require-Command "docker"
+  Test-CommandAvailable "docker"
   Write-Log "Building image $SERVICE_IMAGE"
   # Build from workspace root to include shared/auth-client
   $workspaceRoot = Split-Path -Parent $ROOT_DIR
@@ -170,7 +202,7 @@ function Start-ServiceContainerInstance {
     [switch] $Recreate
   )
 
-  Require-Command "docker"
+  Test-CommandAvailable "docker"
 
   if ($Recreate -and (Test-ContainerExists $SERVICE_CONTAINER_NAME)) {
     Write-Log "Removing existing container $SERVICE_CONTAINER_NAME"
@@ -179,17 +211,17 @@ function Start-ServiceContainerInstance {
 
   $overrideArgs = New-OverrideEnvVars
   $templatesHostPath = (Resolve-Path -LiteralPath $TEMPLATES_DIR).Path
-  
-  # Create a temporary env file without JWKS_URL and JWT_ISSUER to avoid conflicts
-  $tempEnvFile = Join-Path $ROOT_DIR ".env.docker"
+
+  $tempEnvFile = $ENV_FILE
   if (Test-Path -LiteralPath $ENV_FILE) {
-    $envContent = Get-Content -LiteralPath $ENV_FILE | Where-Object { 
-      $_ -notmatch '^(?i)NOTIFICATIONS_(SECURITY_)?JWKS_URL=' -and 
-      $_ -notmatch '^(?i)NOTIFICATIONS_(SECURITY_)?JWT_ISSUER='
+    $tempEnvFile = Join-Path $ROOT_DIR ".env.docker"
+    $envContent = Get-Content -LiteralPath $ENV_FILE | Where-Object {
+      ($_ -notmatch '^(?i)NOTIFICATIONS_(SECURITY_)?JWKS_URL=') -and
+      ($_ -notmatch '^(?i)NOTIFICATIONS_(SECURITY_)?JWT_ISSUER=')
     }
     Set-Content -LiteralPath $tempEnvFile -Value $envContent -Encoding UTF8
   }
-  
+
   $dockerArgs = @(
     'run',
     '-d',
@@ -213,11 +245,17 @@ function Start-ServiceContainerInstance {
   
   $dockerArgs += $SERVICE_IMAGE
   Write-Log "Running container $SERVICE_CONTAINER_NAME on :$APP_PORT"
-  & docker @dockerArgs | Out-Null
+  try {
+    & docker @dockerArgs | Out-Null
+  } finally {
+    if ($tempEnvFile -and (Test-Path -LiteralPath $tempEnvFile) -and ($tempEnvFile -like '*.env.docker')) {
+      Remove-Item -LiteralPath $tempEnvFile -ErrorAction SilentlyContinue
+    }
+  }
 }
 
 function Confirm-ServiceContainer {
-  Require-Command "docker"
+  Test-CommandAvailable "docker"
   $exists = Test-ContainerExists $SERVICE_CONTAINER_NAME
   $running = Test-ContainerRunning $SERVICE_CONTAINER_NAME
 
@@ -271,6 +309,8 @@ switch ($Command) {
   "run" {
     Initialize-EnvFile
     Start-RedisDependency
+    Invoke-DatabaseMigrations
+    Invoke-DataSeed
     Invoke-ServiceImageBuild
     Publish-ServiceImage
     Start-ServiceContainerInstance -Recreate
@@ -278,6 +318,8 @@ switch ($Command) {
   "up" {
     Initialize-EnvFile
     Start-RedisDependency
+    Invoke-DatabaseMigrations
+    Invoke-DataSeed
     Invoke-ServiceImageBuild
     Confirm-ServiceContainer
   }
