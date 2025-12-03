@@ -17,10 +17,12 @@ import (
 
 	authclient "github.com/Bengo-Hub/shared-auth-client"
 	"github.com/bengobox/notifications-app/internal/config"
+	"github.com/bengobox/notifications-app/internal/database"
+	"github.com/bengobox/notifications-app/internal/ent"
 	handlers "github.com/bengobox/notifications-app/internal/http/handlers"
 	router "github.com/bengobox/notifications-app/internal/http/router"
 	"github.com/bengobox/notifications-app/internal/platform/cache"
-	"github.com/bengobox/notifications-app/internal/platform/database"
+	platformdb "github.com/bengobox/notifications-app/internal/platform/database"
 	"github.com/bengobox/notifications-app/internal/platform/events"
 	"github.com/bengobox/notifications-app/internal/platform/templates"
 	"github.com/bengobox/notifications-app/internal/shared/logger"
@@ -34,6 +36,7 @@ type App struct {
 	cache      *redis.Client
 	events     *nats.Conn
 	templates  *templates.Loader
+	orm        *ent.Client
 }
 
 func New(ctx context.Context) (*App, error) {
@@ -47,9 +50,18 @@ func New(ctx context.Context) (*App, error) {
 		return nil, fmt.Errorf("logger init: %w", err)
 	}
 
-	dbPool, err := database.NewPool(ctx, cfg.Postgres)
+	dbPool, err := platformdb.NewPool(ctx, cfg.Postgres)
 	if err != nil {
 		return nil, fmt.Errorf("postgres init: %w", err)
+	}
+
+	// Initialize Ent ORM client and run migrations
+	entClient, err := database.NewClient(ctx, cfg.Postgres)
+	if err != nil {
+		return nil, fmt.Errorf("ent client init: %w", err)
+	}
+	if err := database.RunMigrations(ctx, entClient); err != nil {
+		return nil, fmt.Errorf("run migrations: %w", err)
 	}
 
 	redisClient := cache.NewClient(cfg.Redis)
@@ -132,6 +144,7 @@ func New(ctx context.Context) (*App, error) {
 		cache:      redisClient,
 		events:     natsConn,
 		templates:  templateLoader,
+		orm:        entClient,
 	}, nil
 }
 
@@ -186,6 +199,12 @@ func (a *App) Close() {
 	if a.cache != nil {
 		if err := a.cache.Close(); err != nil {
 			a.log.Warn("redis close failed", zap.Error(err))
+		}
+	}
+
+	if a.orm != nil {
+		if err := a.orm.Close(); err != nil {
+			a.log.Warn("ent client close failed", zap.Error(err))
 		}
 	}
 
