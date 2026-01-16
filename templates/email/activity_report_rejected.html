@@ -1,0 +1,19 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <h2 style="color: #dc2626;">Activity Report Update Requested</h2>
+  <p>Your activity report for <strong>{{ .activity_title }}</strong> requires updates before it can be approved.</p>
+  
+  <div style="background:#f3f4f6; padding:16px; border-radius:6px; margin:16px 0;">
+    <strong>Project:</strong> {{ .project_name }}<br/>
+    <strong>Reviewed By:</strong> {{ .reviewer_name }}<br/>
+    <strong>Date:</strong> {{ .review_date }}
+  </div>
+
+  <p><strong>Feedback:</strong><br/>{{ .feedback }}</p>
+
+  <p>Please update the report and resubmit it for review.</p>
+
+  <p>
+    <a class="button" href="{{ .action_link }}">Update Report</a>
+  </p>
+{{ end }}

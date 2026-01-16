@@ -3,14 +3,44 @@
 package ent
 
 import (
+	"time"
+
+	"github.com/bengobox/notifications-app/internal/ent/outboxevent"
 	"github.com/bengobox/notifications-app/internal/ent/providersetting"
 	"github.com/bengobox/notifications-app/internal/ent/schema"
+	"github.com/google/uuid"
 )
 
 // The init function reads all schema descriptors with runtime code
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	outboxeventFields := schema.OutboxEvent{}.Fields()
+	_ = outboxeventFields
+	// outboxeventDescAggregateType is the schema descriptor for aggregate_type field.
+	outboxeventDescAggregateType := outboxeventFields[2].Descriptor()
+	// outboxevent.AggregateTypeValidator is a validator for the "aggregate_type" field. It is called by the builders before save.
+	outboxevent.AggregateTypeValidator = outboxeventDescAggregateType.Validators[0].(func(string) error)
+	// outboxeventDescEventType is the schema descriptor for event_type field.
+	outboxeventDescEventType := outboxeventFields[4].Descriptor()
+	// outboxevent.EventTypeValidator is a validator for the "event_type" field. It is called by the builders before save.
+	outboxevent.EventTypeValidator = outboxeventDescEventType.Validators[0].(func(string) error)
+	// outboxeventDescStatus is the schema descriptor for status field.
+	outboxeventDescStatus := outboxeventFields[6].Descriptor()
+	// outboxevent.DefaultStatus holds the default value on creation for the status field.
+	outboxevent.DefaultStatus = outboxeventDescStatus.Default.(string)
+	// outboxeventDescAttempts is the schema descriptor for attempts field.
+	outboxeventDescAttempts := outboxeventFields[7].Descriptor()
+	// outboxevent.DefaultAttempts holds the default value on creation for the attempts field.
+	outboxevent.DefaultAttempts = outboxeventDescAttempts.Default.(int)
+	// outboxeventDescCreatedAt is the schema descriptor for created_at field.
+	outboxeventDescCreatedAt := outboxeventFields[11].Descriptor()
+	// outboxevent.DefaultCreatedAt holds the default value on creation for the created_at field.
+	outboxevent.DefaultCreatedAt = outboxeventDescCreatedAt.Default.(func() time.Time)
+	// outboxeventDescID is the schema descriptor for id field.
+	outboxeventDescID := outboxeventFields[0].Descriptor()
+	// outboxevent.DefaultID holds the default value on creation for the id field.
+	outboxevent.DefaultID = outboxeventDescID.Default.(func() uuid.UUID)
 	providersettingFields := schema.ProviderSetting{}.Fields()
 	_ = providersettingFields
 	// providersettingDescIsEncrypted is the schema descriptor for is_encrypted field.

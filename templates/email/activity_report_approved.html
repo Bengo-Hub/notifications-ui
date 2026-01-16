@@ -1,0 +1,19 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <h2 style="color: #059669;">Activity Report Approved</h2>
+  <p>Your activity report for <strong>{{ .activity_title }}</strong> has been approved.</p>
+  
+  <div style="background:#f3f4f6; padding:16px; border-radius:6px; margin:16px 0;">
+    <strong>Project:</strong> {{ .project_name }}<br/>
+    <strong>Approved By:</strong> {{ .approved_by }}<br/>
+    <strong>Date:</strong> {{ .approval_date }}
+  </div>
+
+  {{ if .comments }}
+  <p><strong>Comments:</strong><br/>{{ .comments }}</p>
+  {{ end }}
+
+  <p>
+    <a class="button" href="{{ .action_link }}">View Report</a>
+  </p>
+{{ end }}

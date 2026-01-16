@@ -6,6 +6,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// OutboxEvent is the predicate function for outboxevent builders.
+type OutboxEvent func(*sql.Selector)
+
 // ProviderSetting is the predicate function for providersetting builders.
 type ProviderSetting func(*sql.Selector)
 

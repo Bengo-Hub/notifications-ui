@@ -3,11 +3,13 @@ module github.com/bengobox/notifications-app
 go 1.24.0
 
 // Local development: replace with local path (remove when repo is created and tagged)
-replace github.com/Bengo-Hub/shared-auth-client => ../shared/auth-client
+// Map module path to correct GitHub repository
+replace github.com/Bengo-Hub/shared-auth-client => github.com/Bengo-Hub/auth-client v0.1.2
 
 require (
 	entgo.io/ent v0.13.1
-	github.com/Bengo-Hub/shared-auth-client v0.1.0
+	github.com/Bengo-Hub/shared-auth-client v0.1.2
+	github.com/Bengo-Hub/shared-events v0.1.0
 	github.com/gin-gonic/gin v1.11.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.5.5
@@ -15,9 +17,9 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/nats-io/nats.go v1.33.1
 	github.com/prometheus/client_golang v1.23.2
-	github.com/redis/go-redis/v9 v9.5.1
+	github.com/redis/go-redis/v9 v9.17.2
 	github.com/swaggo/swag v1.16.6
-	go.uber.org/zap v1.27.0
+	go.uber.org/zap v1.27.1
 )
 
 require (

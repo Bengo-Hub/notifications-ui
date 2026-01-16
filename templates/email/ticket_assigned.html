@@ -1,0 +1,16 @@
+{{ define "content" }}
+  <p>Hello {{ .name }},</p>
+  <h2>New Ticket Assigned</h2>
+  <p>A new support ticket has been assigned to you.</p>
+  
+  <div style="background:#f3f4f6; padding:16px; border-radius:6px; margin:16px 0;">
+    <strong>Ticket ID:</strong> #{{ .ticket_id }}<br/>
+    <strong>Subject:</strong> {{ .subject }}<br/>
+    <strong>Priority:</strong> {{ .priority }}<br/>
+    <strong>Customer:</strong> {{ .customer_name }}
+  </div>
+
+  <p>
+    <a class="button" href="{{ .action_link }}">View Ticket</a>
+  </p>
+{{ end }}

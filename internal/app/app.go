@@ -16,27 +16,30 @@ import (
 	"go.uber.org/zap"
 
 	authclient "github.com/Bengo-Hub/shared-auth-client"
+	eventslib "github.com/Bengo-Hub/shared-events"
+	
 	"github.com/bengobox/notifications-app/internal/config"
-	"github.com/bengobox/notifications-app/internal/database"
-	"github.com/bengobox/notifications-app/internal/ent"
 	handlers "github.com/bengobox/notifications-app/internal/http/handlers"
 	router "github.com/bengobox/notifications-app/internal/http/router"
+	"github.com/bengobox/notifications-app/internal/modules/outbox"
 	"github.com/bengobox/notifications-app/internal/platform/cache"
-	platformdb "github.com/bengobox/notifications-app/internal/platform/database"
+	"github.com/bengobox/notifications-app/internal/platform/database"
 	"github.com/bengobox/notifications-app/internal/platform/events"
 	"github.com/bengobox/notifications-app/internal/platform/templates"
 	"github.com/bengobox/notifications-app/internal/shared/logger"
+	"database/sql"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 type App struct {
-	cfg        *config.Config
-	log        *zap.Logger
-	httpServer *http.Server
-	db         *pgxpool.Pool
-	cache      *redis.Client
-	events     *nats.Conn
-	templates  *templates.Loader
-	orm        *ent.Client
+	cfg            *config.Config
+	log            *zap.Logger
+	httpServer     *http.Server
+	db             *pgxpool.Pool
+	cache          *redis.Client
+	events         *nats.Conn
+	templates      *templates.Loader
+	outboxPublisher *eventslib.Publisher
 }
 
 func New(ctx context.Context) (*App, error) {
@@ -50,18 +53,9 @@ func New(ctx context.Context) (*App, error) {
 		return nil, fmt.Errorf("logger init: %w", err)
 	}
 
-	dbPool, err := platformdb.NewPool(ctx, cfg.Postgres)
+	dbPool, err := database.NewPool(ctx, cfg.Postgres)
 	if err != nil {
 		return nil, fmt.Errorf("postgres init: %w", err)
-	}
-
-	// Initialize Ent ORM client and run migrations
-	entClient, err := database.NewClient(ctx, cfg.Postgres)
-	if err != nil {
-		return nil, fmt.Errorf("ent client init: %w", err)
-	}
-	if err := database.RunMigrations(ctx, entClient); err != nil {
-		return nil, fmt.Errorf("run migrations: %w", err)
 	}
 
 	redisClient := cache.NewClient(cfg.Redis)
@@ -125,6 +119,26 @@ func New(ctx context.Context) (*App, error) {
 		}
 	}
 
+	// Initialize outbox publisher
+	var outboxPublisher *eventslib.Publisher
+	if natsConn != nil && dbPool != nil {
+		js, err := natsConn.JetStream()
+		if err != nil {
+			log.Warn("failed to get jetstream context, outbox publisher disabled", zap.Error(err))
+		} else {
+			// Get underlying sql.DB for outbox repository
+			sqlDB, err := sql.Open("pgx", cfg.Postgres.URL)
+			if err == nil {
+				outboxRepo := outbox.NewRepository(sqlDB)
+				pubCfg := eventslib.DefaultPublisherConfig(js, outboxRepo, log)
+				outboxPublisher = eventslib.NewPublisher(pubCfg)
+				log.Info("outbox publisher initialized")
+			} else {
+				log.Warn("failed to create sql.DB for outbox, publisher disabled", zap.Error(err))
+			}
+		}
+	}
+
 	ginRouter := router.New(log, healthHandler, notificationHandler, templateHandler, cfg.Security.APIKey, authMiddleware)
 
 	httpServer := &http.Server{
@@ -137,20 +151,30 @@ func New(ctx context.Context) (*App, error) {
 	}
 
 	return &App{
-		cfg:        cfg,
-		log:        log,
-		httpServer: httpServer,
-		db:         dbPool,
-		cache:      redisClient,
-		events:     natsConn,
-		templates:  templateLoader,
-		orm:        entClient,
+		cfg:            cfg,
+		log:            log,
+		httpServer:     httpServer,
+		db:             dbPool,
+		cache:          redisClient,
+		events:         natsConn,
+		templates:      templateLoader,
+		outboxPublisher: outboxPublisher,
 	}, nil
 }
 
 func (a *App) Run(ctx context.Context) error {
 	if a.cfg.App.Env == "development" {
 		gin.SetMode(gin.DebugMode)
+	}
+
+	// Start outbox publisher worker
+	if a.outboxPublisher != nil {
+		go func() {
+			if err := a.outboxPublisher.Start(ctx); err != nil {
+				a.log.Error("outbox publisher failed", zap.Error(err))
+			}
+		}()
+		a.log.Info("outbox publisher started")
 	}
 
 	errCh := make(chan error, 1)
@@ -199,12 +223,6 @@ func (a *App) Close() {
 	if a.cache != nil {
 		if err := a.cache.Close(); err != nil {
 			a.log.Warn("redis close failed", zap.Error(err))
-		}
-	}
-
-	if a.orm != nil {
-		if err := a.orm.Close(); err != nil {
-			a.log.Warn("ent client close failed", zap.Error(err))
 		}
 	}
 
