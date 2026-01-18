@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"context"
 	"net/http"
 	"strings"
 
@@ -10,16 +9,16 @@ import (
 )
 
 type JWTValidator struct {
-	client *auth.Client
+	validator *auth.Validator
 }
 
-func NewJWTValidator(client *auth.Client) *JWTValidator {
+func NewJWTValidator(validator *auth.Validator) *JWTValidator {
 	return &JWTValidator{
-		client: client,
+		validator: validator,
 	}
 }
 
-// JWT enforces Bearer token presence and verifies it using the shared auth client.
+// JWT enforces Bearer token presence and verifies it using the shared auth validator.
 func (v *JWTValidator) JWT() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authz := c.GetHeader("Authorization")
@@ -29,8 +28,8 @@ func (v *JWTValidator) JWT() gin.HandlerFunc {
 		}
 		tokenStr := strings.TrimSpace(authz[len("Bearer "):])
 
-		// Verify token using the shared auth client
-		claims, err := v.client.VerifyToken(context.Background(), tokenStr)
+		// Verify token using the shared auth validator
+		claims, err := v.validator.ValidateToken(tokenStr)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid_token", "details": err.Error()})
 			return
