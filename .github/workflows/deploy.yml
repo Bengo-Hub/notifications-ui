@@ -51,6 +51,7 @@ jobs:
           REGISTRY_NAMESPACE: codevertex
           VALUES_FILE_PATH: apps/notifications-api/values.yaml
           APP_NAME: notifications-api
+          GIT_USER: ${{ secrets.GIT_USER || 'Notifications Bot' }}
           GIT_EMAIL: ${{ secrets.GIT_EMAIL || 'dev@bengobox.com' }}
           # Database passwords from shared infrastructure
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
