@@ -20,7 +20,7 @@ definitions:
   internal_http_handlers.livenessResponse:
     properties:
       service:
-        example: notifications-app
+        example: notifications-api
         type: string
       status:
         example: ok

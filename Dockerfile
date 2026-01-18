@@ -3,11 +3,11 @@
 FROM golang:1.24-alpine AS builder
 WORKDIR /src
 # Copy shared auth-client first (needed for replace directive)
-# Build context should be from workspace root: docker build -f notifications-app/Dockerfile -t notifications-app:local .
+# Build context should be from workspace root: docker build -f notifications-api/Dockerfile -t notifications-api:local .
 COPY shared/auth-client /shared/auth-client
-COPY notifications-app/go.mod notifications-app/go.sum ./
+COPY notifications-api/go.mod notifications-api/go.sum ./
 RUN go mod download
-COPY notifications-app .
+COPY notifications-api .
 
 RUN CGO_ENABLED=0 go build -o /out/notifications ./cmd/api
 RUN CGO_ENABLED=0 go build -o /out/worker ./cmd/worker
@@ -22,7 +22,7 @@ COPY --from=builder /out/notifications /app/service
 COPY --from=builder /out/worker /app/worker
 COPY --from=builder /out/migrate /app/migrate
 COPY --from=builder /out/seed /app/seed
-COPY --from=builder /src/notifications-app/scripts/migrate.sh /app/migrate.sh
+COPY --from=builder /src/notifications-api/scripts/migrate.sh /app/migrate.sh
 RUN chmod +x /app/migrate.sh
 # TLS certificates directory (optional, can be mounted as volume)
 RUN mkdir -p ./config/certs

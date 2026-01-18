@@ -97,8 +97,8 @@ curl -s http://localhost:4002/v1/bengobox/templates | jq .
 ## 6) Docker (optional)
 
 ```bash
-docker build -t notifications-app:local .
-docker run --rm -p 4002:4002 --env-file .env notifications-app:local
+docker build -t notifications-api:local .
+docker run --rm -p 4002:4002 --env-file .env notifications-api:local
 ```
 
 

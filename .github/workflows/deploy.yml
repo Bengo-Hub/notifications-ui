@@ -27,11 +27,11 @@ jobs:
           echo "SETUP_DATABASES=true" >> $GITHUB_ENV
           echo "DB_TYPES=postgres,redis" >> $GITHUB_ENV
           echo "NAMESPACE=notifications" >> $GITHUB_ENV
-          echo "ENV_SECRET_NAME=notifications-app-env" >> $GITHUB_ENV
+          echo "ENV_SECRET_NAME=notifications-api-env" >> $GITHUB_ENV
           echo "REGISTRY_SERVER=docker.io" >> $GITHUB_ENV
           echo "REGISTRY_NAMESPACE=codevertex" >> $GITHUB_ENV
-          echo "VALUES_FILE_PATH=apps/notifications-app/values.yaml" >> $GITHUB_ENV
-          echo "APP_NAME=notifications-app" >> $GITHUB_ENV
+          echo "VALUES_FILE_PATH=apps/notifications-api/values.yaml" >> $GITHUB_ENV
+          echo "APP_NAME=notifications-api" >> $GITHUB_ENV
 
       - name: Run production deployment
         env:
@@ -46,12 +46,11 @@ jobs:
           SETUP_DATABASES: true
           DB_TYPES: postgres,redis
           NAMESPACE: notifications
-          ENV_SECRET_NAME: notifications-app-env
+          ENV_SECRET_NAME: notifications-api-env
           REGISTRY_SERVER: docker.io
           REGISTRY_NAMESPACE: codevertex
-          VALUES_FILE_PATH: apps/notifications-app/values.yaml
-          APP_NAME: notifications-app
-          GIT_USER: ${{ secrets.GIT_USER || 'Notifications Bot' }}
+          VALUES_FILE_PATH: apps/notifications-api/values.yaml
+          APP_NAME: notifications-api
           GIT_EMAIL: ${{ secrets.GIT_EMAIL || 'dev@bengobox.com' }}
           # Database passwords from shared infrastructure
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
@@ -68,7 +67,7 @@ jobs:
           REGISTRY_NAMESPACE: codevertex
         run: |
           set -e
-          IMAGE_REPO="${REGISTRY_SERVER}/${REGISTRY_NAMESPACE}/notifications-app"
+          IMAGE_REPO="${REGISTRY_SERVER}/${REGISTRY_NAMESPACE}/notifications-api"
           SHORT_SHA=${GITHUB_SHA::8}
           echo "Tagging ${IMAGE_REPO}:${SHORT_SHA} as :latest"
           echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY_SERVER" -u "$REGISTRY_USERNAME" --password-stdin
@@ -92,14 +91,14 @@ jobs:
           mkdir -p ~/.kube
           echo "$KUBE_CONFIG_B64" | base64 -d > ~/.kube/config
 
-          if kubectl get application ${APP_NAME} -n argocd >/dev/null 2>&1; then
-            echo "✓ ArgoCD Application '${APP_NAME}' found"
-            kubectl patch application ${APP_NAME} -n argocd --type merge -p '{"metadata":{"annotations":{"argocd.argoproj.io/refresh":"hard"}}}' || true
-            SYNC_STATUS=$(kubectl get application ${APP_NAME} -n argocd -o jsonpath='{.status.sync.status}' 2>/dev/null || echo "Unknown")
-            HEALTH_STATUS=$(kubectl get application ${APP_NAME} -n argocd -o jsonpath='{.status.health.status}' 2>/dev/null || echo "Unknown")
+          if kubectl get application notifications-api -n argocd >/dev/null 2>&1; then
+            echo "✓ ArgoCD Application 'notifications-api' found"
+            kubectl patch application notifications-api -n argocd --type merge -p '{"metadata":{"annotations":{"argocd.argoproj.io/refresh":"hard"}}}' || true
+            SYNC_STATUS=$(kubectl get application notifications-api -n argocd -o jsonpath='{.status.sync.status}' 2>/dev/null || echo "Unknown")
+            HEALTH_STATUS=$(kubectl get application notifications-api -n argocd -o jsonpath='{.status.health.status}' 2>/dev/null || echo "Unknown")
             echo "Current Status - Sync: ${SYNC_STATUS}, Health: ${HEALTH_STATUS}"
           else
-            echo "⚠️ ArgoCD Application '${APP_NAME}' not found"
+            echo "⚠️ ArgoCD Application 'notifications-api' not found"
             echo "Trigger provisioning: gh workflow run provision.yml --repo Bengo-Hub/devops-k8s"
           fi
           echo "::endgroup::"
@@ -119,8 +118,8 @@ jobs:
           mkdir -p ~/.kube
           echo "$KUBE_CONFIG_B64" | base64 -d > ~/.kube/config
 
-          if kubectl get deployment notifications-app-app -n ${NS} >/dev/null 2>&1; then
-            kubectl rollout status deployment/notifications-app-app -n ${NS} --timeout=300s
+          if kubectl get deployment notifications-api-app -n ${NS} >/dev/null 2>&1; then
+            kubectl rollout status deployment/notifications-api-app -n ${NS} --timeout=300s
             HOSTS=$(kubectl get ingress -n ${NS} -o jsonpath='{.items[*].spec.rules[*].host}' | tr ' ' '\n' | grep -E 'notifications' || true)
             if [ -n "$HOSTS" ]; then
               for H in $HOSTS; do
