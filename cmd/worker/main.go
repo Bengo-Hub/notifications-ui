@@ -15,14 +15,14 @@ import (
 	"github.com/nats-io/nats.go"
 	"go.uber.org/zap"
 
-	"github.com/bengobox/notifications-app/internal/config"
-	"github.com/bengobox/notifications-app/internal/messaging"
-	"github.com/bengobox/notifications-app/internal/platform/branding"
-	"github.com/bengobox/notifications-app/internal/platform/database"
-	"github.com/bengobox/notifications-app/internal/platform/events"
-	"github.com/bengobox/notifications-app/internal/platform/templates"
-	"github.com/bengobox/notifications-app/internal/providers"
-	"github.com/bengobox/notifications-app/internal/shared/logger"
+	"github.com/bengobox/notifications-api/internal/config"
+	"github.com/bengobox/notifications-api/internal/messaging"
+	"github.com/bengobox/notifications-api/internal/platform/branding"
+	"github.com/bengobox/notifications-api/internal/platform/database"
+	"github.com/bengobox/notifications-api/internal/platform/events"
+	"github.com/bengobox/notifications-api/internal/platform/templates"
+	"github.com/bengobox/notifications-api/internal/providers"
+	"github.com/bengobox/notifications-api/internal/shared/logger"
 )
 
 func main() {

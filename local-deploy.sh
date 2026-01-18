@@ -6,8 +6,8 @@ cd "$ROOT_DIR"
 
 APP_PORT=4002
 REDIS_CONTAINER_NAME="redis"
-SERVICE_IMAGE="notifications-app:local"
-SERVICE_CONTAINER_NAME="notifications-app-local"
+SERVICE_IMAGE="notifications-api:local"
+SERVICE_CONTAINER_NAME="notifications-api-local"
 ENV_FILE="$ROOT_DIR/.env"
 EXAMPLE_ENV="$ROOT_DIR/config/app.env.example"
 TEMPLATES_DIR="$ROOT_DIR/templates"

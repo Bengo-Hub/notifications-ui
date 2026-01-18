@@ -45,8 +45,8 @@ Set-Location $ROOT_DIR
 
 $APP_PORT = 4002
 $REDIS_CONTAINER_NAME = "redis"
-$SERVICE_IMAGE = "notifications-app:local"
-$SERVICE_CONTAINER_NAME = "notifications-app-local"
+$SERVICE_IMAGE = "notifications-api:local"
+$SERVICE_CONTAINER_NAME = "notifications-api-local"
 $DOCKER_PUSH_TARGET = $env:NOTIFICATIONS_DOCKER_PUSH_TARGET
 $ENV_FILE = Join-Path $ROOT_DIR ".env"
 $EXAMPLE_ENV = Join-Path $ROOT_DIR "config\app.env.example"

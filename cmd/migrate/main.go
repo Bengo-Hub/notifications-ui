@@ -4,8 +4,8 @@ import (
 	"context"
 	"log"
 
-	"github.com/bengobox/notifications-app/internal/config"
-	"github.com/bengobox/notifications-app/internal/database"
+	"github.com/bengobox/notifications-api/internal/config"
+	"github.com/bengobox/notifications-api/internal/database"
 	"github.com/joho/godotenv"
 )
 

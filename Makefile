@@ -1,4 +1,4 @@
-APP := notifications-app
+APP := notifications-api
 
 .PHONY: run worker test lint tidy build migrate seed docker
 

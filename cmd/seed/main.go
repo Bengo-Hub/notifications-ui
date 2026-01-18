@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/bengobox/notifications-app/internal/config"
-	"github.com/bengobox/notifications-app/internal/database"
-	"github.com/bengobox/notifications-app/internal/ent"
-	"github.com/bengobox/notifications-app/internal/ent/providersetting"
-	"github.com/bengobox/notifications-app/internal/ent/tenantbranding"
+	"github.com/bengobox/notifications-api/internal/config"
+	"github.com/bengobox/notifications-api/internal/database"
+	"github.com/bengobox/notifications-api/internal/ent"
+	"github.com/bengobox/notifications-api/internal/ent/providersetting"
+	"github.com/bengobox/notifications-api/internal/ent/tenantbranding"
 	"github.com/joho/godotenv"
 )
 

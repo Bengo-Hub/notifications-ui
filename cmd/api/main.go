@@ -6,9 +6,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	_ "github.com/bengobox/notifications-app/internal/http/docs"
+	_ "github.com/bengobox/notifications-api/internal/http/docs"
 
-	"github.com/bengobox/notifications-app/internal/app"
+	"github.com/bengobox/notifications-api/internal/app"
 )
 
 // @title Notifications Service API

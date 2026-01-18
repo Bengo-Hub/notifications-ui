@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Secret
 metadata:
-  name: notifications-app-env
+  name: notifications-api-env
   namespace: notifications
 type: Opaque
 stringData:

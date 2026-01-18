@@ -14,7 +14,7 @@ log_step() { echo -e "\033[0;35m[STEP]\033[0m $1"; }
 
 # Required environment variables
 NAMESPACE=${NAMESPACE:-notifications}
-ENV_SECRET_NAME=${ENV_SECRET_NAME:-notifications-app-env}
+ENV_SECRET_NAME=${ENV_SECRET_NAME:-notifications-api-env}
 SERVICE_DB_NAME=${SERVICE_DB_NAME:-notifications}
 SERVICE_DB_USER=${SERVICE_DB_USER:-notifications_user}
 
