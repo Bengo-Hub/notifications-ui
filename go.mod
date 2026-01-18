@@ -8,9 +8,12 @@ replace github.com/Bengo-Hub/shared-auth-client => github.com/Bengo-Hub/auth-cli
 
 require (
 	entgo.io/ent v0.13.1
+	github.com/Bengo-Hub/httpware v0.1.1
 	github.com/Bengo-Hub/shared-auth-client v0.1.2
 	github.com/Bengo-Hub/shared-events v0.1.0
 	github.com/gin-gonic/gin v1.11.0
+	github.com/go-chi/chi/v5 v5.0.12
+	github.com/go-chi/cors v1.2.1
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.5.5
 	github.com/joho/godotenv v1.5.1
@@ -75,7 +78,7 @@ require (
 	github.com/ugorji/go/codec v1.3.0 // indirect
 	github.com/zclconf/go-cty v1.8.0 // indirect
 	go.uber.org/mock v0.5.0 // indirect
-	go.uber.org/multierr v1.10.0 // indirect
+	go.uber.org/multierr v1.11.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	golang.org/x/arch v0.20.0 // indirect
 	golang.org/x/crypto v0.41.0 // indirect

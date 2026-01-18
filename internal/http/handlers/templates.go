@@ -1,10 +1,11 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/bengobox/notifications-api/internal/platform/templates"
-	"github.com/gin-gonic/gin"
+	"github.com/go-chi/chi/v5"
 )
 
 // TemplateHandler exposes endpoints for listing and previewing templates.
@@ -42,13 +43,14 @@ type templateGetResponse struct {
 // @Security bearerAuth
 // @Security ApiKeyAuth
 // @Router /{tenantId}/templates [get]
-func (h *TemplateHandler) List(c *gin.Context) {
-	summaries, _ := h.loader.List(c.Request.Context())
+func (h *TemplateHandler) List(w http.ResponseWriter, r *http.Request) {
+	summaries, _ := h.loader.List(r.Context())
 	resp := templateListResponse{Templates: make([]templateSummary, 0, len(summaries))}
 	for _, s := range summaries {
 		resp.Templates = append(resp.Templates, templateSummary{ID: s.ID, Channel: s.Channel})
 	}
-	c.JSON(http.StatusOK, resp)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
 }
 
 // Get returns the raw template content for an ID and channel.
@@ -64,16 +66,20 @@ func (h *TemplateHandler) List(c *gin.Context) {
 // @Security bearerAuth
 // @Security ApiKeyAuth
 // @Router /{tenantId}/templates/{id} [get]
-func (h *TemplateHandler) Get(c *gin.Context) {
-	id := c.Param("id")
-	channel := c.Query("channel")
+func (h *TemplateHandler) Get(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	channel := r.URL.Query().Get("channel")
 	if id == "" || channel == "" {
-		c.JSON(http.StatusBadRequest, errorResponse{Error: "id and channel required"})
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(errorResponse{Error: "id and channel required"})
 		return
 	}
-	content, err := h.loader.Get(c.Request.Context(), channel+"/"+id)
+	content, err := h.loader.Get(r.Context(), channel+"/"+id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, errorResponse{Error: "template not found"})
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(errorResponse{Error: "template not found"})
 		return
 	}
 	mime := "text/plain"
@@ -82,7 +88,8 @@ func (h *TemplateHandler) Get(c *gin.Context) {
 	} else if channel == "push" {
 		mime = "application/json"
 	}
-	c.JSON(http.StatusOK, templateGetResponse{
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(templateGetResponse{
 		ID:       id,
 		Channel:  channel,
 		Content:  content,

@@ -2,10 +2,10 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/nats-io/nats.go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
@@ -45,8 +45,9 @@ type readinessResponse struct {
 // @Produce json
 // @Success 200 {object} livenessResponse
 // @Router /healthz [get]
-func (h *HealthHandler) Liveness(c *gin.Context) {
-	c.JSON(http.StatusOK, livenessResponse{Status: "ok", Service: "notifications-api"})
+func (h *HealthHandler) Liveness(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(livenessResponse{Status: "ok", Service: "notifications-api"})
 }
 
 // Readiness checks upstream dependencies.
@@ -57,8 +58,8 @@ func (h *HealthHandler) Liveness(c *gin.Context) {
 // @Success 200 {object} readinessResponse
 // @Failure 503 {object} readinessResponse
 // @Router /readyz [get]
-func (h *HealthHandler) Readiness(c *gin.Context) {
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Second)
+func (h *HealthHandler) Readiness(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
 	defer cancel()
 
 	issues := map[string]string{}
@@ -84,7 +85,9 @@ func (h *HealthHandler) Readiness(c *gin.Context) {
 		status = http.StatusServiceUnavailable
 	}
 
-	c.JSON(status, readinessResponse{
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(readinessResponse{
 		Status:       http.StatusText(status),
 		Dependencies: issues,
 	})
@@ -97,6 +100,6 @@ func (h *HealthHandler) Readiness(c *gin.Context) {
 // @Produce plain
 // @Success 200 {string} string "Prometheus metrics payload"
 // @Router /metrics [get]
-func (h *HealthHandler) Metrics(c *gin.Context) {
-	promhttp.Handler().ServeHTTP(c.Writer, c.Request)
+func (h *HealthHandler) Metrics(w http.ResponseWriter, r *http.Request) {
+	promhttp.Handler().ServeHTTP(w, r)
 }

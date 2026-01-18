@@ -1,10 +1,11 @@
 # syntax=docker/dockerfile:1
 
-FROM golang:1.24-alpine AS builder
+FROM golang:1.23-alpine AS builder
 WORKDIR /src
 # go.mod uses remote replace directive for auth-client, no local copy needed
 # Build context is the service directory root
 COPY go.mod go.sum ./
+ENV GOTOOLCHAIN=auto
 RUN go mod download
 COPY . .
 
@@ -22,7 +23,6 @@ COPY --from=builder /out/worker /app/worker
 COPY --from=builder /out/migrate /app/migrate
 COPY --from=builder /out/seed /app/seed
 COPY --from=builder /src/scripts/migrate.sh /app/migrate.sh
-COPY --from=builder /src/migrations /app/migrations
 RUN chmod +x /app/migrate.sh
 # TLS certificates directory (optional, can be mounted as volume)
 RUN mkdir -p ./config/certs

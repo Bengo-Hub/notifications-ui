@@ -1,21 +1,19 @@
 package handlers
 
 import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"net/http"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/nats-io/nats.go"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 
-	"context"
-	"crypto/sha256"
-	"encoding/hex"
-
 	"github.com/bengobox/notifications-api/internal/config"
 	"github.com/bengobox/notifications-api/internal/messaging"
-	"github.com/bengobox/notifications-api/internal/shared/middleware"
 )
 
 type NotificationHandler struct {
@@ -83,24 +81,28 @@ type errorResponse struct {
 // @Security bearerAuth
 // @Security ApiKeyAuth
 // @Router /{tenantId}/notifications/messages [post]
-func (h *NotificationHandler) Enqueue(c *gin.Context) {
+func (h *NotificationHandler) Enqueue(w http.ResponseWriter, r *http.Request) {
 	var req CreateMessageRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, errorResponse{Error: err.Error()})
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(errorResponse{Error: err.Error()})
 		return
 	}
 
 	tenant := req.Tenant
 	if tenant == "" {
-		tenant = middleware.TenantFromContext(c)
+		tenant = r.Context().Value("tenant_id").(string)
 	}
 	if tenant == "" {
-		c.JSON(http.StatusBadRequest, errorResponse{Error: "tenant required"})
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(errorResponse{Error: "tenant required"})
 		return
 	}
 
-	requestID := c.GetString("request_id")
-	idemp := c.GetHeader("Idempotency-Key")
+	requestID := r.Context().Value("request_id").(string)
+	idemp := r.Header.Get("Idempotency-Key")
 	if idemp == "" {
 		// derive from payload
 		sum := sha256.Sum256([]byte(tenant + "|" + req.Channel + "|" + req.Template + "|" + requestID))
@@ -109,7 +111,7 @@ func (h *NotificationHandler) Enqueue(c *gin.Context) {
 
 	// idempotency check (24h)
 	if h.cache != nil {
-		ctx, cancel := context.WithTimeout(c.Request.Context(), 500*time.Millisecond)
+		ctx, cancel := context.WithTimeout(r.Context(), 500*time.Millisecond)
 		defer cancel()
 		key := "idemp:" + idemp
 		ok, err := h.cache.SetNX(ctx, key, requestID, 24*time.Hour).Result()
@@ -117,7 +119,9 @@ func (h *NotificationHandler) Enqueue(c *gin.Context) {
 			h.log.Warn("idempotency setnx failed", zap.Error(err))
 		}
 		if !ok {
-			c.JSON(http.StatusAccepted, enqueueResponse{Status: "duplicate", RequestID: requestID})
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusAccepted)
+			json.NewEncoder(w).Encode(enqueueResponse{Status: "duplicate", RequestID: requestID})
 			return
 		}
 	}
@@ -134,11 +138,15 @@ func (h *NotificationHandler) Enqueue(c *gin.Context) {
 		QueuedAt:       time.Now(),
 	}
 
-	if _, err := messaging.Publish(c.Request.Context(), h.nats, h.eventsCfg, msg); err != nil {
+	if _, err := messaging.Publish(r.Context(), h.nats, h.eventsCfg, msg); err != nil {
 		h.log.Error("publish failed", zap.Error(err), zap.String("request_id", requestID))
-		c.JSON(http.StatusInternalServerError, errorResponse{Error: "queue_unavailable"})
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errorResponse{Error: "queue_unavailable"})
 		return
 	}
 
-	c.JSON(http.StatusAccepted, enqueueResponse{Status: "queued", RequestID: requestID})
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+	json.NewEncoder(w).Encode(enqueueResponse{Status: "queued", RequestID: requestID})
 }

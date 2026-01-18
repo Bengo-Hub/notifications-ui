@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nats-io/nats.go"
 	"github.com/redis/go-redis/v9"
@@ -139,11 +138,11 @@ func New(ctx context.Context) (*App, error) {
 		}
 	}
 
-	ginRouter := router.New(log, healthHandler, notificationHandler, templateHandler, cfg.Security.APIKey, authMiddleware)
+	httpRouter := router.New(log, healthHandler, notificationHandler, templateHandler, cfg.Security.APIKey, authMiddleware)
 
 	httpServer := &http.Server{
 		Addr:              fmt.Sprintf("%s:%d", cfg.HTTP.Host, cfg.HTTP.Port),
-		Handler:           ginRouter,
+		Handler:           httpRouter,
 		ReadTimeout:       cfg.HTTP.ReadTimeout,
 		ReadHeaderTimeout: 5 * time.Second,
 		WriteTimeout:      cfg.HTTP.WriteTimeout,
@@ -163,10 +162,6 @@ func New(ctx context.Context) (*App, error) {
 }
 
 func (a *App) Run(ctx context.Context) error {
-	if a.cfg.App.Env == "development" {
-		gin.SetMode(gin.DebugMode)
-	}
-
 	// Start outbox publisher worker
 	if a.outboxPublisher != nil {
 		go func() {

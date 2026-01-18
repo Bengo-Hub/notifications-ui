@@ -1,84 +1,75 @@
 package router
 
 import (
-	"github.com/gin-gonic/gin"
+	"net/http"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"go.uber.org/zap"
 
+	httpware "github.com/Bengo-Hub/httpware"
 	authclient "github.com/Bengo-Hub/shared-auth-client"
 	handlers "github.com/bengobox/notifications-api/internal/http/handlers"
-	"github.com/bengobox/notifications-api/internal/shared/middleware"
 )
 
-func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handlers.NotificationHandler, templates *handlers.TemplateHandler, apiKey string, authMiddleware *authclient.AuthMiddleware) *gin.Engine {
-	gin.SetMode(gin.ReleaseMode)
+func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handlers.NotificationHandler, templates *handlers.TemplateHandler, apiKey string, authMiddleware *authclient.AuthMiddleware) http.Handler {
+	r := chi.NewRouter()
 
-	r := gin.New()
-	r.Use(gin.Recovery())
+	r.Use(middleware.RealIP)
+	r.Use(httpware.RequestID)
+	r.Use(httpware.Tenant)
+	r.Use(httpware.Logging(log))
+	r.Use(httpware.Recover(log))
+	r.Use(middleware.Timeout(30 * time.Second))
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Authorization", "Content-Type", "X-Tenant-ID", "X-Request-ID", "X-API-Key", "Idempotency-Key"},
+		ExposedHeaders:   []string{"Link", "X-Request-ID"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}))
 
-	// CORS middleware for Swagger UI and API requests
-	r.Use(func(c *gin.Context) {
-		origin := c.GetHeader("Origin")
-		if origin == "" {
-			origin = "*"
+	// Swagger UI
+	r.Get("/v1/docs/*", handlers.SwaggerUI)
+
+	r.Route("/api/v1", func(api chi.Router) {
+		// Serve OpenAPI spec (public, no auth required)
+		api.Get("/openapi.json", handlers.OpenAPIJSON)
+
+		// Health endpoints (public)
+		api.Get("/healthz", health.Liveness)
+		api.Get("/readyz", health.Readiness)
+		api.Get("/metrics", health.Metrics)
+
+		// Apply auth middleware if configured, otherwise allow API key
+		if authMiddleware != nil {
+			api.Use(authMiddleware.RequireAuth)
+		} else if apiKey != "" {
+			api.Use(func(next http.Handler) http.Handler {
+				return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					if r.Header.Get("X-API-Key") != apiKey {
+						http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
+						return
+					}
+					next.ServeHTTP(w, r)
+				})
+			})
 		}
-		c.Header("Access-Control-Allow-Origin", origin)
-		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key, X-Tenant-ID, X-Request-ID")
-		c.Header("Access-Control-Expose-Headers", "Content-Type, Content-Length, X-Request-ID")
-		c.Header("Access-Control-Max-Age", "3600")
 
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
+		api.Route("/{tenantId}", func(tenant chi.Router) {
+			tenant.Route("/notifications", func(notif chi.Router) {
+				notif.Post("/messages", notifications.Enqueue)
+			})
 
-		c.Next()
-	})
-
-	r.Use(middleware.RequestID())
-	r.Use(middleware.Tenant())
-	r.Use(middleware.Logging(log))
-	r.Use(middleware.Recover(log))
-
-	// Swagger UI - custom handler like auth-service
-	r.GET("/v1/docs/*any", handlers.SwaggerUI)
-
-	api := r.Group("/api/v1")
-	// Serve OpenAPI spec (public, no auth required)
-	api.GET("/openapi.json", handlers.OpenAPIJSON)
-
-	// Health endpoints under /api/v1
-	api.GET("/healthz", health.Liveness)
-	api.GET("/readyz", health.Readiness)
-	api.GET("/metrics", health.Metrics)
-
-	// Apply auth middleware if configured, otherwise allow API key
-	if authMiddleware != nil {
-		api.Use(authclient.GinMiddleware(authMiddleware))
-	} else if apiKey != "" {
-		api.Use(func(c *gin.Context) {
-			if c.GetHeader("X-API-Key") != apiKey {
-				c.AbortWithStatusJSON(401, gin.H{"error": "unauthorized"})
-				return
-			}
-			c.Next()
+			tenant.Route("/templates", func(tmpl chi.Router) {
+				tmpl.Get("/", templates.List)
+				tmpl.Get("/{id}", templates.Get)
+			})
 		})
-	}
-	{
-		tenant := api.Group("/:tenantId")
-		{
-			notif := tenant.Group("/notifications")
-			{
-				notif.POST("/messages", notifications.Enqueue)
-			}
-
-			tmpl := tenant.Group("/templates")
-			{
-				tmpl.GET("", templates.List)
-				tmpl.GET("/:id", templates.Get)
-			}
-		}
-	}
+	})
 
 	return r
 }

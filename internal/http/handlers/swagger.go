@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
-
-	"github.com/gin-gonic/gin"
 )
 
 //go:embed swagger.json
@@ -135,14 +133,14 @@ func convertSwagger2ToOpenAPI3(swagger2Spec map[string]interface{}) map[string]i
 }
 
 // OpenAPIJSON serves the OpenAPI/Swagger JSON specification
-func OpenAPIJSON(c *gin.Context) {
+func OpenAPIJSON(w http.ResponseWriter, r *http.Request) {
 	// Handle OPTIONS preflight requests
-	if c.Request.Method == "OPTIONS" {
-		c.Header("Access-Control-Allow-Origin", "*")
-		c.Header("Access-Control-Allow-Methods", "GET, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key")
-		c.Header("Access-Control-Max-Age", "3600")
-		c.Status(http.StatusNoContent)
+	if r.Method == "OPTIONS" {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key")
+		w.Header().Set("Access-Control-Max-Age", "3600")
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
@@ -153,11 +151,11 @@ func OpenAPIJSON(c *gin.Context) {
 		if swaggerVersion, ok := spec["swagger"].(string); ok && strings.HasPrefix(swaggerVersion, "2.") {
 			openAPI3Spec := convertSwagger2ToOpenAPI3(spec)
 			if modifiedSpec, err := json.Marshal(openAPI3Spec); err == nil {
-				c.Header("Content-Type", "application/json")
-				c.Header("Access-Control-Allow-Origin", "*")
-				c.Header("Access-Control-Allow-Methods", "GET, OPTIONS")
-				c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key")
-				c.Data(http.StatusOK, "application/json", modifiedSpec)
+				w.Header().Set("Content-Type", "application/json")
+				w.Header().Set("Access-Control-Allow-Origin", "*")
+				w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key")
+				w.Write(modifiedSpec)
 				return
 			}
 		} else {
@@ -170,30 +168,30 @@ func OpenAPIJSON(c *gin.Context) {
 				}
 			}
 			if modifiedSpec, err := json.Marshal(spec); err == nil {
-				c.Header("Content-Type", "application/json")
-				c.Header("Access-Control-Allow-Origin", "*")
-				c.Header("Access-Control-Allow-Methods", "GET, OPTIONS")
-				c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key")
-				c.Data(http.StatusOK, "application/json", modifiedSpec)
+				w.Header().Set("Content-Type", "application/json")
+				w.Header().Set("Access-Control-Allow-Origin", "*")
+				w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key")
+				w.Write(modifiedSpec)
 				return
 			}
 		}
 	}
 
 	// Fallback to original spec if modification fails
-	c.Header("Content-Type", "application/json")
-	c.Header("Access-Control-Allow-Origin", "*")
-	c.Header("Access-Control-Allow-Methods", "GET, OPTIONS")
-	c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key")
-	c.Data(http.StatusOK, "application/json", swaggerSpec)
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key")
+	w.Write(swaggerSpec)
 }
 
 // SwaggerUI serves the Swagger UI HTML page
-func SwaggerUI(c *gin.Context) {
-	c.Header("Content-Type", "text/html; charset=utf-8")
-	c.Header("Access-Control-Allow-Origin", "*")
+func SwaggerUI(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 
-	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(`<!DOCTYPE html>
+	w.Write([]byte(`<!DOCTYPE html>
 <html>
   <head>
     <meta charset="UTF-8">
