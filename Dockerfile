@@ -5,14 +5,13 @@ WORKDIR /src
 # go.mod uses remote replace directive for auth-client, no local copy needed
 # Build context is the service directory root
 COPY go.mod go.sum ./
-ENV GOTOOLCHAIN=auto
-RUN go mod download
+RUN GOTOOLCHAIN=auto go mod download
 COPY . .
 
-RUN CGO_ENABLED=0 go build -o /out/notifications ./cmd/api
-RUN CGO_ENABLED=0 go build -o /out/worker ./cmd/worker
-RUN CGO_ENABLED=0 go build -o /out/migrate ./cmd/migrate
-RUN CGO_ENABLED=0 go build -o /out/seed ./cmd/seed
+RUN GOTOOLCHAIN=auto CGO_ENABLED=0 go build -o /out/notifications ./cmd/api
+RUN GOTOOLCHAIN=auto CGO_ENABLED=0 go build -o /out/worker ./cmd/worker
+RUN GOTOOLCHAIN=auto CGO_ENABLED=0 go build -o /out/migrate ./cmd/migrate
+RUN GOTOOLCHAIN=auto CGO_ENABLED=0 go build -o /out/seed ./cmd/seed
 
 FROM alpine:3.20
 RUN apk add --no-cache postgresql-client
