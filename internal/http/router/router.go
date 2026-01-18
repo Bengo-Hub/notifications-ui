@@ -44,29 +44,32 @@ func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handler
 		api.Get("/readyz", health.Readiness)
 		api.Get("/metrics", health.Metrics)
 
-		// Apply auth middleware if configured, otherwise allow API key
-		if authMiddleware != nil {
-			api.Use(authMiddleware.RequireAuth)
-		} else if apiKey != "" {
-			api.Use(func(next http.Handler) http.Handler {
-				return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					if r.Header.Get("X-API-Key") != apiKey {
-						http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
-						return
-					}
-					next.ServeHTTP(w, r)
+		// Protected routes - require authentication
+		api.Group(func(protected chi.Router) {
+			// Apply auth middleware if configured, otherwise allow API key
+			if authMiddleware != nil {
+				protected.Use(authMiddleware.RequireAuth)
+			} else if apiKey != "" {
+				protected.Use(func(next http.Handler) http.Handler {
+					return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+						if r.Header.Get("X-API-Key") != apiKey {
+							http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
+							return
+						}
+						next.ServeHTTP(w, r)
+					})
 				})
-			})
-		}
+			}
 
-		api.Route("/{tenantId}", func(tenant chi.Router) {
-			tenant.Route("/notifications", func(notif chi.Router) {
-				notif.Post("/messages", notifications.Enqueue)
-			})
+			protected.Route("/{tenantId}", func(tenant chi.Router) {
+				tenant.Route("/notifications", func(notif chi.Router) {
+					notif.Post("/messages", notifications.Enqueue)
+				})
 
-			tenant.Route("/templates", func(tmpl chi.Router) {
-				tmpl.Get("/", templates.List)
-				tmpl.Get("/{id}", templates.Get)
+				tenant.Route("/templates", func(tmpl chi.Router) {
+					tmpl.Get("/", templates.List)
+					tmpl.Get("/{id}", templates.Get)
+				})
 			})
 		})
 	})
