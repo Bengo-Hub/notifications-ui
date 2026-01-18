@@ -60,16 +60,8 @@ info "Running Trivy filesystem scan"
 trivy fs . --exit-code "$TRIVY_ECODE" --format table || true
 
 info "Building Docker image"
-# Build from workspace root to include shared/auth-client
-# For local builds: docker build -f notifications-api/Dockerfile -t notifications-api:local .
-# For CI builds: build from service directory, but Dockerfile expects workspace root context
-if [[ -d "../shared/auth-client" ]]; then
-  # We're in the service directory, build from parent (workspace root)
-  DOCKER_BUILDKIT=1 docker build -f Dockerfile -t "${IMAGE_REPO}:${GIT_COMMIT_ID}" ..
-else
-  # We're already at workspace root or in CI
-  DOCKER_BUILDKIT=1 docker build -f notifications-service/notifications-api/Dockerfile -t "${IMAGE_REPO}:${GIT_COMMIT_ID}" .
-fi
+# Build from service directory - go.mod uses remote replace directive for auth-client
+DOCKER_BUILDKIT=1 docker build -t "${IMAGE_REPO}:${GIT_COMMIT_ID}" .
 success "Docker build complete"
 
 if [[ ${DEPLOY} != "true" ]]; then
