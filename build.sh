@@ -14,9 +14,9 @@ success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
-APP_NAME=${APP_NAME:-"notifications-app"}
+APP_NAME=${APP_NAME:-"notifications-api"}
 NAMESPACE=${NAMESPACE:-"notifications"}
-ENV_SECRET_NAME=${ENV_SECRET_NAME:-"notifications-app-env"}
+ENV_SECRET_NAME=${ENV_SECRET_NAME:-"notifications-api-env"}
 DEPLOY=${DEPLOY:-true}
 SETUP_DATABASES=${SETUP_DATABASES:-true}
 DB_TYPES=${DB_TYPES:-postgres,redis}
@@ -61,14 +61,14 @@ trivy fs . --exit-code "$TRIVY_ECODE" --format table || true
 
 info "Building Docker image"
 # Build from workspace root to include shared/auth-client
-# For local builds: docker build -f notifications-app/Dockerfile -t notifications-app:local .
+# For local builds: docker build -f notifications-api/Dockerfile -t notifications-api:local .
 # For CI builds: build from service directory, but Dockerfile expects workspace root context
 if [[ -d "../shared/auth-client" ]]; then
   # We're in the service directory, build from parent (workspace root)
   DOCKER_BUILDKIT=1 docker build -f Dockerfile -t "${IMAGE_REPO}:${GIT_COMMIT_ID}" ..
 else
   # We're already at workspace root or in CI
-  DOCKER_BUILDKIT=1 docker build -f notifications-app/Dockerfile -t "${IMAGE_REPO}:${GIT_COMMIT_ID}" .
+  DOCKER_BUILDKIT=1 docker build -f notifications-api/Dockerfile -t "${IMAGE_REPO}:${GIT_COMMIT_ID}" .
 fi
 success "Docker build complete"
 
