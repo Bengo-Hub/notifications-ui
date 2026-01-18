@@ -2,30 +2,31 @@
 
 FROM golang:1.23-alpine AS builder
 WORKDIR /src
+RUN apk add --no-cache git ca-certificates
 # go.mod uses remote replace directive for auth-client, no local copy needed
 # Build context is the service directory root
 COPY go.mod go.sum ./
 RUN GOTOOLCHAIN=auto go mod download
 COPY . .
 
-RUN GOTOOLCHAIN=auto CGO_ENABLED=0 go build -o /out/notifications ./cmd/api
-RUN GOTOOLCHAIN=auto CGO_ENABLED=0 go build -o /out/worker ./cmd/worker
-RUN GOTOOLCHAIN=auto CGO_ENABLED=0 go build -o /out/migrate ./cmd/migrate
-RUN GOTOOLCHAIN=auto CGO_ENABLED=0 go build -o /out/seed ./cmd/seed
+# Build all binaries with service-prefixed names
+RUN GOTOOLCHAIN=auto CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /bin/notifications-api ./cmd/api && \
+    GOTOOLCHAIN=auto CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /bin/notifications-worker ./cmd/worker && \
+    GOTOOLCHAIN=auto CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /bin/notifications-migrate ./cmd/migrate && \
+    GOTOOLCHAIN=auto CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /bin/notifications-seed ./cmd/seed
 
 FROM alpine:3.20
-RUN apk add --no-cache postgresql-client
-RUN addgroup -S app && adduser -S app -G app
+RUN apk add --no-cache ca-certificates tzdata postgresql-client && addgroup -S app && adduser -S app -G app
 WORKDIR /app
-COPY --from=builder /out/notifications /app/service
-COPY --from=builder /out/worker /app/worker
-COPY --from=builder /out/migrate /app/migrate
-COPY --from=builder /out/seed /app/seed
-COPY --from=builder /src/scripts/migrate.sh /app/migrate.sh
-RUN chmod +x /app/migrate.sh
+# Copy all binaries to well-known locations
+COPY --from=builder /bin/notifications-api /usr/local/bin/notifications-api
+COPY --from=builder /bin/notifications-worker /usr/local/bin/notifications-worker
+COPY --from=builder /bin/notifications-migrate /usr/local/bin/notifications-migrate
+COPY --from=builder /bin/notifications-seed /usr/local/bin/notifications-seed
+COPY --from=builder /bin/notifications-seed /usr/local/bin/notifications-seed
 # TLS certificates directory (optional, can be mounted as volume)
 RUN mkdir -p ./config/certs
 USER app
 EXPOSE 4000
 ENV PORT=4000
-ENTRYPOINT ["/app/migrate.sh"]
+ENTRYPOINT ["/usr/local/bin/notifications-api"]
