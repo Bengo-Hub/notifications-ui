@@ -8,7 +8,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/bengobox/notifications-app/internal/ent/providersetting"
+	"github.com/bengobox/notifications-api/internal/ent/providersetting"
 )
 
 // ProviderSetting is the model entity for the ProviderSetting schema.

@@ -8,7 +8,7 @@ import (
 
 	"github.com/nats-io/nats.go"
 
-	"github.com/bengobox/notifications-app/internal/config"
+	"github.com/bengobox/notifications-api/internal/config"
 )
 
 const defaultSubject = "notifications.events"

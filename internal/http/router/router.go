@@ -5,8 +5,8 @@ import (
 	"go.uber.org/zap"
 
 	authclient "github.com/Bengo-Hub/shared-auth-client"
-	handlers "github.com/bengobox/notifications-app/internal/http/handlers"
-	"github.com/bengobox/notifications-app/internal/shared/middleware"
+	handlers "github.com/bengobox/notifications-api/internal/http/handlers"
+	"github.com/bengobox/notifications-api/internal/shared/middleware"
 )
 
 func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handlers.NotificationHandler, templates *handlers.TemplateHandler, apiKey string, authMiddleware *authclient.AuthMiddleware) *gin.Engine {

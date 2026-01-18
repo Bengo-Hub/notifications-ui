@@ -9,7 +9,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/bengobox/notifications-app/internal/ent/providersetting"
+	"github.com/bengobox/notifications-api/internal/ent/providersetting"
 )
 
 // ProviderSettingCreate is the builder for creating a ProviderSetting entity.

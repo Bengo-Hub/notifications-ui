@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/bengobox/notifications-app/internal/ent/outboxevent"
+	"github.com/bengobox/notifications-api/internal/ent/outboxevent"
 	"github.com/google/uuid"
 )
 

@@ -7,10 +7,10 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/bengobox/notifications-app/internal/config"
-	pcfg "github.com/bengobox/notifications-app/internal/providers/config"
-	"github.com/bengobox/notifications-app/internal/providers/email"
-	"github.com/bengobox/notifications-app/internal/providers/sms"
+	"github.com/bengobox/notifications-api/internal/config"
+	pcfg "github.com/bengobox/notifications-api/internal/providers/config"
+	"github.com/bengobox/notifications-api/internal/providers/email"
+	"github.com/bengobox/notifications-api/internal/providers/sms"
 )
 
 // Manager resolves providers per-tenant with DB overrides and env fallbacks.

@@ -1,4 +1,4 @@
-module github.com/bengobox/notifications-app
+module github.com/bengobox/notifications-api
 
 go 1.24.0
 

@@ -7,7 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/bengobox/notifications-app/internal/config"
+	"github.com/bengobox/notifications-api/internal/config"
 )
 
 func NewPool(ctx context.Context, cfg config.PostgresConfig) (*pgxpool.Pool, error) {

@@ -9,7 +9,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/bengobox/notifications-app/internal/ent/tenantbranding"
+	"github.com/bengobox/notifications-api/internal/ent/tenantbranding"
 )
 
 // TenantBrandingCreate is the builder for creating a TenantBranding entity.

@@ -3,7 +3,7 @@ package cache
 import (
 	"github.com/redis/go-redis/v9"
 
-	"github.com/bengobox/notifications-app/internal/config"
+	"github.com/bengobox/notifications-api/internal/config"
 )
 
 func NewClient(cfg config.RedisConfig) *redis.Client {

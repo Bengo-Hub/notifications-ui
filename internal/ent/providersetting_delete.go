@@ -8,8 +8,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/bengobox/notifications-app/internal/ent/predicate"
-	"github.com/bengobox/notifications-app/internal/ent/providersetting"
+	"github.com/bengobox/notifications-api/internal/ent/predicate"
+	"github.com/bengobox/notifications-api/internal/ent/providersetting"
 )
 
 // ProviderSettingDelete is the builder for deleting a ProviderSetting entity.

@@ -4,9 +4,9 @@ import (
 	"context"
 	"os"
 
-	"github.com/bengobox/notifications-app/internal/config"
-	"github.com/bengobox/notifications-app/internal/database"
-	"github.com/bengobox/notifications-app/internal/ent/tenantbranding"
+	"github.com/bengobox/notifications-api/internal/config"
+	"github.com/bengobox/notifications-api/internal/database"
+	"github.com/bengobox/notifications-api/internal/ent/tenantbranding"
 )
 
 // LoadBrandingEnt loads tenant branding using Ent; falls back gracefully if Ent is not compiled.

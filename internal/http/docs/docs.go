@@ -262,7 +262,7 @@ const docTemplate = `{
             "properties": {
                 "service": {
                     "type": "string",
-                    "example": "notifications-app"
+                    "example": "notifications-api"
                 },
                 "status": {
                     "type": "string",

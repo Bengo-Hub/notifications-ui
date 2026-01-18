@@ -9,7 +9,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/bengobox/notifications-app/internal/ent/tenantbranding"
+	"github.com/bengobox/notifications-api/internal/ent/tenantbranding"
 )
 
 // TenantBranding is the model entity for the TenantBranding schema.

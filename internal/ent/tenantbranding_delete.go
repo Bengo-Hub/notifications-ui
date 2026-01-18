@@ -8,8 +8,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/bengobox/notifications-app/internal/ent/predicate"
-	"github.com/bengobox/notifications-app/internal/ent/tenantbranding"
+	"github.com/bengobox/notifications-api/internal/ent/predicate"
+	"github.com/bengobox/notifications-api/internal/ent/tenantbranding"
 )
 
 // TenantBrandingDelete is the builder for deleting a TenantBranding entity.

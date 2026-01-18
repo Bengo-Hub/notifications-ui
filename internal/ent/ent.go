@@ -12,9 +12,9 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"github.com/bengobox/notifications-app/internal/ent/outboxevent"
-	"github.com/bengobox/notifications-app/internal/ent/providersetting"
-	"github.com/bengobox/notifications-app/internal/ent/tenantbranding"
+	"github.com/bengobox/notifications-api/internal/ent/outboxevent"
+	"github.com/bengobox/notifications-api/internal/ent/providersetting"
+	"github.com/bengobox/notifications-api/internal/ent/tenantbranding"
 )
 
 // ent aliases to avoid import conflicts in user's code.

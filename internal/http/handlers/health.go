@@ -30,7 +30,7 @@ func NewHealthHandler(log *zap.Logger, db dbPinger, cache *redis.Client, events 
 
 type livenessResponse struct {
 	Status  string `json:"status" example:"ok"`
-	Service string `json:"service" example:"notifications-app"`
+	Service string `json:"service" example:"notifications-api"`
 }
 
 type readinessResponse struct {
@@ -46,7 +46,7 @@ type readinessResponse struct {
 // @Success 200 {object} livenessResponse
 // @Router /healthz [get]
 func (h *HealthHandler) Liveness(c *gin.Context) {
-	c.JSON(http.StatusOK, livenessResponse{Status: "ok", Service: "notifications-app"})
+	c.JSON(http.StatusOK, livenessResponse{Status: "ok", Service: "notifications-api"})
 }
 
 // Readiness checks upstream dependencies.

@@ -5,9 +5,9 @@ package ent
 import (
 	"time"
 
-	"github.com/bengobox/notifications-app/internal/ent/outboxevent"
-	"github.com/bengobox/notifications-app/internal/ent/providersetting"
-	"github.com/bengobox/notifications-app/internal/ent/schema"
+	"github.com/bengobox/notifications-api/internal/ent/outboxevent"
+	"github.com/bengobox/notifications-api/internal/ent/providersetting"
+	"github.com/bengobox/notifications-api/internal/ent/schema"
 	"github.com/google/uuid"
 )
 

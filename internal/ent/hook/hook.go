@@ -6,7 +6,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bengobox/notifications-app/internal/ent"
+	"github.com/bengobox/notifications-api/internal/ent"
 )
 
 // The OutboxEventFunc type is an adapter to allow the use of ordinary

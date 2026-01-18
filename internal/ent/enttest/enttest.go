@@ -5,12 +5,12 @@ package enttest
 import (
 	"context"
 
-	"github.com/bengobox/notifications-app/internal/ent"
+	"github.com/bengobox/notifications-api/internal/ent"
 	// required by schema hooks.
-	_ "github.com/bengobox/notifications-app/internal/ent/runtime"
+	_ "github.com/bengobox/notifications-api/internal/ent/runtime"
 
 	"entgo.io/ent/dialect/sql/schema"
-	"github.com/bengobox/notifications-app/internal/ent/migrate"
+	"github.com/bengobox/notifications-api/internal/ent/migrate"
 )
 
 type (

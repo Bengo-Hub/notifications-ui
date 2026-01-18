@@ -3,7 +3,7 @@ package branding
 import (
 	"context"
 
-	"github.com/bengobox/notifications-app/internal/config"
+	"github.com/bengobox/notifications-api/internal/config"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 

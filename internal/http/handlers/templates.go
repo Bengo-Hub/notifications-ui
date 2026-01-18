@@ -3,7 +3,7 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/bengobox/notifications-app/internal/platform/templates"
+	"github.com/bengobox/notifications-api/internal/platform/templates"
 	"github.com/gin-gonic/gin"
 )
 

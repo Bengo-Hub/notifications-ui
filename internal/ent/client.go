@@ -9,15 +9,15 @@ import (
 	"log"
 	"reflect"
 
-	"github.com/bengobox/notifications-app/internal/ent/migrate"
+	"github.com/bengobox/notifications-api/internal/ent/migrate"
 	"github.com/google/uuid"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
-	"github.com/bengobox/notifications-app/internal/ent/outboxevent"
-	"github.com/bengobox/notifications-app/internal/ent/providersetting"
-	"github.com/bengobox/notifications-app/internal/ent/tenantbranding"
+	"github.com/bengobox/notifications-api/internal/ent/outboxevent"
+	"github.com/bengobox/notifications-api/internal/ent/providersetting"
+	"github.com/bengobox/notifications-api/internal/ent/tenantbranding"
 )
 
 // Client is the client that holds all ent builders.

@@ -4,7 +4,7 @@ package tenantbranding
 
 import (
 	"entgo.io/ent/dialect/sql"
-	"github.com/bengobox/notifications-app/internal/ent/predicate"
+	"github.com/bengobox/notifications-api/internal/ent/predicate"
 )
 
 // ID filters vertices based on their ID field.

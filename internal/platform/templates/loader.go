@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bengobox/notifications-app/internal/config"
+	"github.com/bengobox/notifications-api/internal/config"
 )
 
 // Loader caches compiled templates in-memory with TTL invalidation.
