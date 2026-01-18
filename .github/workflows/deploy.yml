@@ -80,7 +80,7 @@ jobs:
         env:
           KUBE_CONFIG_B64: ${{ secrets.KUBE_CONFIG }}
           NS: notifications
-          APP_NAME: notifications-app
+          APP_NAME: notifications-api
         run: |
           if [ -z "${KUBE_CONFIG_B64}" ]; then
             echo "⏭️ Skipping ArgoCD check - no KUBE_CONFIG available"

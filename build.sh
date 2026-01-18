@@ -68,7 +68,7 @@ if [[ -d "../shared/auth-client" ]]; then
   DOCKER_BUILDKIT=1 docker build -f Dockerfile -t "${IMAGE_REPO}:${GIT_COMMIT_ID}" ..
 else
   # We're already at workspace root or in CI
-  DOCKER_BUILDKIT=1 docker build -f notifications-api/Dockerfile -t "${IMAGE_REPO}:${GIT_COMMIT_ID}" .
+  DOCKER_BUILDKIT=1 docker build -f notifications-service/notifications-api/Dockerfile -t "${IMAGE_REPO}:${GIT_COMMIT_ID}" .
 fi
 success "Docker build complete"
 
