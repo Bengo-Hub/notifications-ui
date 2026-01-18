@@ -129,17 +129,14 @@ if [[ "$SETUP_DATABASES" == "true" && -n "${KUBE_CONFIG:-}" ]]; then
     warn "PostgreSQL not found in infra namespace - skipping database creation"
   fi
   
-  log_info "Setting up environment secrets from existing databases"
-  if [[ -f "scripts/setup_env_secrets.sh" ]]; then
-    chmod +x scripts/setup_env_secrets.sh
-    VALIDATION_OUTPUT=$(./scripts/setup_env_secrets.sh) || { log_error "Environment secret setup failed"; exit 1; }
-    log_success "Environment secrets configured successfully"
-  else
-    log_error "scripts/setup_env_secrets.sh not found"
-    exit 1
-  fi
-else
-  warn "No KUBE_CONFIG available - skipping database and secret setup"
+fi
+
+if ! kubectl -n "$NAMESPACE" get secret "$ENV_SECRET_NAME" >/dev/null 2>&1; then
+  warn "Secret $ENV_SECRET_NAME not found - creating placeholder"
+  kubectl -n "$NAMESPACE" create secret generic "$ENV_SECRET_NAME" \
+    --from-literal=NOTIFICATIONS_POSTGRES_URL="postgresql://${SERVICE_DB_USER}:PASSWORD@postgresql.infra.svc.cluster.local:5432/${SERVICE_DB_NAME}?sslmode=disable" \
+    --from-literal=NOTIFICATIONS_REDIS_ADDR="redis-master.infra.svc.cluster.local:6379" \
+    --from-literal=NOTIFICATIONS_NATS_URL="nats://nats.messaging.svc.cluster.local:4222" || true
 fi
 
 TOKEN="${GH_PAT:-${GIT_SECRET:-${GITHUB_TOKEN:-}}}"
@@ -166,28 +163,6 @@ if [[ -n $DEVOPS_DIR && -d $DEVOPS_DIR ]]; then
     warn "${VALUES_FILE_PATH} not found in devops repo"
   fi
   popd >/dev/null || true
-fi
-
-# Wait for deployment to be ready and run migrations
-echo "Waiting for deployment to be ready..."
-kubectl -n "$NAMESPACE" rollout status deployment/"$APP_NAME" --timeout=300s || warn "Deployment rollout failed or timed out"
-
-if kubectl -n "$NAMESPACE" get pod -l app="$APP_NAME" --field-selector=status.phase=Running >/dev/null 2>&1; then
-  echo "Running database migrations..."
-  if kubectl -n "$NAMESPACE" exec deployment/"$APP_NAME" -- /app/migrate; then
-    echo "Migrations completed successfully"
-  else
-    warn "Migration failed - continuing anyway"
-  fi
-  
-  echo "Running database seed..."
-  if kubectl -n "$NAMESPACE" exec deployment/"$APP_NAME" -- /app/seed; then
-    echo "Seeding completed successfully"
-  else
-    warn "Seeding failed - may already be seeded"
-  fi
-else
-  warn "No running pods found - skipping migrations/seeding"
 fi
 
 info "Deployment summary"
