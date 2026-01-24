@@ -5,12 +5,15 @@ metadata:
   namespace: notifications
 type: Opaque
 stringData:
-  NOTIFICATIONS_APP_ENV: "Production"
-  NOTIFICATIONS_POSTGRES_URL: "postgres://postgres:postgres@postgresql.notifications.svc.cluster.local:5432/notifications?sslmode=disable"
-  NOTIFICATIONS_REDIS_ADDR: "redis-master.notifications.svc.cluster.local:6381"
+  # Database connection - uses shared PostgreSQL in infra namespace
+  # Set via GitHub Secrets during deployment
+  NOTIFICATIONS_POSTGRES_URL: "${NOTIFICATIONS_POSTGRES_URL}"
+
+  # Redis connection - uses shared Redis in infra namespace
+  NOTIFICATIONS_REDIS_ADDR: "redis-master.infra.svc.cluster.local:6379"
+
+  # NATS connection - uses shared NATS in messaging namespace
   NOTIFICATIONS_NATS_URL: "nats://nats.messaging.svc.cluster.local:4222"
-  NOTIFICATIONS_HTTP_PORT: "4002"
-  NOTIFICATIONS_DEFAULT_EMAIL_SENDER: "Urban Cafe <hello@urbancafe.co.ke>"
-  NOTIFICATIONS_DEFAULT_SMS_SENDER: "Urban Cafe"
-  NOTIFICATIONS_DEFAULT_PUSH_TOPIC: "general"
-  NOTIFICATIONS_OTLP_ENDPOINT: "http://otel-collector.monitoring.svc.cluster.local:4317"
+
+  # Default sender configuration - Set via GitHub Secrets
+  NOTIFICATIONS_DEFAULT_EMAIL_SENDER: "${NOTIFICATIONS_DEFAULT_EMAIL_SENDER}"

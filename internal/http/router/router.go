@@ -14,7 +14,7 @@ import (
 	handlers "github.com/bengobox/notifications-api/internal/http/handlers"
 )
 
-func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handlers.NotificationHandler, templates *handlers.TemplateHandler, apiKey string, authMiddleware *authclient.AuthMiddleware) http.Handler {
+func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handlers.NotificationHandler, templates *handlers.TemplateHandler, apiKey string, authMiddleware *authclient.AuthMiddleware, allowedOrigins []string) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RealIP)
@@ -24,7 +24,7 @@ func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handler
 	r.Use(httpware.Recover(log))
 	r.Use(middleware.Timeout(30 * time.Second))
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"*"},
+		AllowedOrigins:   allowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Authorization", "Content-Type", "X-Tenant-ID", "X-Request-ID", "X-API-Key", "Idempotency-Key"},
 		ExposedHeaders:   []string{"Link", "X-Request-ID"},

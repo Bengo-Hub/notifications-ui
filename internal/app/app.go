@@ -138,7 +138,7 @@ func New(ctx context.Context) (*App, error) {
 		}
 	}
 
-	httpRouter := router.New(log, healthHandler, notificationHandler, templateHandler, cfg.Security.APIKey, authMiddleware)
+	httpRouter := router.New(log, healthHandler, notificationHandler, templateHandler, cfg.Security.APIKey, authMiddleware, cfg.HTTP.AllowedOrigins)
 
 	httpServer := &http.Server{
 		Addr:              fmt.Sprintf("%s:%d", cfg.HTTP.Host, cfg.HTTP.Port),

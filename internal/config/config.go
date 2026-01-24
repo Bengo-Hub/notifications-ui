@@ -28,13 +28,14 @@ type AppConfig struct {
 }
 
 type HTTPConfig struct {
-	Host         string        `envconfig:"HTTP_HOST" default:"0.0.0.0"`
-	Port         int           `envconfig:"HTTP_PORT" default:"4002"`
-	ReadTimeout  time.Duration `envconfig:"HTTP_READ_TIMEOUT" default:"15s"`
-	WriteTimeout time.Duration `envconfig:"HTTP_WRITE_TIMEOUT" default:"15s"`
-	IdleTimeout  time.Duration `envconfig:"HTTP_IDLE_TIMEOUT" default:"60s"`
-	TLSCertFile  string        `envconfig:"TLS_CERT_FILE"`
-	TLSKeyFile   string        `envconfig:"TLS_KEY_FILE"`
+	Host           string        `envconfig:"HTTP_HOST" default:"0.0.0.0"`
+	Port           int           `envconfig:"HTTP_PORT" default:"4002"`
+	ReadTimeout    time.Duration `envconfig:"HTTP_READ_TIMEOUT" default:"15s"`
+	WriteTimeout   time.Duration `envconfig:"HTTP_WRITE_TIMEOUT" default:"15s"`
+	IdleTimeout    time.Duration `envconfig:"HTTP_IDLE_TIMEOUT" default:"60s"`
+	TLSCertFile    string        `envconfig:"TLS_CERT_FILE"`
+	TLSKeyFile     string        `envconfig:"TLS_KEY_FILE"`
+	AllowedOrigins []string      `envconfig:"HTTP_ALLOWED_ORIGINS" default:"https://notifications.codevertexitsolutions.com,https://ordersapp.codevertexitsolutions.com,https://accounts.codevertexitsolutions.com"`
 }
 
 type PostgresConfig struct {
