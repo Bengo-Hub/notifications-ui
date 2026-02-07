@@ -35,6 +35,11 @@ func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handler
 	// Swagger UI
 	r.Get("/v1/docs/*", handlers.SwaggerUI)
 
+	// Redirect root path to Swagger documentation
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/v1/docs/", http.StatusMovedPermanently)
+	})
+
 	r.Route("/api/v1", func(api chi.Router) {
 		// Serve OpenAPI spec (public, no auth required)
 		api.Get("/openapi.json", handlers.OpenAPIJSON)
