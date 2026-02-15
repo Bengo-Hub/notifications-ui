@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nats-io/nats.go"
 	"go.uber.org/zap"
 
@@ -24,6 +25,8 @@ import (
 	"github.com/bengobox/notifications-api/internal/providers"
 	"github.com/bengobox/notifications-api/internal/shared/logger"
 )
+
+const maxRetries = 3
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -74,126 +77,180 @@ func main() {
 
 	durable := "notifications-worker"
 	_, err = js.Subscribe(subject, func(m *nats.Msg) {
-		defer func() {
-			_ = m.Ack()
-		}()
 		var msg messaging.Message
 		if err := json.Unmarshal(m.Data, &msg); err != nil {
-			logg.Error("invalid message", zap.Error(err))
+			logg.Error("invalid message, dropping", zap.Error(err))
+			_ = m.Ack() // unrecoverable — don't retry
 			return
 		}
 
-		// Load template
-		tplID := msg.TemplateID
-		if !strings.Contains(tplID, "/") {
-			tplID = msg.Channel + "/" + tplID
+		// Determine retry attempt from NATS metadata
+		meta, _ := m.Metadata()
+		attempt := uint64(1)
+		if meta != nil {
+			attempt = meta.NumDelivered
 		}
-		content, err := tpl.Get(ctx, tplID)
-		if err != nil {
-			logg.Error("template load failed", zap.String("tpl", tplID), zap.Error(err))
+
+		// Render template
+		rendered, renderErr := renderMessage(ctx, cfg, tpl, dbPool, &msg, logg)
+		if renderErr != nil {
+			logg.Error("template render failed, dropping", zap.String("template", msg.TemplateID), zap.Error(renderErr))
+			_ = m.Ack() // template errors are not transient
 			return
 		}
 
-		var rendered strings.Builder
-		// Render with Go templates and base layout for emails
-		if strings.HasPrefix(tplID, "email/") {
-			basePath := filepath.Join(cfg.Templates.Directory, "email", "base.html")
-			baseBytes, readErr := os.ReadFile(basePath)
-			if readErr != nil {
-				logg.Warn("base template not found", zap.String("base", basePath), zap.Error(readErr))
+		// Deliver via provider
+		deliverErr := deliver(ctx, cfg, pm, &msg, rendered, logg)
+		if deliverErr != nil {
+			logg.Warn("delivery failed",
+				zap.String("channel", msg.Channel),
+				zap.String("template", msg.TemplateID),
+				zap.Uint64("attempt", attempt),
+				zap.Error(deliverErr),
+			)
+
+			if attempt >= maxRetries {
+				logg.Error("max retries exceeded, dropping message",
+					zap.String("channel", msg.Channel),
+					zap.String("tenant_id", msg.TenantID),
+					zap.String("request_id", msg.RequestID),
+					zap.Strings("to", msg.To),
+					zap.Uint64("attempts", attempt),
+					zap.Error(deliverErr),
+				)
+				_ = m.Ack() // give up after max retries
+			} else {
+				// NAck triggers redelivery after AckWait (30s)
+				_ = m.Nak()
 			}
-			// Enrich data with branding (DB -> message fallback)
-			data := map[string]any{}
-			for k, v := range msg.Data {
-				data[k] = v
-			}
-			// Default brand name to tenant slug if not provided
-			if _, ok := data["brand_name"]; !ok || data["brand_name"] == "" {
-				data["brand_name"] = msg.TenantID
-			}
-			if b, err := branding.LoadBranding(ctx, dbPool, cfg.Postgres, msg.TenantID); err == nil {
-				if b.Name != "" {
-					data["brand_name"] = b.Name
-				}
-				if b.Email != "" {
-					data["brand_email"] = b.Email
-				}
-				if b.Phone != "" {
-					data["brand_phone"] = b.Phone
-				}
-				if b.LogoURL != "" {
-					data["brand_logo_url"] = b.LogoURL
-				}
-				if b.PrimaryColor != "" {
-					data["brand_primary_color"] = b.PrimaryColor
-				}
-				if b.SecondaryColor != "" {
-					data["brand_secondary_color"] = b.SecondaryColor
-				}
-			}
-			// allow overrides from message data if already set
-			tplSet := template.New("base")
-			if len(baseBytes) > 0 {
-				if _, err := tplSet.Parse(string(baseBytes)); err != nil {
-					logg.Warn("base template parse failed", zap.Error(err))
-				}
-			}
-			if _, err := tplSet.Parse(content); err != nil {
-				logg.Error("template parse failed", zap.Error(err))
-				return
-			}
-			if err := tplSet.ExecuteTemplate(&rendered, "base.html", data); err != nil {
-				// If base not defined, try executing "content" directly
-				_ = tplSet.ExecuteTemplate(&rendered, "content", data)
-			}
-		} else {
-			// Non-email (sms/push)
-			t, err := template.New("msg").Parse(content)
-			if err != nil {
-				logg.Error("template parse failed", zap.Error(err))
-				return
-			}
-			if err := t.Execute(&rendered, msg.Data); err != nil {
-				logg.Error("template render failed", zap.Error(err))
-				return
-			}
+			return
 		}
 
-		channel := strings.ToLower(msg.Channel)
-		preferred := ""
-		if p, ok := msg.Metadata["provider"].(string); ok {
-			preferred = p
-		}
-		switch channel {
-		case "email":
-			subject := "Notification"
-			if s, ok := msg.Metadata["subject"].(string); ok && s != "" {
-				subject = s
-			}
-			emailProv, _ := pm.GetEmailProvider(ctx, msg.TenantID, preferred)
-			if err := emailProv.SendEmail(ctx, cfg.Providers.DefaultEmailSender, msg.To, subject, rendered.String(), ""); err != nil {
-				logg.Warn("email send failed", zap.String("provider", emailProv.Name()), zap.Error(err))
-			} else {
-				logg.Info("email sent", zap.String("provider", emailProv.Name()), zap.String("template", tplID), zap.Strings("to", msg.To))
-			}
-		case "sms":
-			smsProv, _ := pm.GetSMSProvider(ctx, msg.TenantID, preferred)
-			if err := smsProv.SendSMS(ctx, cfg.Providers.DefaultSMSSender, msg.To, rendered.String()); err != nil {
-				logg.Warn("sms send failed", zap.String("provider", smsProv.Name()), zap.Error(err))
-			} else {
-				logg.Info("sms sent", zap.String("provider", smsProv.Name()), zap.Strings("to", msg.To))
-			}
-		case "push":
-			// TODO: FCM/APNS integrations. For now, log delivery.
-			logg.Info("push message rendered", zap.String("template", tplID), zap.Strings("to", msg.To))
-		default:
-			logg.Warn("unknown channel", zap.String("channel", msg.Channel))
-		}
-	}, nats.Durable(durable), nats.ManualAck(), nats.AckWait(30*time.Second))
+		logg.Info("message delivered",
+			zap.String("channel", msg.Channel),
+			zap.String("template", msg.TemplateID),
+			zap.Strings("to", msg.To),
+			zap.Uint64("attempt", attempt),
+		)
+		_ = m.Ack()
+	}, nats.Durable(durable), nats.ManualAck(), nats.AckWait(30*time.Second), nats.MaxDeliver(maxRetries))
 	if err != nil {
 		logg.Fatal("subscription failed", zap.Error(err))
 	}
 
 	<-ctx.Done()
 	_ = nc.Drain()
+}
+
+// renderMessage loads the template, renders it with branding data, and returns the rendered content.
+func renderMessage(ctx context.Context, cfg *config.Config, tpl *templates.Loader, dbPool *pgxpool.Pool, msg *messaging.Message, logg *zap.Logger) (string, error) {
+	tplID := msg.TemplateID
+	if !strings.Contains(tplID, "/") {
+		tplID = msg.Channel + "/" + tplID
+	}
+	content, err := tpl.Get(ctx, tplID)
+	if err != nil {
+		return "", err
+	}
+
+	var rendered strings.Builder
+
+	if strings.HasPrefix(tplID, "email/") {
+		basePath := filepath.Join(cfg.Templates.Directory, "email", "base.html")
+		baseBytes, readErr := os.ReadFile(basePath)
+		if readErr != nil {
+			logg.Warn("base template not found", zap.String("base", basePath), zap.Error(readErr))
+		}
+
+		data := map[string]any{}
+		for k, v := range msg.Data {
+			data[k] = v
+		}
+		if _, ok := data["brand_name"]; !ok || data["brand_name"] == "" {
+			data["brand_name"] = msg.TenantID
+		}
+		if b, err := branding.LoadBranding(ctx, dbPool, cfg.Postgres, msg.TenantID); err == nil {
+			if b.Name != "" {
+				data["brand_name"] = b.Name
+			}
+			if b.Email != "" {
+				data["brand_email"] = b.Email
+			}
+			if b.Phone != "" {
+				data["brand_phone"] = b.Phone
+			}
+			if b.LogoURL != "" {
+				data["brand_logo_url"] = b.LogoURL
+			}
+			if b.PrimaryColor != "" {
+				data["brand_primary_color"] = b.PrimaryColor
+			}
+			if b.SecondaryColor != "" {
+				data["brand_secondary_color"] = b.SecondaryColor
+			}
+		}
+
+		tplSet := template.New("base")
+		if len(baseBytes) > 0 {
+			if _, err := tplSet.Parse(string(baseBytes)); err != nil {
+				logg.Warn("base template parse failed", zap.Error(err))
+			}
+		}
+		if _, err := tplSet.Parse(content); err != nil {
+			return "", err
+		}
+		if err := tplSet.ExecuteTemplate(&rendered, "base.html", data); err != nil {
+			_ = tplSet.ExecuteTemplate(&rendered, "content", data)
+		}
+	} else {
+		t, err := template.New("msg").Parse(content)
+		if err != nil {
+			return "", err
+		}
+		if err := t.Execute(&rendered, msg.Data); err != nil {
+			return "", err
+		}
+	}
+
+	return rendered.String(), nil
+}
+
+// deliver sends the rendered message via the appropriate provider.
+func deliver(ctx context.Context, cfg *config.Config, pm *providers.Manager, msg *messaging.Message, rendered string, logg *zap.Logger) error {
+	channel := strings.ToLower(msg.Channel)
+	preferred := ""
+	if p, ok := msg.Metadata["provider"].(string); ok {
+		preferred = p
+	}
+
+	switch channel {
+	case "email":
+		subject := "Notification"
+		if s, ok := msg.Metadata["subject"].(string); ok && s != "" {
+			subject = s
+		}
+		emailProv, _ := pm.GetEmailProvider(ctx, msg.TenantID, preferred)
+		if err := emailProv.SendEmail(ctx, cfg.Providers.DefaultEmailSender, msg.To, subject, rendered, ""); err != nil {
+			return err
+		}
+		logg.Info("email sent", zap.String("provider", emailProv.Name()), zap.String("template", msg.TemplateID), zap.Strings("to", msg.To))
+		return nil
+
+	case "sms":
+		smsProv, _ := pm.GetSMSProvider(ctx, msg.TenantID, preferred)
+		if err := smsProv.SendSMS(ctx, cfg.Providers.DefaultSMSSender, msg.To, rendered); err != nil {
+			return err
+		}
+		logg.Info("sms sent", zap.String("provider", smsProv.Name()), zap.Strings("to", msg.To))
+		return nil
+
+	case "push":
+		// TODO: FCM/APNS integrations. For now, log delivery.
+		logg.Info("push message rendered", zap.String("template", msg.TemplateID), zap.Strings("to", msg.To))
+		return nil
+
+	default:
+		logg.Warn("unknown channel", zap.String("channel", msg.Channel))
+		return nil
+	}
 }
