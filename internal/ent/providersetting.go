@@ -33,7 +33,13 @@ type ProviderSetting struct {
 	// Description holds the value of the "description" field.
 	Description string `json:"description,omitempty"`
 	// IsEncrypted holds the value of the "is_encrypted" field.
-	IsEncrypted  bool `json:"is_encrypted,omitempty"`
+	IsEncrypted bool `json:"is_encrypted,omitempty"`
+	// Platform-level provider config (tenant_id = 'platform')
+	IsPlatform bool `json:"is_platform,omitempty"`
+	// Whether this provider config is currently active
+	IsActive bool `json:"is_active,omitempty"`
+	// Provider status: active, inactive, error
+	Status       string `json:"status,omitempty"`
 	selectValues sql.SelectValues
 }
 
@@ -42,11 +48,11 @@ func (*ProviderSetting) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case providersetting.FieldIsEncrypted:
+		case providersetting.FieldIsEncrypted, providersetting.FieldIsPlatform, providersetting.FieldIsActive:
 			values[i] = new(sql.NullBool)
 		case providersetting.FieldID:
 			values[i] = new(sql.NullInt64)
-		case providersetting.FieldTenantID, providersetting.FieldChannel, providersetting.FieldProvider, providersetting.FieldProviderType, providersetting.FieldProviderName, providersetting.FieldKey, providersetting.FieldValue, providersetting.FieldDescription:
+		case providersetting.FieldTenantID, providersetting.FieldChannel, providersetting.FieldProvider, providersetting.FieldProviderType, providersetting.FieldProviderName, providersetting.FieldKey, providersetting.FieldValue, providersetting.FieldDescription, providersetting.FieldStatus:
 			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -123,6 +129,24 @@ func (ps *ProviderSetting) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				ps.IsEncrypted = value.Bool
 			}
+		case providersetting.FieldIsPlatform:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_platform", values[i])
+			} else if value.Valid {
+				ps.IsPlatform = value.Bool
+			}
+		case providersetting.FieldIsActive:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_active", values[i])
+			} else if value.Valid {
+				ps.IsActive = value.Bool
+			}
+		case providersetting.FieldStatus:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field status", values[i])
+			} else if value.Valid {
+				ps.Status = value.String
+			}
 		default:
 			ps.selectValues.Set(columns[i], values[i])
 		}
@@ -185,6 +209,15 @@ func (ps *ProviderSetting) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("is_encrypted=")
 	builder.WriteString(fmt.Sprintf("%v", ps.IsEncrypted))
+	builder.WriteString(", ")
+	builder.WriteString("is_platform=")
+	builder.WriteString(fmt.Sprintf("%v", ps.IsPlatform))
+	builder.WriteString(", ")
+	builder.WriteString("is_active=")
+	builder.WriteString(fmt.Sprintf("%v", ps.IsActive))
+	builder.WriteString(", ")
+	builder.WriteString("status=")
+	builder.WriteString(ps.Status)
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/bengobox/notifications-api/internal/config"
 	"github.com/bengobox/notifications-api/internal/database"
@@ -80,7 +81,54 @@ func main() {
 		}
 	}
 
-	// Seed provider settings with get-or-create logic
+	// Seed Urban Loft Cafe branding with get-or-create logic
+	urbanLoftTenantID := "urban-loft"
+	existingUrbanLoft, err := client.TenantBranding.
+		Query().
+		Where(tenantbranding.TenantIDEQ(urbanLoftTenantID)).
+		Only(ctx)
+
+	if err != nil {
+		if ent.IsNotFound(err) {
+			_, err := client.TenantBranding.
+				Create().
+				SetTenantID(urbanLoftTenantID).
+				SetLogoURL("https://theurbanloftcafe.com/logo.png").
+				SetPrimaryColor("#f97316").
+				SetSecondaryColor("#1f2937").
+				SetMetadata(map[string]interface{}{
+					"from_email": "orders@theurbanloftcafe.com",
+					"from_name":  "Urban Loft Cafe",
+					"phone":      "+254700000000",
+				}).
+				Save(ctx)
+			if err != nil {
+				log.Printf("seed urban loft branding create: %v", err)
+			} else {
+				fmt.Println("✓ Created branding for tenant:", urbanLoftTenantID)
+			}
+		} else {
+			log.Printf("seed urban loft branding query: %v", err)
+		}
+	} else {
+		updatedUrbanLoft, err := existingUrbanLoft.Update().
+			SetLogoURL("https://theurbanloftcafe.com/logo.png").
+			SetPrimaryColor("#f97316").
+			SetSecondaryColor("#1f2937").
+			SetMetadata(map[string]interface{}{
+				"from_email": "orders@theurbanloftcafe.com",
+				"from_name":  "Urban Loft Cafe",
+				"phone":      "+254700000000",
+			}).
+			Save(ctx)
+		if err != nil {
+			log.Printf("seed urban loft branding update: %v", err)
+		} else {
+			fmt.Println("✓ Updated branding for tenant:", urbanLoftTenantID, "(ID:", updatedUrbanLoft.ID, ")")
+		}
+	}
+
+	// Seed tenant-level provider settings with get-or-create logic
 	seedData := []struct {
 		Channel      string // Legacy field name
 		Provider     string // Legacy field name
@@ -145,6 +193,96 @@ func main() {
 				log.Printf("seed provider setting update: %v", err)
 			} else {
 				fmt.Printf("✓ Updated provider setting: %s/%s/%s/%s (ID: %d)\n", data.ProviderType, data.ProviderName, data.Key, data.Value, updated.ID)
+			}
+		}
+	}
+
+	// Seed platform-level provider configs (is_platform=true, tenant_id="platform")
+	platformTenantID := "platform"
+
+	type platformProvider struct {
+		ProviderType string
+		ProviderName string
+		IsActive     bool
+		Status       string
+		Description  string
+	}
+
+	platformProviders := []platformProvider{
+		{"email", "smtp", true, "active", "Platform SMTP email provider"},
+	}
+
+	// Conditionally add SendGrid if API key is configured
+	if os.Getenv("SENDGRID_API_KEY") != "" {
+		platformProviders = append(platformProviders, platformProvider{
+			"email", "sendgrid", true, "active", "Platform SendGrid email provider",
+		})
+	}
+
+	// Conditionally add Africa's Talking if API key is configured
+	if os.Getenv("AFRICAS_TALKING_KEY") != "" {
+		platformProviders = append(platformProviders, platformProvider{
+			"sms", "africastalking", true, "active", "Platform Africa's Talking SMS provider",
+		})
+	}
+
+	// Add Twilio SMS — active only if env vars are present
+	twilioActive := os.Getenv("TWILIO_ACCOUNT_SID") != "" && os.Getenv("TWILIO_AUTH_TOKEN") != ""
+	twilioStatus := "inactive"
+	if twilioActive {
+		twilioStatus = "active"
+	}
+	platformProviders = append(platformProviders, platformProvider{
+		"sms", "twilio", twilioActive, twilioStatus, "Platform Twilio SMS provider",
+	})
+
+	for _, pp := range platformProviders {
+		// Check if _config marker already exists for this platform provider
+		existingPP, err := client.ProviderSetting.
+			Query().
+			Where(
+				providersetting.TenantIDEQ(platformTenantID),
+				providersetting.IsPlatform(true),
+				providersetting.ProviderTypeEQ(pp.ProviderType),
+				providersetting.ProviderNameEQ(pp.ProviderName),
+				providersetting.KeyEQ("_config"),
+			).
+			Only(ctx)
+
+		if err != nil {
+			if ent.IsNotFound(err) {
+				_, err := client.ProviderSetting.
+					Create().
+					SetTenantID(platformTenantID).
+					SetChannel(pp.ProviderType).
+					SetProvider(pp.ProviderName).
+					SetProviderType(pp.ProviderType).
+					SetProviderName(pp.ProviderName).
+					SetKey("_config").
+					SetValue("configured").
+					SetDescription(pp.Description).
+					SetIsPlatform(true).
+					SetIsActive(pp.IsActive).
+					SetStatus(pp.Status).
+					Save(ctx)
+				if err != nil {
+					log.Printf("seed platform provider create: %v", err)
+				} else {
+					fmt.Printf("✓ Created platform provider: %s/%s (active=%v)\n", pp.ProviderType, pp.ProviderName, pp.IsActive)
+				}
+			} else {
+				log.Printf("seed platform provider query: %v", err)
+			}
+		} else {
+			updatedPP, err := existingPP.Update().
+				SetIsActive(pp.IsActive).
+				SetStatus(pp.Status).
+				SetDescription(pp.Description).
+				Save(ctx)
+			if err != nil {
+				log.Printf("seed platform provider update: %v", err)
+			} else {
+				fmt.Printf("✓ Updated platform provider: %s/%s (ID: %d, active=%v)\n", pp.ProviderType, pp.ProviderName, updatedPP.ID, pp.IsActive)
 			}
 		}
 	}

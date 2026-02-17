@@ -16,8 +16,10 @@ import (
 
 	authclient "github.com/Bengo-Hub/shared-auth-client"
 	eventslib "github.com/Bengo-Hub/shared-events"
-	
+
 	"github.com/bengobox/notifications-api/internal/config"
+	entdb "github.com/bengobox/notifications-api/internal/database"
+	"github.com/bengobox/notifications-api/internal/ent"
 	handlers "github.com/bengobox/notifications-api/internal/http/handlers"
 	router "github.com/bengobox/notifications-api/internal/http/router"
 	"github.com/bengobox/notifications-api/internal/modules/outbox"
@@ -31,13 +33,14 @@ import (
 )
 
 type App struct {
-	cfg            *config.Config
-	log            *zap.Logger
-	httpServer     *http.Server
-	db             *pgxpool.Pool
-	cache          *redis.Client
-	events         *nats.Conn
-	templates      *templates.Loader
+	cfg             *config.Config
+	log             *zap.Logger
+	httpServer      *http.Server
+	db              *pgxpool.Pool
+	entClient       *ent.Client
+	cache           *redis.Client
+	events          *nats.Conn
+	templates       *templates.Loader
 	outboxPublisher *eventslib.Publisher
 }
 
@@ -66,9 +69,21 @@ func New(ctx context.Context) (*App, error) {
 
 	templateLoader := templates.New(cfg.Templates)
 
+	// Initialize Ent client for provider/branding management
+	entClient, err := entdb.NewClient(ctx, cfg.Postgres)
+	if err != nil {
+		return nil, fmt.Errorf("ent client init: %w", err)
+	}
+	// Run auto-migrations
+	if err := entdb.RunMigrations(ctx, entClient); err != nil {
+		log.Warn("ent migration failed", zap.Error(err))
+	}
+
 	healthHandler := handlers.NewHealthHandler(log, dbPool, redisClient, natsConn)
 	notificationHandler := handlers.NewNotificationHandler(log, natsConn, redisClient, cfg.Events)
 	templateHandler := handlers.NewTemplateHandler(templateLoader)
+	platformProviders := handlers.NewPlatformProviders(entClient, log)
+	tenantProviders := handlers.NewTenantProviders(entClient, log)
 
 	// Initialize auth-service JWT validator
 	var authMiddleware *authclient.AuthMiddleware
@@ -138,7 +153,7 @@ func New(ctx context.Context) (*App, error) {
 		}
 	}
 
-	httpRouter := router.New(log, healthHandler, notificationHandler, templateHandler, cfg.Security.APIKey, authMiddleware, cfg.HTTP.AllowedOrigins)
+	httpRouter := router.New(log, healthHandler, notificationHandler, templateHandler, platformProviders, tenantProviders, cfg.Security.APIKey, authMiddleware, cfg.HTTP.AllowedOrigins)
 
 	httpServer := &http.Server{
 		Addr:              fmt.Sprintf("%s:%d", cfg.HTTP.Host, cfg.HTTP.Port),
@@ -150,13 +165,14 @@ func New(ctx context.Context) (*App, error) {
 	}
 
 	return &App{
-		cfg:            cfg,
-		log:            log,
-		httpServer:     httpServer,
-		db:             dbPool,
-		cache:          redisClient,
-		events:         natsConn,
-		templates:      templateLoader,
+		cfg:             cfg,
+		log:             log,
+		httpServer:      httpServer,
+		db:              dbPool,
+		entClient:       entClient,
+		cache:           redisClient,
+		events:          natsConn,
+		templates:       templateLoader,
 		outboxPublisher: outboxPublisher,
 	}, nil
 }
@@ -218,6 +234,12 @@ func (a *App) Close() {
 	if a.cache != nil {
 		if err := a.cache.Close(); err != nil {
 			a.log.Warn("redis close failed", zap.Error(err))
+		}
+	}
+
+	if a.entClient != nil {
+		if err := a.entClient.Close(); err != nil {
+			a.log.Warn("ent client close failed", zap.Error(err))
 		}
 	}
 

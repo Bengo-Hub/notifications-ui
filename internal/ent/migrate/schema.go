@@ -68,6 +68,9 @@ var (
 		{Name: "value", Type: field.TypeString, Nullable: true, Size: 2147483647},
 		{Name: "description", Type: field.TypeString, Nullable: true, Size: 2147483647},
 		{Name: "is_encrypted", Type: field.TypeBool, Default: false},
+		{Name: "is_platform", Type: field.TypeBool, Default: false},
+		{Name: "is_active", Type: field.TypeBool, Default: true},
+		{Name: "status", Type: field.TypeString, Nullable: true, Default: "active"},
 	}
 	// ProviderSettingsTable holds the schema information for the "provider_settings" table.
 	ProviderSettingsTable = &schema.Table{

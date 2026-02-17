@@ -97,6 +97,21 @@ func IsEncrypted(v bool) predicate.ProviderSetting {
 	return predicate.ProviderSetting(sql.FieldEQ(FieldIsEncrypted, v))
 }
 
+// IsPlatform applies equality check predicate on the "is_platform" field. It's identical to IsPlatformEQ.
+func IsPlatform(v bool) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldEQ(FieldIsPlatform, v))
+}
+
+// IsActive applies equality check predicate on the "is_active" field. It's identical to IsActiveEQ.
+func IsActive(v bool) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldEQ(FieldIsActive, v))
+}
+
+// Status applies equality check predicate on the "status" field. It's identical to StatusEQ.
+func Status(v string) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldEQ(FieldStatus, v))
+}
+
 // TenantIDEQ applies the EQ predicate on the "tenant_id" field.
 func TenantIDEQ(v string) predicate.ProviderSetting {
 	return predicate.ProviderSetting(sql.FieldEQ(FieldTenantID, v))
@@ -695,6 +710,101 @@ func IsEncryptedEQ(v bool) predicate.ProviderSetting {
 // IsEncryptedNEQ applies the NEQ predicate on the "is_encrypted" field.
 func IsEncryptedNEQ(v bool) predicate.ProviderSetting {
 	return predicate.ProviderSetting(sql.FieldNEQ(FieldIsEncrypted, v))
+}
+
+// IsPlatformEQ applies the EQ predicate on the "is_platform" field.
+func IsPlatformEQ(v bool) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldEQ(FieldIsPlatform, v))
+}
+
+// IsPlatformNEQ applies the NEQ predicate on the "is_platform" field.
+func IsPlatformNEQ(v bool) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldNEQ(FieldIsPlatform, v))
+}
+
+// IsActiveEQ applies the EQ predicate on the "is_active" field.
+func IsActiveEQ(v bool) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldEQ(FieldIsActive, v))
+}
+
+// IsActiveNEQ applies the NEQ predicate on the "is_active" field.
+func IsActiveNEQ(v bool) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldNEQ(FieldIsActive, v))
+}
+
+// StatusEQ applies the EQ predicate on the "status" field.
+func StatusEQ(v string) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldEQ(FieldStatus, v))
+}
+
+// StatusNEQ applies the NEQ predicate on the "status" field.
+func StatusNEQ(v string) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldNEQ(FieldStatus, v))
+}
+
+// StatusIn applies the In predicate on the "status" field.
+func StatusIn(vs ...string) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldIn(FieldStatus, vs...))
+}
+
+// StatusNotIn applies the NotIn predicate on the "status" field.
+func StatusNotIn(vs ...string) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldNotIn(FieldStatus, vs...))
+}
+
+// StatusGT applies the GT predicate on the "status" field.
+func StatusGT(v string) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldGT(FieldStatus, v))
+}
+
+// StatusGTE applies the GTE predicate on the "status" field.
+func StatusGTE(v string) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldGTE(FieldStatus, v))
+}
+
+// StatusLT applies the LT predicate on the "status" field.
+func StatusLT(v string) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldLT(FieldStatus, v))
+}
+
+// StatusLTE applies the LTE predicate on the "status" field.
+func StatusLTE(v string) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldLTE(FieldStatus, v))
+}
+
+// StatusContains applies the Contains predicate on the "status" field.
+func StatusContains(v string) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldContains(FieldStatus, v))
+}
+
+// StatusHasPrefix applies the HasPrefix predicate on the "status" field.
+func StatusHasPrefix(v string) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldHasPrefix(FieldStatus, v))
+}
+
+// StatusHasSuffix applies the HasSuffix predicate on the "status" field.
+func StatusHasSuffix(v string) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldHasSuffix(FieldStatus, v))
+}
+
+// StatusIsNil applies the IsNil predicate on the "status" field.
+func StatusIsNil() predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldIsNull(FieldStatus))
+}
+
+// StatusNotNil applies the NotNil predicate on the "status" field.
+func StatusNotNil() predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldNotNull(FieldStatus))
+}
+
+// StatusEqualFold applies the EqualFold predicate on the "status" field.
+func StatusEqualFold(v string) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldEqualFold(FieldStatus, v))
+}
+
+// StatusContainsFold applies the ContainsFold predicate on the "status" field.
+func StatusContainsFold(v string) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldContainsFold(FieldStatus, v))
 }
 
 // And groups predicates with the AND operator between them.

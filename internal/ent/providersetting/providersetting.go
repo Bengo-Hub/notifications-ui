@@ -29,6 +29,12 @@ const (
 	FieldDescription = "description"
 	// FieldIsEncrypted holds the string denoting the is_encrypted field in the database.
 	FieldIsEncrypted = "is_encrypted"
+	// FieldIsPlatform holds the string denoting the is_platform field in the database.
+	FieldIsPlatform = "is_platform"
+	// FieldIsActive holds the string denoting the is_active field in the database.
+	FieldIsActive = "is_active"
+	// FieldStatus holds the string denoting the status field in the database.
+	FieldStatus = "status"
 	// Table holds the table name of the providersetting in the database.
 	Table = "provider_settings"
 )
@@ -45,6 +51,9 @@ var Columns = []string{
 	FieldValue,
 	FieldDescription,
 	FieldIsEncrypted,
+	FieldIsPlatform,
+	FieldIsActive,
+	FieldStatus,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -60,6 +69,12 @@ func ValidColumn(column string) bool {
 var (
 	// DefaultIsEncrypted holds the default value on creation for the "is_encrypted" field.
 	DefaultIsEncrypted bool
+	// DefaultIsPlatform holds the default value on creation for the "is_platform" field.
+	DefaultIsPlatform bool
+	// DefaultIsActive holds the default value on creation for the "is_active" field.
+	DefaultIsActive bool
+	// DefaultStatus holds the default value on creation for the "status" field.
+	DefaultStatus string
 )
 
 // OrderOption defines the ordering options for the ProviderSetting queries.
@@ -113,4 +128,19 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 // ByIsEncrypted orders the results by the is_encrypted field.
 func ByIsEncrypted(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIsEncrypted, opts...).ToFunc()
+}
+
+// ByIsPlatform orders the results by the is_platform field.
+func ByIsPlatform(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIsPlatform, opts...).ToFunc()
+}
+
+// ByIsActive orders the results by the is_active field.
+func ByIsActive(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIsActive, opts...).ToFunc()
+}
+
+// ByStatus orders the results by the status field.
+func ByStatus(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldStatus, opts...).ToFunc()
 }

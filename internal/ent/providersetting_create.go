@@ -137,6 +137,48 @@ func (psc *ProviderSettingCreate) SetNillableIsEncrypted(b *bool) *ProviderSetti
 	return psc
 }
 
+// SetIsPlatform sets the "is_platform" field.
+func (psc *ProviderSettingCreate) SetIsPlatform(b bool) *ProviderSettingCreate {
+	psc.mutation.SetIsPlatform(b)
+	return psc
+}
+
+// SetNillableIsPlatform sets the "is_platform" field if the given value is not nil.
+func (psc *ProviderSettingCreate) SetNillableIsPlatform(b *bool) *ProviderSettingCreate {
+	if b != nil {
+		psc.SetIsPlatform(*b)
+	}
+	return psc
+}
+
+// SetIsActive sets the "is_active" field.
+func (psc *ProviderSettingCreate) SetIsActive(b bool) *ProviderSettingCreate {
+	psc.mutation.SetIsActive(b)
+	return psc
+}
+
+// SetNillableIsActive sets the "is_active" field if the given value is not nil.
+func (psc *ProviderSettingCreate) SetNillableIsActive(b *bool) *ProviderSettingCreate {
+	if b != nil {
+		psc.SetIsActive(*b)
+	}
+	return psc
+}
+
+// SetStatus sets the "status" field.
+func (psc *ProviderSettingCreate) SetStatus(s string) *ProviderSettingCreate {
+	psc.mutation.SetStatus(s)
+	return psc
+}
+
+// SetNillableStatus sets the "status" field if the given value is not nil.
+func (psc *ProviderSettingCreate) SetNillableStatus(s *string) *ProviderSettingCreate {
+	if s != nil {
+		psc.SetStatus(*s)
+	}
+	return psc
+}
+
 // Mutation returns the ProviderSettingMutation object of the builder.
 func (psc *ProviderSettingCreate) Mutation() *ProviderSettingMutation {
 	return psc.mutation
@@ -176,6 +218,18 @@ func (psc *ProviderSettingCreate) defaults() {
 		v := providersetting.DefaultIsEncrypted
 		psc.mutation.SetIsEncrypted(v)
 	}
+	if _, ok := psc.mutation.IsPlatform(); !ok {
+		v := providersetting.DefaultIsPlatform
+		psc.mutation.SetIsPlatform(v)
+	}
+	if _, ok := psc.mutation.IsActive(); !ok {
+		v := providersetting.DefaultIsActive
+		psc.mutation.SetIsActive(v)
+	}
+	if _, ok := psc.mutation.Status(); !ok {
+		v := providersetting.DefaultStatus
+		psc.mutation.SetStatus(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -185,6 +239,12 @@ func (psc *ProviderSettingCreate) check() error {
 	}
 	if _, ok := psc.mutation.IsEncrypted(); !ok {
 		return &ValidationError{Name: "is_encrypted", err: errors.New(`ent: missing required field "ProviderSetting.is_encrypted"`)}
+	}
+	if _, ok := psc.mutation.IsPlatform(); !ok {
+		return &ValidationError{Name: "is_platform", err: errors.New(`ent: missing required field "ProviderSetting.is_platform"`)}
+	}
+	if _, ok := psc.mutation.IsActive(); !ok {
+		return &ValidationError{Name: "is_active", err: errors.New(`ent: missing required field "ProviderSetting.is_active"`)}
 	}
 	return nil
 }
@@ -247,6 +307,18 @@ func (psc *ProviderSettingCreate) createSpec() (*ProviderSetting, *sqlgraph.Crea
 	if value, ok := psc.mutation.IsEncrypted(); ok {
 		_spec.SetField(providersetting.FieldIsEncrypted, field.TypeBool, value)
 		_node.IsEncrypted = value
+	}
+	if value, ok := psc.mutation.IsPlatform(); ok {
+		_spec.SetField(providersetting.FieldIsPlatform, field.TypeBool, value)
+		_node.IsPlatform = value
+	}
+	if value, ok := psc.mutation.IsActive(); ok {
+		_spec.SetField(providersetting.FieldIsActive, field.TypeBool, value)
+		_node.IsActive = value
+	}
+	if value, ok := psc.mutation.Status(); ok {
+		_spec.SetField(providersetting.FieldStatus, field.TypeString, value)
+		_node.Status = value
 	}
 	return _node, _spec
 }

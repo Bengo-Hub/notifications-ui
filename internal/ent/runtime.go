@@ -47,4 +47,16 @@ func init() {
 	providersettingDescIsEncrypted := providersettingFields[8].Descriptor()
 	// providersetting.DefaultIsEncrypted holds the default value on creation for the is_encrypted field.
 	providersetting.DefaultIsEncrypted = providersettingDescIsEncrypted.Default.(bool)
+	// providersettingDescIsPlatform is the schema descriptor for is_platform field.
+	providersettingDescIsPlatform := providersettingFields[9].Descriptor()
+	// providersetting.DefaultIsPlatform holds the default value on creation for the is_platform field.
+	providersetting.DefaultIsPlatform = providersettingDescIsPlatform.Default.(bool)
+	// providersettingDescIsActive is the schema descriptor for is_active field.
+	providersettingDescIsActive := providersettingFields[10].Descriptor()
+	// providersetting.DefaultIsActive holds the default value on creation for the is_active field.
+	providersetting.DefaultIsActive = providersettingDescIsActive.Default.(bool)
+	// providersettingDescStatus is the schema descriptor for status field.
+	providersettingDescStatus := providersettingFields[11].Descriptor()
+	// providersetting.DefaultStatus holds the default value on creation for the status field.
+	providersetting.DefaultStatus = providersettingDescStatus.Default.(string)
 }

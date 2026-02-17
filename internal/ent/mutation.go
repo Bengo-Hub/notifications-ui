@@ -1015,6 +1015,9 @@ type ProviderSettingMutation struct {
 	value         *string
 	description   *string
 	is_encrypted  *bool
+	is_platform   *bool
+	is_active     *bool
+	status        *string
 	clearedFields map[string]struct{}
 	done          bool
 	oldValue      func(context.Context) (*ProviderSetting, error)
@@ -1534,6 +1537,127 @@ func (m *ProviderSettingMutation) ResetIsEncrypted() {
 	m.is_encrypted = nil
 }
 
+// SetIsPlatform sets the "is_platform" field.
+func (m *ProviderSettingMutation) SetIsPlatform(b bool) {
+	m.is_platform = &b
+}
+
+// IsPlatform returns the value of the "is_platform" field in the mutation.
+func (m *ProviderSettingMutation) IsPlatform() (r bool, exists bool) {
+	v := m.is_platform
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIsPlatform returns the old "is_platform" field's value of the ProviderSetting entity.
+// If the ProviderSetting object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderSettingMutation) OldIsPlatform(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIsPlatform is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIsPlatform requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIsPlatform: %w", err)
+	}
+	return oldValue.IsPlatform, nil
+}
+
+// ResetIsPlatform resets all changes to the "is_platform" field.
+func (m *ProviderSettingMutation) ResetIsPlatform() {
+	m.is_platform = nil
+}
+
+// SetIsActive sets the "is_active" field.
+func (m *ProviderSettingMutation) SetIsActive(b bool) {
+	m.is_active = &b
+}
+
+// IsActive returns the value of the "is_active" field in the mutation.
+func (m *ProviderSettingMutation) IsActive() (r bool, exists bool) {
+	v := m.is_active
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIsActive returns the old "is_active" field's value of the ProviderSetting entity.
+// If the ProviderSetting object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderSettingMutation) OldIsActive(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIsActive is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIsActive requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIsActive: %w", err)
+	}
+	return oldValue.IsActive, nil
+}
+
+// ResetIsActive resets all changes to the "is_active" field.
+func (m *ProviderSettingMutation) ResetIsActive() {
+	m.is_active = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *ProviderSettingMutation) SetStatus(s string) {
+	m.status = &s
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *ProviderSettingMutation) Status() (r string, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the ProviderSetting entity.
+// If the ProviderSetting object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderSettingMutation) OldStatus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ClearStatus clears the value of the "status" field.
+func (m *ProviderSettingMutation) ClearStatus() {
+	m.status = nil
+	m.clearedFields[providersetting.FieldStatus] = struct{}{}
+}
+
+// StatusCleared returns if the "status" field was cleared in this mutation.
+func (m *ProviderSettingMutation) StatusCleared() bool {
+	_, ok := m.clearedFields[providersetting.FieldStatus]
+	return ok
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *ProviderSettingMutation) ResetStatus() {
+	m.status = nil
+	delete(m.clearedFields, providersetting.FieldStatus)
+}
+
 // Where appends a list predicates to the ProviderSettingMutation builder.
 func (m *ProviderSettingMutation) Where(ps ...predicate.ProviderSetting) {
 	m.predicates = append(m.predicates, ps...)
@@ -1568,7 +1692,7 @@ func (m *ProviderSettingMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ProviderSettingMutation) Fields() []string {
-	fields := make([]string, 0, 9)
+	fields := make([]string, 0, 12)
 	if m.tenant_id != nil {
 		fields = append(fields, providersetting.FieldTenantID)
 	}
@@ -1596,6 +1720,15 @@ func (m *ProviderSettingMutation) Fields() []string {
 	if m.is_encrypted != nil {
 		fields = append(fields, providersetting.FieldIsEncrypted)
 	}
+	if m.is_platform != nil {
+		fields = append(fields, providersetting.FieldIsPlatform)
+	}
+	if m.is_active != nil {
+		fields = append(fields, providersetting.FieldIsActive)
+	}
+	if m.status != nil {
+		fields = append(fields, providersetting.FieldStatus)
+	}
 	return fields
 }
 
@@ -1622,6 +1755,12 @@ func (m *ProviderSettingMutation) Field(name string) (ent.Value, bool) {
 		return m.Description()
 	case providersetting.FieldIsEncrypted:
 		return m.IsEncrypted()
+	case providersetting.FieldIsPlatform:
+		return m.IsPlatform()
+	case providersetting.FieldIsActive:
+		return m.IsActive()
+	case providersetting.FieldStatus:
+		return m.Status()
 	}
 	return nil, false
 }
@@ -1649,6 +1788,12 @@ func (m *ProviderSettingMutation) OldField(ctx context.Context, name string) (en
 		return m.OldDescription(ctx)
 	case providersetting.FieldIsEncrypted:
 		return m.OldIsEncrypted(ctx)
+	case providersetting.FieldIsPlatform:
+		return m.OldIsPlatform(ctx)
+	case providersetting.FieldIsActive:
+		return m.OldIsActive(ctx)
+	case providersetting.FieldStatus:
+		return m.OldStatus(ctx)
 	}
 	return nil, fmt.Errorf("unknown ProviderSetting field %s", name)
 }
@@ -1721,6 +1866,27 @@ func (m *ProviderSettingMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetIsEncrypted(v)
 		return nil
+	case providersetting.FieldIsPlatform:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIsPlatform(v)
+		return nil
+	case providersetting.FieldIsActive:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIsActive(v)
+		return nil
+	case providersetting.FieldStatus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
 	}
 	return fmt.Errorf("unknown ProviderSetting field %s", name)
 }
@@ -1772,6 +1938,9 @@ func (m *ProviderSettingMutation) ClearedFields() []string {
 	if m.FieldCleared(providersetting.FieldDescription) {
 		fields = append(fields, providersetting.FieldDescription)
 	}
+	if m.FieldCleared(providersetting.FieldStatus) {
+		fields = append(fields, providersetting.FieldStatus)
+	}
 	return fields
 }
 
@@ -1807,6 +1976,9 @@ func (m *ProviderSettingMutation) ClearField(name string) error {
 	case providersetting.FieldDescription:
 		m.ClearDescription()
 		return nil
+	case providersetting.FieldStatus:
+		m.ClearStatus()
+		return nil
 	}
 	return fmt.Errorf("unknown ProviderSetting nullable field %s", name)
 }
@@ -1841,6 +2013,15 @@ func (m *ProviderSettingMutation) ResetField(name string) error {
 		return nil
 	case providersetting.FieldIsEncrypted:
 		m.ResetIsEncrypted()
+		return nil
+	case providersetting.FieldIsPlatform:
+		m.ResetIsPlatform()
+		return nil
+	case providersetting.FieldIsActive:
+		m.ResetIsActive()
+		return nil
+	case providersetting.FieldStatus:
+		m.ResetStatus()
 		return nil
 	}
 	return fmt.Errorf("unknown ProviderSetting field %s", name)

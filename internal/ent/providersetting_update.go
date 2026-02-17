@@ -195,6 +195,54 @@ func (psu *ProviderSettingUpdate) SetNillableIsEncrypted(b *bool) *ProviderSetti
 	return psu
 }
 
+// SetIsPlatform sets the "is_platform" field.
+func (psu *ProviderSettingUpdate) SetIsPlatform(b bool) *ProviderSettingUpdate {
+	psu.mutation.SetIsPlatform(b)
+	return psu
+}
+
+// SetNillableIsPlatform sets the "is_platform" field if the given value is not nil.
+func (psu *ProviderSettingUpdate) SetNillableIsPlatform(b *bool) *ProviderSettingUpdate {
+	if b != nil {
+		psu.SetIsPlatform(*b)
+	}
+	return psu
+}
+
+// SetIsActive sets the "is_active" field.
+func (psu *ProviderSettingUpdate) SetIsActive(b bool) *ProviderSettingUpdate {
+	psu.mutation.SetIsActive(b)
+	return psu
+}
+
+// SetNillableIsActive sets the "is_active" field if the given value is not nil.
+func (psu *ProviderSettingUpdate) SetNillableIsActive(b *bool) *ProviderSettingUpdate {
+	if b != nil {
+		psu.SetIsActive(*b)
+	}
+	return psu
+}
+
+// SetStatus sets the "status" field.
+func (psu *ProviderSettingUpdate) SetStatus(s string) *ProviderSettingUpdate {
+	psu.mutation.SetStatus(s)
+	return psu
+}
+
+// SetNillableStatus sets the "status" field if the given value is not nil.
+func (psu *ProviderSettingUpdate) SetNillableStatus(s *string) *ProviderSettingUpdate {
+	if s != nil {
+		psu.SetStatus(*s)
+	}
+	return psu
+}
+
+// ClearStatus clears the value of the "status" field.
+func (psu *ProviderSettingUpdate) ClearStatus() *ProviderSettingUpdate {
+	psu.mutation.ClearStatus()
+	return psu
+}
+
 // Mutation returns the ProviderSettingMutation object of the builder.
 func (psu *ProviderSettingUpdate) Mutation() *ProviderSettingMutation {
 	return psu.mutation
@@ -283,6 +331,18 @@ func (psu *ProviderSettingUpdate) sqlSave(ctx context.Context) (n int, err error
 	}
 	if value, ok := psu.mutation.IsEncrypted(); ok {
 		_spec.SetField(providersetting.FieldIsEncrypted, field.TypeBool, value)
+	}
+	if value, ok := psu.mutation.IsPlatform(); ok {
+		_spec.SetField(providersetting.FieldIsPlatform, field.TypeBool, value)
+	}
+	if value, ok := psu.mutation.IsActive(); ok {
+		_spec.SetField(providersetting.FieldIsActive, field.TypeBool, value)
+	}
+	if value, ok := psu.mutation.Status(); ok {
+		_spec.SetField(providersetting.FieldStatus, field.TypeString, value)
+	}
+	if psu.mutation.StatusCleared() {
+		_spec.ClearField(providersetting.FieldStatus, field.TypeString)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, psu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -472,6 +532,54 @@ func (psuo *ProviderSettingUpdateOne) SetNillableIsEncrypted(b *bool) *ProviderS
 	return psuo
 }
 
+// SetIsPlatform sets the "is_platform" field.
+func (psuo *ProviderSettingUpdateOne) SetIsPlatform(b bool) *ProviderSettingUpdateOne {
+	psuo.mutation.SetIsPlatform(b)
+	return psuo
+}
+
+// SetNillableIsPlatform sets the "is_platform" field if the given value is not nil.
+func (psuo *ProviderSettingUpdateOne) SetNillableIsPlatform(b *bool) *ProviderSettingUpdateOne {
+	if b != nil {
+		psuo.SetIsPlatform(*b)
+	}
+	return psuo
+}
+
+// SetIsActive sets the "is_active" field.
+func (psuo *ProviderSettingUpdateOne) SetIsActive(b bool) *ProviderSettingUpdateOne {
+	psuo.mutation.SetIsActive(b)
+	return psuo
+}
+
+// SetNillableIsActive sets the "is_active" field if the given value is not nil.
+func (psuo *ProviderSettingUpdateOne) SetNillableIsActive(b *bool) *ProviderSettingUpdateOne {
+	if b != nil {
+		psuo.SetIsActive(*b)
+	}
+	return psuo
+}
+
+// SetStatus sets the "status" field.
+func (psuo *ProviderSettingUpdateOne) SetStatus(s string) *ProviderSettingUpdateOne {
+	psuo.mutation.SetStatus(s)
+	return psuo
+}
+
+// SetNillableStatus sets the "status" field if the given value is not nil.
+func (psuo *ProviderSettingUpdateOne) SetNillableStatus(s *string) *ProviderSettingUpdateOne {
+	if s != nil {
+		psuo.SetStatus(*s)
+	}
+	return psuo
+}
+
+// ClearStatus clears the value of the "status" field.
+func (psuo *ProviderSettingUpdateOne) ClearStatus() *ProviderSettingUpdateOne {
+	psuo.mutation.ClearStatus()
+	return psuo
+}
+
 // Mutation returns the ProviderSettingMutation object of the builder.
 func (psuo *ProviderSettingUpdateOne) Mutation() *ProviderSettingMutation {
 	return psuo.mutation
@@ -590,6 +698,18 @@ func (psuo *ProviderSettingUpdateOne) sqlSave(ctx context.Context) (_node *Provi
 	}
 	if value, ok := psuo.mutation.IsEncrypted(); ok {
 		_spec.SetField(providersetting.FieldIsEncrypted, field.TypeBool, value)
+	}
+	if value, ok := psuo.mutation.IsPlatform(); ok {
+		_spec.SetField(providersetting.FieldIsPlatform, field.TypeBool, value)
+	}
+	if value, ok := psuo.mutation.IsActive(); ok {
+		_spec.SetField(providersetting.FieldIsActive, field.TypeBool, value)
+	}
+	if value, ok := psuo.mutation.Status(); ok {
+		_spec.SetField(providersetting.FieldStatus, field.TypeString, value)
+	}
+	if psuo.mutation.StatusCleared() {
+		_spec.ClearField(providersetting.FieldStatus, field.TypeString)
 	}
 	_node = &ProviderSetting{config: psuo.config}
 	_spec.Assign = _node.assignValues
