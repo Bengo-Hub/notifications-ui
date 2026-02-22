@@ -1,8 +1,34 @@
+import withPWAInit from "@ducanh2912/next-pwa";
 import type { NextConfig } from "next";
 
+const withPWA = withPWAInit({
+  dest: "public",
+  disable: process.env.NODE_ENV === "development",
+  register: true,
+  cacheOnFrontEndNav: true,
+  aggressiveFrontEndNavCaching: true,
+  reloadOnOnline: true,
+});
+
 const nextConfig: NextConfig = {
-  /* config options here */
-  reactCompiler: true,
+  output: "standalone",
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "notifications.codevertexitsolutions.com",
+      },
+      {
+        protocol: "https",
+        hostname: "accounts.codevertexitsolutions.com",
+      },
+      {
+        protocol: "https",
+        hostname: "sso.codevertexitsolutions.com",
+      },
+    ],
+  },
+  turbopack: {},
 };
 
-export default nextConfig;
+export default withPWA(nextConfig);

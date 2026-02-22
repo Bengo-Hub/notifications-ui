@@ -1,0 +1,12 @@
+<svg width="200" height="60" viewBox="0 0 200 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Circle with Checkmark (Branding Icon) -->
+  <circle cx="90" cy="30" r="18" stroke="#722F5F" stroke-width="3"/>
+  <path d="M82 30L87 35L98 24" stroke="#722F5F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Text: Codevertex -->
+  <text x="10" y="38" fill="white" style="font-family: 'Inter', sans-serif; font-weight: 700; font-size: 24px;">Code</text>
+  <text x="115" y="38" fill="white" style="font-family: 'Inter', sans-serif; font-weight: 700; font-size: 24px;">ertex</text>
+  
+  <!-- Subtext: IT SOLUTIONS -->
+  <text x="70" y="52" fill="white" style="font-family: 'Inter', sans-serif; font-weight: 500; font-size: 8px; letter-spacing: 2px;">IT SOLUTIONS</text>
+</svg>
