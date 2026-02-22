@@ -20,10 +20,7 @@ func TestHealthHandler_Liveness(t *testing.T) {
 	h := NewHealthHandler(zap.NewNop(), nil, nil, nil)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
-	ctx, _ := gin.CreateTestContext(w)
-	ctx.Request = req
-
-	h.Liveness(ctx)
+	h.Liveness(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", w.Code)
@@ -35,10 +32,7 @@ func TestHealthHandler_Readiness_WithIssues(t *testing.T) {
 	h := NewHealthHandler(zap.NewNop(), stubDB{err: context.DeadlineExceeded}, redis.NewClient(&redis.Options{Addr: "localhost:0"}), nil)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/readyz", nil)
-	ctx, _ := gin.CreateTestContext(w)
-	ctx.Request = req
-
-	h.Readiness(ctx)
+	h.Readiness(w, req)
 
 	if w.Code != http.StatusServiceUnavailable {
 		t.Fatalf("expected 503, got %d", w.Code)

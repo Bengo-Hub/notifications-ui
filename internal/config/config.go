@@ -39,21 +39,21 @@ type HTTPConfig struct {
 }
 
 type PostgresConfig struct {
-	URL             string        `envconfig:"POSTGRES_URL" default:"postgres://postgres:postgres@localhost:5432/notifications?sslmode=disable"`
-	MaxOpenConns    int           `envconfig:"POSTGRES_MAX_OPEN_CONNS" default:"20"`
-	MaxIdleConns    int           `envconfig:"POSTGRES_MAX_IDLE_CONNS" default:"10"`
-	ConnMaxLifetime time.Duration `envconfig:"POSTGRES_CONN_MAX_LIFETIME" default:"30m"`
+	URL             string        `envconfig:"URL" default:"postgres://postgres:postgres@localhost:5432/notifications?sslmode=disable"`
+	MaxOpenConns    int           `envconfig:"MAX_OPEN_CONNS" default:"20"`
+	MaxIdleConns    int           `envconfig:"MAX_IDLE_CONNS" default:"10"`
+	ConnMaxLifetime time.Duration `envconfig:"CONN_MAX_LIFETIME" default:"30m"`
 }
 
 type RedisConfig struct {
-	Addr        string        `envconfig:"REDIS_ADDR" default:"localhost:6381"`
-	Password    string        `envconfig:"REDIS_PASSWORD"`
-	DB          int           `envconfig:"REDIS_DB" default:"0"`
-	DialTimeout time.Duration `envconfig:"REDIS_DIAL_TIMEOUT" default:"5s"`
+	Addr        string        `envconfig:"ADDR" default:"localhost:6381"`
+	Password    string        `envconfig:"PASSWORD"`
+	DB          int           `envconfig:"DB" default:"0"`
+	DialTimeout time.Duration `envconfig:"DIAL_TIMEOUT" default:"5s"`
 }
 
 type EventsConfig struct {
-	Bus        string        `envconfig:"EVENT_BUS" default:"nats"`
+	Bus        string        `envconfig:"BUS" default:"nats"`
 	NATSURL    string        `envconfig:"NATS_URL" default:"nats://localhost:4222"`
 	StreamName string        `envconfig:"NATS_STREAM" default:"notifications"`
 	Subject    string        `envconfig:"NATS_SUBJECT" default:"notifications.events"`
