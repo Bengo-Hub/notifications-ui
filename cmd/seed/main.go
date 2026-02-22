@@ -8,7 +8,6 @@ import (
 
 	"github.com/bengobox/notifications-api/internal/config"
 	"github.com/bengobox/notifications-api/internal/database"
-	"github.com/bengobox/notifications-api/internal/ent"
 	"github.com/bengobox/notifications-api/internal/ent/providersetting"
 	"github.com/bengobox/notifications-api/internal/ent/tenantbranding"
 	"github.com/joho/godotenv"
@@ -69,7 +68,9 @@ func main() {
 					"from_email": fmt.Sprintf("notifications@%s.masterspace.co.ke", t.ID),
 					"from_name":  t.Name,
 				}).Save(ctx)
-			if err == nil { fmt.Printf("✓ Created branding for: %s\n", t.ID) }
+			if err == nil {
+				fmt.Printf("✓ Created branding for: %s\n", t.ID)
+			}
 		} else {
 			_, _ = existingBranding.Update().
 				SetLogoURL(t.Logo).
@@ -90,7 +91,7 @@ func main() {
 					providersetting.ProviderTypeEQ(d.Type),
 					providersetting.KeyEQ("_preferred"),
 				).First(ctx)
-			
+
 			if existing == nil {
 				_, err = client.ProviderSetting.Create().
 					SetTenantID(t.ID).
@@ -104,7 +105,9 @@ func main() {
 					SetIsActive(true).
 					SetStatus("active").
 					Save(ctx)
-				if err == nil { fmt.Printf("✓ Set preferred %s for: %s (%s)\n", d.Type, t.ID, d.Name) }
+				if err == nil {
+					fmt.Printf("✓ Set preferred %s for: %s (%s)\n", d.Type, t.ID, d.Name)
+				}
 			}
 		}
 	}
@@ -135,9 +138,15 @@ func main() {
 			).First(ctx)
 
 		isActive := true
-		if pp.Name == "sendgrid" && os.Getenv("SENDGRID_API_KEY") == "" { isActive = false }
-		if pp.Name == "africastalking" && os.Getenv("AFRICAS_TALKING_KEY") == "" { isActive = false }
-		if pp.Name == "twilio" && os.Getenv("TWILIO_ACCOUNT_SID") == "" { isActive = false }
+		if pp.Name == "sendgrid" && os.Getenv("SENDGRID_API_KEY") == "" {
+			isActive = false
+		}
+		if pp.Name == "africastalking" && os.Getenv("AFRICAS_TALKING_KEY") == "" {
+			isActive = false
+		}
+		if pp.Name == "twilio" && os.Getenv("TWILIO_ACCOUNT_SID") == "" {
+			isActive = false
+		}
 
 		if existing == nil {
 			_, err = client.ProviderSetting.Create().
@@ -152,7 +161,9 @@ func main() {
 				SetIsActive(isActive).
 				SetStatus("active").
 				Save(ctx)
-			if err == nil { fmt.Printf("✓ Created platform provider: %s/%s\n", pp.Type, pp.Name) }
+			if err == nil {
+				fmt.Printf("✓ Created platform provider: %s/%s\n", pp.Type, pp.Name)
+			}
 		} else {
 			_, _ = existing.Update().SetIsActive(isActive).Save(ctx)
 		}
@@ -160,4 +171,3 @@ func main() {
 
 	fmt.Println("✅ Ent migration and seed complete")
 }
-
