@@ -7,18 +7,21 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Install pnpm
-RUN npm install -g pnpm
+RUN npm install -g pnpm@10
 
 # Copy package files and pnpm config
+# .npmrc provides shamefully-hoist=true for proper module resolution
 COPY package.json pnpm-lock.yaml* .npmrc* ./
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile --shamefully-hoist || pnpm install --shamefully-hoist
+# Install without --frozen-lockfile so pnpm.overrides in package.json apply.
+# pnpm.overrides pins side-channel to 1.0.6, avoiding the missing
+# side-channel-list transitive dependency from side-channel@1.1.0.
+RUN pnpm install --shamefully-hoist
 
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
-RUN npm install -g pnpm
+RUN npm install -g pnpm@10
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
@@ -41,12 +44,8 @@ COPY --from=builder /app/public ./public
 RUN mkdir -p .next .next/static
 RUN chown nextjs:nodejs .next
 
-RUN npm install -g pnpm
-
-# Fallback-friendly copy
+# Standalone output - server.js + static assets (no full node_modules needed)
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
-COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
@@ -55,4 +54,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["pnpm", "start"]
+CMD ["node", "server.js"]
