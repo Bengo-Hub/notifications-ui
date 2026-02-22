@@ -57,7 +57,7 @@ fi
 success "Prerequisite checks passed"
 
 # =============================================================================
-# Auto-sync secrets from devops-k8s and ensure service secret exists BEFORE build
+# Auto-sync secrets from devops-k8s
 # =============================================================================
 if [[ ${DEPLOY} == "true" ]]; then
   info "Checking and syncing required secrets from devops-k8s..."
@@ -68,25 +68,6 @@ if [[ ${DEPLOY} == "true" ]]; then
     rm -f "$SYNC_SCRIPT"
   else
     warn "Unable to download secret sync script - continuing with existing secrets"
-  fi
-
-  # Ensure centralized create-service-secrets is run before building image
-  if [[ -d "$DEVOPS_DIR" || -n "${DEVOPS_REPO:-}" ]]; then
-    if [[ ! -d "$DEVOPS_DIR" ]]; then
-      TOKEN="${GH_PAT:-${GIT_SECRET:-${GITHUB_TOKEN:-}}}"
-      CLONE_URL="https://github.com/${DEVOPS_REPO}.git"
-      [[ -n $TOKEN ]] && CLONE_URL="https://x-access-token:${TOKEN}@github.com/${DEVOPS_REPO}.git"
-      git clone "$CLONE_URL" "$DEVOPS_DIR" || warn "Unable to clone devops repo for secret setup"
-    fi
-    if [[ -d "$DEVOPS_DIR" && -f "$DEVOPS_DIR/scripts/infrastructure/create-service-secrets.sh" ]]; then
-      info "Running centralized create-service-secrets for ${APP_NAME} before build..."
-      SERVICE_NAME="$APP_NAME" \
-      NAMESPACE="$NAMESPACE" \
-      SECRET_NAME="$ENV_SECRET_NAME" \
-      bash "$DEVOPS_DIR/scripts/infrastructure/create-service-secrets.sh" || warn "create-service-secrets failed"
-    else
-      warn "create-service-secrets.sh not found - ensure secrets exist before deploy"
-    fi
   fi
 fi
 
