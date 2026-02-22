@@ -22,20 +22,20 @@ type Config struct {
 }
 
 type AppConfig struct {
-	Name    string `envconfig:"APP_NAME" default:"notifications-api"`
-	Env     string `envconfig:"APP_ENV" default:"development"`
-	Version string `envconfig:"APP_VERSION" default:"0.1.0"`
+	Name    string `envconfig:"NAME" default:"notifications-api"`
+	Env     string `envconfig:"ENV" default:"development"`
+	Version string `envconfig:"VERSION" default:"0.1.0"`
 }
 
 type HTTPConfig struct {
-	Host           string        `envconfig:"HTTP_HOST" default:"0.0.0.0"`
-	Port           int           `envconfig:"HTTP_PORT" default:"4002"`
-	ReadTimeout    time.Duration `envconfig:"HTTP_READ_TIMEOUT" default:"15s"`
-	WriteTimeout   time.Duration `envconfig:"HTTP_WRITE_TIMEOUT" default:"15s"`
-	IdleTimeout    time.Duration `envconfig:"HTTP_IDLE_TIMEOUT" default:"60s"`
+	Host           string        `envconfig:"HOST" default:"0.0.0.0"`
+	Port           int           `envconfig:"PORT" default:"4000"`
+	ReadTimeout    time.Duration `envconfig:"READ_TIMEOUT" default:"15s"`
+	WriteTimeout   time.Duration `envconfig:"WRITE_TIMEOUT" default:"15s"`
+	IdleTimeout    time.Duration `envconfig:"IDLE_TIMEOUT" default:"60s"`
 	TLSCertFile    string        `envconfig:"TLS_CERT_FILE"`
 	TLSKeyFile     string        `envconfig:"TLS_KEY_FILE"`
-	AllowedOrigins []string      `envconfig:"HTTP_ALLOWED_ORIGINS" default:"https://notifications.codevertexitsolutions.com,https://ordersapp.codevertexitsolutions.com,https://accounts.codevertexitsolutions.com"`
+	AllowedOrigins []string      `envconfig:"ALLOWED_ORIGINS" default:"https://notifications.codevertexitsolutions.com,https://ordersapp.codevertexitsolutions.com,https://accounts.codevertexitsolutions.com"`
 }
 
 type PostgresConfig struct {
@@ -87,8 +87,8 @@ type ProviderConfig struct {
 }
 
 type TemplateConfig struct {
-	Directory string        `envconfig:"TEMPLATE_DIRECTORY" default:"./templates"`
-	CacheTTL  time.Duration `envconfig:"TEMPLATE_CACHE_TTL" default:"5m"`
+	Directory string        `envconfig:"DIRECTORY" default:"./templates"`
+	CacheTTL  time.Duration `envconfig:"CACHE_TTL" default:"5m"`
 }
 
 type SecurityConfig struct {
