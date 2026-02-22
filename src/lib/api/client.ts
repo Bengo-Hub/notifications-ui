@@ -47,6 +47,10 @@ class ApiClient {
         return this.instance.post<T>(url, data).then((res: AxiosResponse<T>) => res.data);
     }
 
+    public put<T>(url: string, data?: any): Promise<T> {
+        return this.instance.put<T>(url, data).then((res: AxiosResponse<T>) => res.data);
+    }
+
     public patch<T>(url: string, data?: any): Promise<T> {
         return this.instance.patch<T>(url, data).then((res: AxiosResponse<T>) => res.data);
     }

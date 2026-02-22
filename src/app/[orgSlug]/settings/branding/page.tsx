@@ -1,6 +1,6 @@
 'use client';
 
-import { Button, Card, CardContent, CardHeader } from '@/components/ui/base';
+import { Badge, Button, Card, CardContent, CardHeader } from '@/components/ui/base';
 import { settingsApi, TenantBranding } from '@/lib/api/settings';
 import { Code, Image as ImageIcon, Info, Palette, RefreshCw, Save, Type, Upload } from 'lucide-react';
 import { useParams } from 'next/navigation';
