@@ -1,0 +1,13 @@
+{{ define "content" }}
+<p>Hello {{ .customer_name }},</p>
+<p>A Special Release Certificate <strong>{{ .release_no }}</strong> has been issued for vehicle <strong>{{ .vehicle_reg
+        }}</strong>.</p>
+<p>
+    <strong>Reason:</strong> {{ .reason }}<br />
+    <strong>Authorized By:</strong> {{ .authorized_by }}
+</p>
+<p>
+    <a class="button" href="{{ .download_url }}">View Details</a>
+</p>
+<p class="muted">Regards,<br />{{ .brand_name }}</p>
+{{ end }}

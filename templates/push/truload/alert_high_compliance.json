@@ -1,0 +1,9 @@
+{
+    "title": "High Compliance Alert",
+    "body": "Vehicle {{ .vehicle_reg }} is approaching weight limits at {{ .station_name }}.",
+    "data": {
+        "vehicle_reg": "{{ .vehicle_reg }}",
+        "station": "{{ .station_name }}",
+        "gross_weight": "{{ .gross_weight }}"
+    }
+}

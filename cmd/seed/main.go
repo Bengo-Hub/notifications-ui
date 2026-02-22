@@ -32,260 +32,132 @@ func main() {
 		log.Fatalf("migrate: %v", err)
 	}
 
-	// Seed branding with get-or-create logic
-	tenantID := "codevertex"
-	existingBranding, err := client.TenantBranding.
-		Query().
-		Where(tenantbranding.TenantIDEQ(tenantID)).
-		Only(ctx)
-
-	if err != nil {
-		if ent.IsNotFound(err) {
-			// Create new branding record
-			_, err := client.TenantBranding.
-				Create().
-				SetTenantID(tenantID).
-				SetLogoURL("https://codevertexitsolutions.com/wp-content/uploads/2025/05/logonobg-300x69.png").
-				SetPrimaryColor("#0F766E").
-				SetSecondaryColor("#134E4A").
-				SetMetadata(map[string]interface{}{
-					"name":  "CodeVertex",
-					"email": "hello@codevertexitsolutions.com",
-					"phone": "+254700000000",
-				}).
-				Save(ctx)
-			if err != nil {
-				log.Printf("seed branding create: %v", err)
-			} else {
-				fmt.Println("✓ Created branding for tenant:", tenantID)
-			}
-		} else {
-			log.Printf("seed branding query: %v", err)
-		}
-	} else {
-		// Update existing branding if needed
-		updatedBranding, err := existingBranding.Update().
-			SetLogoURL("https://codevertexitsolutions.com/wp-content/uploads/2025/05/logonobg-300x69.png").
-			SetPrimaryColor("#0F766E").
-			SetSecondaryColor("#134E4A").
-			SetMetadata(map[string]interface{}{
-				"name":  "CodeVertex",
-				"email": "hello@codevertexitsolutions.com",
-				"phone": "+254700000000",
-			}).
-			Save(ctx)
-		if err != nil {
-			log.Printf("seed branding update: %v", err)
-		} else {
-			fmt.Println("✓ Updated branding for tenant:", tenantID, "(ID:", updatedBranding.ID, ")")
-		}
+	// Simplified seeding for all ecosystem tenants
+	tenants := []struct {
+		ID    string
+		Name  string
+		Logo  string
+		Color string
+	}{
+		{"codevertex", "CodeVertex", "https://codevertexitsolutions.com/logo.png", "#0F766E"},
+		{"truload", "TruLoad", "https://truload.masterspace.co.ke/logo.png", "#2563eb"},
+		{"auth", "Auth Service", "https://auth.masterspace.co.ke/logo.png", "#4f46e5"},
+		{"erp", "BengoERP", "https://erp.masterspace.co.ke/logo.png", "#0891b2"},
+		{"inventory", "Inventory Service", "", "#059669"},
+		{"iot", "IoT Service", "", "#7c3aed"},
+		{"logistics", "Logistics Service", "", "#2563eb"},
+		{"ordering", "Ordering Service", "", "#ea580c"},
+		{"pos", "POS Service", "", "#db2777"},
+		{"projects", "Projects Service", "", "#4f46e5"},
+		{"subscription", "Subscription Service", "", "#16a34a"},
+		{"ticketing", "Ticketing Service", "", "#dc2626"},
+		{"treasury", "Treasury Service", "", "#ca8a04"},
+		{"game-stats", "Game Stats", "https://game-stats.mosuon.com/logo.png", "#9333ea"},
+		{"urban-loft", "Urban Loft Cafe", "https://theurbanloftcafe.com/logo.png", "#f97316"},
 	}
 
-	// Seed Urban Loft Cafe branding with get-or-create logic
-	urbanLoftTenantID := "urban-loft"
-	existingUrbanLoft, err := client.TenantBranding.
-		Query().
-		Where(tenantbranding.TenantIDEQ(urbanLoftTenantID)).
-		Only(ctx)
-
-	if err != nil {
-		if ent.IsNotFound(err) {
-			_, err := client.TenantBranding.
-				Create().
-				SetTenantID(urbanLoftTenantID).
-				SetLogoURL("https://theurbanloftcafe.com/logo.png").
-				SetPrimaryColor("#f97316").
+	for _, t := range tenants {
+		// Seed/Update Branding
+		existingBranding, _ := client.TenantBranding.Query().Where(tenantbranding.TenantIDEQ(t.ID)).First(ctx)
+		if existingBranding == nil {
+			_, err = client.TenantBranding.Create().
+				SetTenantID(t.ID).
+				SetLogoURL(t.Logo).
+				SetPrimaryColor(t.Color).
 				SetSecondaryColor("#1f2937").
 				SetMetadata(map[string]interface{}{
-					"from_email": "orders@theurbanloftcafe.com",
-					"from_name":  "Urban Loft Cafe",
-					"phone":      "+254700000000",
-				}).
+					"from_email": fmt.Sprintf("notifications@%s.masterspace.co.ke", t.ID),
+					"from_name":  t.Name,
+				}).Save(ctx)
+			if err == nil { fmt.Printf("✓ Created branding for: %s\n", t.ID) }
+		} else {
+			_, _ = existingBranding.Update().
+				SetLogoURL(t.Logo).
+				SetPrimaryColor(t.Color).
 				Save(ctx)
-			if err != nil {
-				log.Printf("seed urban loft branding create: %v", err)
-			} else {
-				fmt.Println("✓ Created branding for tenant:", urbanLoftTenantID)
-			}
-		} else {
-			log.Printf("seed urban loft branding query: %v", err)
 		}
-	} else {
-		updatedUrbanLoft, err := existingUrbanLoft.Update().
-			SetLogoURL("https://theurbanloftcafe.com/logo.png").
-			SetPrimaryColor("#f97316").
-			SetSecondaryColor("#1f2937").
-			SetMetadata(map[string]interface{}{
-				"from_email": "orders@theurbanloftcafe.com",
-				"from_name":  "Urban Loft Cafe",
-				"phone":      "+254700000000",
-			}).
-			Save(ctx)
-		if err != nil {
-			log.Printf("seed urban loft branding update: %v", err)
-		} else {
-			fmt.Println("✓ Updated branding for tenant:", urbanLoftTenantID, "(ID:", updatedUrbanLoft.ID, ")")
+
+		// Seed/Update Default Provider Selectors (preferred provider)
+		defaults := []struct{ Type, Name string }{
+			{"email", "smtp"},
+			{"sms", "twilio"},
 		}
-	}
 
-	// Seed tenant-level provider settings with get-or-create logic
-	seedData := []struct {
-		Channel      string // Legacy field name
-		Provider     string // Legacy field name
-		ProviderType string // email, sms, push
-		ProviderName string // smtp, sendgrid, twilio, etc.
-		Key          string
-		Value        string
-		Description  string
-	}{
-		{"email", "smtp", "email", "smtp", "host", "localhost", "SMTP host for email delivery"},
-		{"email", "smtp", "email", "smtp", "port", "1025", "SMTP port for email delivery"},
-		{"sms", "twilio", "sms", "twilio", "from", "CodeVertex", "Twilio sender ID"},
-	}
-
-	for _, data := range seedData {
-		// Check if setting already exists
-		existing, err := client.ProviderSetting.
-			Query().
-			Where(
-				providersetting.TenantIDEQ(tenantID),
-				providersetting.ChannelEQ(data.Channel),
-				providersetting.ProviderEQ(data.Provider),
-				providersetting.ProviderTypeEQ(data.ProviderType),
-				providersetting.ProviderNameEQ(data.ProviderName),
-				providersetting.KeyEQ(data.Key),
-			).
-			Only(ctx)
-
-		if err != nil {
-			if ent.IsNotFound(err) {
-				// Create new provider setting
-				_, err := client.ProviderSetting.
-					Create().
-					SetTenantID(tenantID).
-					SetChannel(data.Channel).
-					SetProvider(data.Provider).
-					SetProviderType(data.ProviderType).
-					SetProviderName(data.ProviderName).
-					SetKey(data.Key).
-					SetValue(data.Value).
-					SetDescription(data.Description).
+		for _, d := range defaults {
+			existing, _ := client.ProviderSetting.Query().
+				Where(
+					providersetting.TenantIDEQ(t.ID),
+					providersetting.ProviderTypeEQ(d.Type),
+					providersetting.KeyEQ("_preferred"),
+				).First(ctx)
+			
+			if existing == nil {
+				_, err = client.ProviderSetting.Create().
+					SetTenantID(t.ID).
+					SetChannel(d.Type).
+					SetProvider(d.Name).
+					SetProviderType(d.Type).
+					SetProviderName(d.Name).
+					SetKey("_preferred").
+					SetValue(d.Name).
+					SetIsPlatform(false).
+					SetIsActive(true).
+					SetStatus("active").
 					Save(ctx)
-				if err != nil {
-					log.Printf("seed provider setting create: %v", err)
-				} else {
-					fmt.Printf("✓ Created provider setting: %s/%s/%s/%s\n", data.ProviderType, data.ProviderName, data.Key, data.Value)
-				}
-			} else {
-				log.Printf("seed provider setting query: %v", err)
-			}
-		} else {
-			// Update existing setting if needed
-			updated, err := existing.Update().
-				SetChannel(data.Channel).
-				SetProvider(data.Provider).
-				SetProviderType(data.ProviderType).
-				SetProviderName(data.ProviderName).
-				SetValue(data.Value).
-				SetDescription(data.Description).
-				Save(ctx)
-			if err != nil {
-				log.Printf("seed provider setting update: %v", err)
-			} else {
-				fmt.Printf("✓ Updated provider setting: %s/%s/%s/%s (ID: %d)\n", data.ProviderType, data.ProviderName, data.Key, data.Value, updated.ID)
+				if err == nil { fmt.Printf("✓ Set preferred %s for: %s (%s)\n", d.Type, t.ID, d.Name) }
 			}
 		}
 	}
 
-	// Seed platform-level provider configs (is_platform=true, tenant_id="platform")
+	// Seed platform-level provider availability (tenant_id="platform")
 	platformTenantID := "platform"
-
-	type platformProvider struct {
-		ProviderType string
-		ProviderName string
-		IsActive     bool
-		Status       string
-		Description  string
+	platformProviders := []struct {
+		Type string
+		Name string
+	}{
+		{"email", "smtp"},
+		{"email", "sendgrid"},
+		{"sms", "twilio"},
+		{"sms", "africastalking"},
+		{"sms", "vonage"},
+		{"sms", "plivo"},
+		{"push", "fcm"},
 	}
-
-	platformProviders := []platformProvider{
-		{"email", "smtp", true, "active", "Platform SMTP email provider"},
-	}
-
-	// Conditionally add SendGrid if API key is configured
-	if os.Getenv("SENDGRID_API_KEY") != "" {
-		platformProviders = append(platformProviders, platformProvider{
-			"email", "sendgrid", true, "active", "Platform SendGrid email provider",
-		})
-	}
-
-	// Conditionally add Africa's Talking if API key is configured
-	if os.Getenv("AFRICAS_TALKING_KEY") != "" {
-		platformProviders = append(platformProviders, platformProvider{
-			"sms", "africastalking", true, "active", "Platform Africa's Talking SMS provider",
-		})
-	}
-
-	// Add Twilio SMS — active only if env vars are present
-	twilioActive := os.Getenv("TWILIO_ACCOUNT_SID") != "" && os.Getenv("TWILIO_AUTH_TOKEN") != ""
-	twilioStatus := "inactive"
-	if twilioActive {
-		twilioStatus = "active"
-	}
-	platformProviders = append(platformProviders, platformProvider{
-		"sms", "twilio", twilioActive, twilioStatus, "Platform Twilio SMS provider",
-	})
 
 	for _, pp := range platformProviders {
-		// Check if _config marker already exists for this platform provider
-		existingPP, err := client.ProviderSetting.
-			Query().
+		existing, _ := client.ProviderSetting.Query().
 			Where(
 				providersetting.TenantIDEQ(platformTenantID),
 				providersetting.IsPlatform(true),
-				providersetting.ProviderTypeEQ(pp.ProviderType),
-				providersetting.ProviderNameEQ(pp.ProviderName),
+				providersetting.ProviderTypeEQ(pp.Type),
+				providersetting.ProviderNameEQ(pp.Name),
 				providersetting.KeyEQ("_config"),
-			).
-			Only(ctx)
+			).First(ctx)
 
-		if err != nil {
-			if ent.IsNotFound(err) {
-				_, err := client.ProviderSetting.
-					Create().
-					SetTenantID(platformTenantID).
-					SetChannel(pp.ProviderType).
-					SetProvider(pp.ProviderName).
-					SetProviderType(pp.ProviderType).
-					SetProviderName(pp.ProviderName).
-					SetKey("_config").
-					SetValue("configured").
-					SetDescription(pp.Description).
-					SetIsPlatform(true).
-					SetIsActive(pp.IsActive).
-					SetStatus(pp.Status).
-					Save(ctx)
-				if err != nil {
-					log.Printf("seed platform provider create: %v", err)
-				} else {
-					fmt.Printf("✓ Created platform provider: %s/%s (active=%v)\n", pp.ProviderType, pp.ProviderName, pp.IsActive)
-				}
-			} else {
-				log.Printf("seed platform provider query: %v", err)
-			}
-		} else {
-			updatedPP, err := existingPP.Update().
-				SetIsActive(pp.IsActive).
-				SetStatus(pp.Status).
-				SetDescription(pp.Description).
+		isActive := true
+		if pp.Name == "sendgrid" && os.Getenv("SENDGRID_API_KEY") == "" { isActive = false }
+		if pp.Name == "africastalking" && os.Getenv("AFRICAS_TALKING_KEY") == "" { isActive = false }
+		if pp.Name == "twilio" && os.Getenv("TWILIO_ACCOUNT_SID") == "" { isActive = false }
+
+		if existing == nil {
+			_, err = client.ProviderSetting.Create().
+				SetTenantID(platformTenantID).
+				SetChannel(pp.Type).
+				SetProvider(pp.Name).
+				SetProviderType(pp.Type).
+				SetProviderName(pp.Name).
+				SetKey("_config").
+				SetValue("configured").
+				SetIsPlatform(true).
+				SetIsActive(isActive).
+				SetStatus("active").
 				Save(ctx)
-			if err != nil {
-				log.Printf("seed platform provider update: %v", err)
-			} else {
-				fmt.Printf("✓ Updated platform provider: %s/%s (ID: %d, active=%v)\n", pp.ProviderType, pp.ProviderName, updatedPP.ID, pp.IsActive)
-			}
+			if err == nil { fmt.Printf("✓ Created platform provider: %s/%s\n", pp.Type, pp.Name) }
+		} else {
+			_, _ = existing.Update().SetIsActive(isActive).Save(ctx)
 		}
 	}
 
 	fmt.Println("✅ Ent migration and seed complete")
 }
+

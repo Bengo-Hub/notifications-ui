@@ -1,0 +1,1 @@
+TruLoad Update: Case {{ .case_no }} has been updated. Status: {{ .status }}. Follow up with {{ .officer_name }}.

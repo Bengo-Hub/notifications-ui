@@ -1,0 +1,13 @@
+{{ define "content" }}
+  <p>Hello {{ .customer_name }},</p>
+  <p>Your weight ticket <strong>{{ .ticket_no }}</strong> for vehicle <strong>{{ .vehicle_reg }}</strong> has been generated.</p>
+  <p>
+    <strong>Gross Weight:</strong> {{ .gross_weight }} kg<br/>
+    <strong>Net Weight:</strong> {{ .net_weight }} kg<br/>
+    <strong>Compliance Status:</strong> {{ .status }}
+  </p>
+  <p>
+    <a class="button" href="{{ .download_url }}">Download Ticket</a>
+  </p>
+  <p class="muted">Thank you for being compliant,<br/>{{ .brand_name }}</p>
+{{ end }}

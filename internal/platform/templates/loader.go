@@ -100,8 +100,18 @@ func (l *Loader) List(_ context.Context) ([]Summary, error) {
 			if !exts[strings.ToLower(filepath.Ext(d.Name()))] {
 				return nil
 			}
-			name := strings.TrimSuffix(d.Name(), filepath.Ext(d.Name()))
-			out = append(out, Summary{ID: name, Channel: ch})
+
+			// Get relative path from channel directory
+			rel, err := filepath.Rel(dir, path)
+			if err != nil {
+				return nil
+			}
+
+			// Use forward slashes for IDs regardless of OS
+			id := strings.TrimSuffix(rel, filepath.Ext(rel))
+			id = filepath.ToSlash(id)
+
+			out = append(out, Summary{ID: id, Channel: ch})
 			return nil
 		})
 	}

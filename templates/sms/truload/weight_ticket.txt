@@ -1,0 +1,1 @@
+Hello {{ .customer_name }}, weight ticket {{ .ticket_no }} for {{ .vehicle_reg }} is ready. Gross: {{ .gross_weight }}kg. Status: {{ .status }}.

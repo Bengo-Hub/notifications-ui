@@ -1,0 +1,1 @@
+Vehicle {{ .vehicle_reg }} has been granted a Special Release ({{ .release_no }}). Authorized by {{ .authorized_by }}.

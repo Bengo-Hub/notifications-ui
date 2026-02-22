@@ -1,0 +1,8 @@
+{
+    "title": "New Case Assigned",
+    "body": "A new case {{ .case_no }} has been assigned to you.",
+    "data": {
+        "case_no": "{{ .case_no }}",
+        "priority": "{{ .priority }}"
+    }
+}

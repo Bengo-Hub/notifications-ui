@@ -16,7 +16,7 @@ error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
 APP_NAME=${APP_NAME:-"notifications-api"}
 NAMESPACE=${NAMESPACE:-"notifications"}
-ENV_SECRET_NAME=${ENV_SECRET_NAME:-"notifications-api-env"}
+ENV_SECRET_NAME=${ENV_SECRET_NAME:-"notifications-api-secrets"}
 DEPLOY=${DEPLOY:-true}
 SETUP_DATABASES=${SETUP_DATABASES:-true}
 DB_TYPES=${DB_TYPES:-postgres,redis}
@@ -148,14 +148,15 @@ fi
 
 # Setup environment secrets from existing databases (managed by devops-k8s)
 # This retrieves real credentials from PostgreSQL/Redis secrets and creates the app secret
-if [[ -f "scripts/setup_env_secrets.sh" ]]; then
-  info "Running setup_env_secrets.sh to configure database credentials..."
-  chmod +x scripts/setup_env_secrets.sh
-  export NAMESPACE ENV_SECRET_NAME SERVICE_DB_NAME SERVICE_DB_USER
-  ./scripts/setup_env_secrets.sh || { error "Environment secret setup failed"; exit 1; }
+if [[ -d "$DEVOPS_DIR" && -f "$DEVOPS_DIR/scripts/infrastructure/create-service-secrets.sh" ]]; then
+  info "Running centralized create-service-secrets.sh to configure database credentials..."
+  SERVICE_NAME="$APP_NAME" \
+  NAMESPACE="$NAMESPACE" \
+  SECRET_NAME="$ENV_SECRET_NAME" \
+  bash "$DEVOPS_DIR/scripts/infrastructure/create-service-secrets.sh" || { error "Environment secret setup failed"; exit 1; }
   success "Environment secrets configured with real credentials"
 elif ! kubectl -n "$NAMESPACE" get secret "$ENV_SECRET_NAME" >/dev/null 2>&1; then
-  error "Secret $ENV_SECRET_NAME not found and setup_env_secrets.sh is missing"
+  error "Secret $ENV_SECRET_NAME not found and centralized scripts are missing"
   error "Cannot proceed without database credentials"
   exit 1
 fi

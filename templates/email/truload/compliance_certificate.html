@@ -1,0 +1,12 @@
+{{ define "content" }}
+<p>Hello {{ .customer_name }},</p>
+<p>Your Compliance Certificate <strong>{{ .certificate_no }}</strong> for vehicle <strong>{{ .vehicle_reg }}</strong> is
+    now available.</p>
+<p>
+    <strong>Expiry Date:</strong> {{ .expiry_date }}
+</p>
+<p>
+    <a class="button" href="{{ .download_url }}">Download Certificate</a>
+</p>
+<p class="muted">Safe travels,<br />{{ .brand_name }}</p>
+{{ end }}
