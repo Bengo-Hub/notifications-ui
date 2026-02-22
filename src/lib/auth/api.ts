@@ -17,7 +17,7 @@ export interface TokenExchangeParams {
 }
 
 export function buildAuthorizeUrl({ codeChallenge, state, redirectUri, scope }: AuthorizeParams): string {
-    const url = new URL('/api/v1/authorize', SSO_BASE_URL);
+    const url = new URL('/api/v1/auth/oidc/authorize', SSO_BASE_URL);
     url.searchParams.set('response_type', 'code');
     url.searchParams.set('client_id', SSO_CLIENT_ID);
     url.searchParams.set('redirect_uri', redirectUri);
@@ -25,6 +25,13 @@ export function buildAuthorizeUrl({ codeChallenge, state, redirectUri, scope }: 
     url.searchParams.set('state', state);
     url.searchParams.set('code_challenge', codeChallenge);
     url.searchParams.set('code_challenge_method', 'S256');
+
+    // Propagate tenant slug if available
+    const tenant = typeof window !== 'undefined' ? localStorage.getItem('tenantSlug') : null;
+    if (tenant) {
+        url.searchParams.set('tenant', tenant);
+    }
+
     return url.toString();
 }
 
