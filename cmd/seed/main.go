@@ -39,20 +39,11 @@ func main() {
 		Color string
 	}{
 		{"codevertex", "CodeVertex", "https://codevertexitsolutions.com/logo.png", "#0F766E"},
-		{"truload", "TruLoad", "https://truload.masterspace.co.ke/logo.png", "#2563eb"},
-		{"auth", "Auth Service", "https://auth.masterspace.co.ke/logo.png", "#4f46e5"},
-		{"erp", "BengoERP", "https://erp.masterspace.co.ke/logo.png", "#0891b2"},
-		{"inventory", "Inventory Service", "", "#059669"},
-		{"iot", "IoT Service", "", "#7c3aed"},
-		{"logistics", "Logistics Service", "", "#2563eb"},
-		{"ordering", "Ordering Service", "", "#ea580c"},
-		{"pos", "POS Service", "", "#db2777"},
-		{"projects", "Projects Service", "", "#4f46e5"},
-		{"subscription", "Subscription Service", "", "#16a34a"},
-		{"ticketing", "Ticketing Service", "", "#dc2626"},
-		{"treasury", "Treasury Service", "", "#ca8a04"},
-		{"game-stats", "Game Stats", "https://game-stats.mosuon.com/logo.png", "#9333ea"},
+		{"mss", "Masterspace Solutions", "https://masterspace.co.ke/logo.png", "#2563eb"},
 		{"urban-loft", "Urban Loft Cafe", "https://theurbanloftcafe.com/logo.png", "#f97316"},
+		{"kura", "Kenya Urban Roads Authority", "https://kura.go.ke/logo.png", "#059669"},
+		{"ultichange", "UltiChange", "https://ultichange.org/logo.png", "#4f46e5"},
+		{"game-stats", "Game Stats", "https://game-stats.mosuon.com/logo.png", "#9333ea"},
 	}
 
 	for _, t := range tenants {
