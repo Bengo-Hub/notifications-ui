@@ -1,54 +1,63 @@
 #!/usr/bin/env bash
+# =============================================================================
+# Notifications API Build and Deploy Script
+# =============================================================================
+# Purpose: Builds Docker image, pushes to registry, and updates Helm values
+# Usage:
+#   ./build.sh                     # Build only
+#   DEPLOY=true ./build.sh         # Build and deploy
+# =============================================================================
 
 set -euo pipefail
-set +H
 
-BLUE='\033[0;34m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m'
+# Helper functions for logging
+info()    { echo -e "\033[0;34m[INFO]\033[0m $1"; }
+success() { echo -e "\033[0;32m[SUCCESS]\033[0m $1"; }
+warn()    { echo -e "\033[1;33m[WARN]\033[0m $1"; }
+error()   { echo -e "\033[0;31m[ERROR]\033[0m $1"; }
 
-info() { echo -e "${BLUE}[INFO]${NC} $1"; }
-success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
-warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-error() { echo -e "${RED}[ERROR]${NC} $1"; }
-
+# Configuration
 APP_NAME=${APP_NAME:-"notifications-api"}
 NAMESPACE=${NAMESPACE:-"notifications"}
-ENV_SECRET_NAME=${ENV_SECRET_NAME:-"notifications-api-secrets"}
-DEPLOY=${DEPLOY:-true}
-SETUP_DATABASES=${SETUP_DATABASES:-true}
-DB_TYPES=${DB_TYPES:-postgres,redis}
-# Per-service database configuration
-SERVICE_DB_NAME=${SERVICE_DB_NAME:-notifications}
-SERVICE_DB_USER=${SERVICE_DB_USER:-notifications_user}
+DEPLOY=${DEPLOY:-false}
+SETUP_DATABASES=${SETUP_DATABASES:-false}
+ENV_SECRET_NAME=${ENV_SECRET_NAME:-"notifications-api-env"}
+SERVICE_DB_NAME=${SERVICE_DB_NAME:-"notifications"}
 
+# Registry configuration
 REGISTRY_SERVER=${REGISTRY_SERVER:-docker.io}
 REGISTRY_NAMESPACE=${REGISTRY_NAMESPACE:-codevertex}
 IMAGE_REPO="${REGISTRY_SERVER}/${REGISTRY_NAMESPACE}/${APP_NAME}"
 
+# DevOps repository configuration
 DEVOPS_REPO=${DEVOPS_REPO:-"Bengo-Hub/devops-k8s"}
 DEVOPS_DIR=${DEVOPS_DIR:-"$HOME/devops-k8s"}
-VALUES_FILE_PATH=${VALUES_FILE_PATH:-"apps/${APP_NAME}/values.yaml"}
 
 GIT_EMAIL=${GIT_EMAIL:-"dev@bengobox.com"}
 GIT_USER=${GIT_USER:-"Notifications Bot"}
 TRIVY_ECODE=${TRIVY_ECODE:-0}
 
+# Determine Git commit ID
 if [[ -z ${GITHUB_SHA:-} ]]; then
   GIT_COMMIT_ID=$(git rev-parse --short=8 HEAD || echo "localbuild")
 else
   GIT_COMMIT_ID=${GITHUB_SHA::8}
 fi
 
+# Handle KUBE_CONFIG fallback for B64 variant
+KUBE_CONFIG=${KUBE_CONFIG:-${KUBE_CONFIG_B64:-}}
+
 info "Service : ${APP_NAME}"
 info "Namespace: ${NAMESPACE}"
 info "Image   : ${IMAGE_REPO}:${GIT_COMMIT_ID}"
 
+# =============================================================================
+# PREREQUISITE CHECKS
+# =============================================================================
 for tool in git docker trivy; do
   command -v "$tool" >/dev/null || { error "$tool is required"; exit 1; }
 done
+
 if [[ ${DEPLOY} == "true" ]]; then
   for tool in kubectl helm yq jq; do
     command -v "$tool" >/dev/null || { error "$tool is required"; exit 1; }
@@ -57,12 +66,12 @@ fi
 success "Prerequisite checks passed"
 
 # =============================================================================
-# Auto-sync secrets from devops-k8s
+# SECRET SYNC
 # =============================================================================
 if [[ ${DEPLOY} == "true" ]]; then
   info "Checking and syncing required secrets from devops-k8s..."
   SYNC_SCRIPT=$(mktemp)
-  if curl -fsSL https://raw.githubusercontent.com/Bengo-Hub/devops-k8s/main/scripts/tools/check-and-sync-secrets.sh -o "$SYNC_SCRIPT" 2>/dev/null; then
+  if curl -fsSL "https://raw.githubusercontent.com/${DEVOPS_REPO}/main/scripts/tools/check-and-sync-secrets.sh" -o "$SYNC_SCRIPT" 2>/dev/null; then
     source "$SYNC_SCRIPT"
     check_and_sync_secrets "REGISTRY_USERNAME" "REGISTRY_PASSWORD" "POSTGRES_PASSWORD" "REDIS_PASSWORD" "KUBE_CONFIG" || warn "Secret sync failed - continuing with existing secrets"
     rm -f "$SYNC_SCRIPT"
@@ -71,11 +80,13 @@ if [[ ${DEPLOY} == "true" ]]; then
   fi
 fi
 
+# =============================================================================
+# BUILD & SCAN
+# =============================================================================
 info "Running Trivy filesystem scan"
 trivy fs . --exit-code "$TRIVY_ECODE" --format table || true
 
 info "Building Docker image"
-# Build from service directory - go.mod uses remote replace directive for auth-client
 DOCKER_BUILDKIT=1 docker build -t "${IMAGE_REPO}:${GIT_COMMIT_ID}" .
 success "Docker build complete"
 
@@ -84,6 +95,9 @@ if [[ ${DEPLOY} != "true" ]]; then
   exit 0
 fi
 
+# =============================================================================
+# PUSH
+# =============================================================================
 if [[ -n ${REGISTRY_USERNAME:-} && -n ${REGISTRY_PASSWORD:-} ]]; then
   echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY_SERVER" -u "$REGISTRY_USERNAME" --password-stdin
 fi
@@ -91,19 +105,17 @@ fi
 docker push "${IMAGE_REPO}:${GIT_COMMIT_ID}"
 success "Image pushed"
 
+# =============================================================================
+# KUBERNETES SETUP
+# =============================================================================
 if [[ -n ${KUBE_CONFIG:-} ]]; then
   mkdir -p ~/.kube
-  echo "$KUBE_CONFIG" | base64 -d > ~/.kube/config
+  echo "$KUBE_CONFIG" | base64 -d > ~/.kube/config 2>/dev/null || echo "$KUBE_CONFIG" > ~/.kube/config
   chmod 600 ~/.kube/config
   export KUBECONFIG=~/.kube/config
 fi
 
 kubectl get ns "$NAMESPACE" >/dev/null 2>&1 || kubectl create ns "$NAMESPACE"
-
-if [[ -z ${CI:-}${GITHUB_ACTIONS:-} && -f KubeSecrets/devENV.yml ]]; then
-  info "Applying local dev secrets"
-  kubectl apply -n "$NAMESPACE" -f KubeSecrets/devENV.yml || warn "Failed to apply devENV.yml"
-fi
 
 if [[ -n ${REGISTRY_USERNAME:-} && -n ${REGISTRY_PASSWORD:-} ]]; then
   kubectl -n "$NAMESPACE" create secret docker-registry registry-credentials \
@@ -113,71 +125,64 @@ if [[ -n ${REGISTRY_USERNAME:-} && -n ${REGISTRY_PASSWORD:-} ]]; then
     --dry-run=client -o yaml | kubectl apply -f - || warn "registry secret creation failed"
 fi
 
-# Create per-service database if SETUP_DATABASES is enabled
-if [[ "$SETUP_DATABASES" == "true" && -n "${KUBE_CONFIG:-}" ]]; then
-  # Wait for PostgreSQL to be ready in infra namespace
-  if kubectl -n infra get statefulset postgresql >/dev/null 2>&1; then
-    info "Waiting for PostgreSQL to be ready..."
-    kubectl -n infra rollout status statefulset/postgresql --timeout=180s || warn "PostgreSQL not fully ready"
-    
-    # Create service database using devops-k8s script
-    if [[ -d "$DEVOPS_DIR" ]] || [[ -n "${DEVOPS_REPO:-}" ]]; then
-      # Ensure devops repo is cloned
-      if [[ ! -d "$DEVOPS_DIR" ]]; then
-        TOKEN="${GH_PAT:-${GIT_SECRET:-${GITHUB_TOKEN:-}}}"
-        CLONE_URL="https://github.com/${DEVOPS_REPO}.git"
-        [[ -n $TOKEN ]] && CLONE_URL="https://x-access-token:${TOKEN}@github.com/${DEVOPS_REPO}.git"
-        git clone "$CLONE_URL" "$DEVOPS_DIR" || { warn "Unable to clone devops repo for database setup"; }
-      fi
-      
-      if [[ -d "$DEVOPS_DIR" && -f "$DEVOPS_DIR/scripts/infrastructure/create-service-database.sh" ]]; then
-        info "Creating database '${SERVICE_DB_NAME}' for service ${APP_NAME}..."
-        SERVICE_DB_NAME="$SERVICE_DB_NAME" \
-        APP_NAME="$APP_NAME" \
-        NAMESPACE="$NAMESPACE" \
-        bash "$DEVOPS_DIR/scripts/infrastructure/create-service-database.sh" || warn "Database creation failed or already exists"
-      else
-        warn "create-service-database.sh not found - database should be created via devops-k8s infrastructure"
-      fi
-    fi
-  else
-    warn "PostgreSQL not found in infra namespace - skipping database creation"
+# =============================================================================
+# DATABASE & SERVICE SECRETS
+# =============================================================================
+# Ensure devops-k8s is available for infrastructure scripts
+if [[ ! -d "$DEVOPS_DIR" ]]; then
+  info "DevOps directory not found. Cloning ${DEVOPS_REPO}..."
+  TOKEN="${GH_PAT:-${GIT_SECRET:-${GITHUB_TOKEN:-}}}"
+  CLONE_URL="https://github.com/${DEVOPS_REPO}.git"
+  [[ -n $TOKEN ]] && CLONE_URL="https://x-access-token:${TOKEN}@github.com/${DEVOPS_REPO}.git"
+  git clone "$CLONE_URL" "$DEVOPS_DIR" || warn "Unable to clone devops-k8s. Some deployment steps may fail."
+fi
+
+if [[ "$SETUP_DATABASES" == "true" && -d "$DEVOPS_DIR" ]]; then
+  CREATE_DB_SCRIPT="${DEVOPS_DIR}/scripts/infrastructure/create-service-database.sh"
+  if [[ -f "$CREATE_DB_SCRIPT" ]]; then
+    info "Creating database '${SERVICE_DB_NAME}'..."
+    chmod +x "$CREATE_DB_SCRIPT"
+    SERVICE_DB_NAME="$SERVICE_DB_NAME" APP_NAME="$APP_NAME" NAMESPACE="$NAMESPACE" \
+    POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-}" \
+    bash "$CREATE_DB_SCRIPT" || warn "Database creation failed"
   fi
-  
 fi
 
-# Setup environment secrets from existing databases (managed by devops-k8s)
-# This retrieves real credentials from PostgreSQL/Redis secrets and creates the app secret
-if [[ -d "$DEVOPS_DIR" && -f "$DEVOPS_DIR/scripts/infrastructure/create-service-secrets.sh" ]]; then
-  info "Running centralized create-service-secrets.sh to configure database credentials..."
-  SERVICE_NAME="$APP_NAME" \
-  NAMESPACE="$NAMESPACE" \
-  SECRET_NAME="$ENV_SECRET_NAME" \
-  bash "$DEVOPS_DIR/scripts/infrastructure/create-service-secrets.sh" || { error "Environment secret setup failed"; exit 1; }
-  success "Environment secrets configured with real credentials"
-elif ! kubectl -n "$NAMESPACE" get secret "$ENV_SECRET_NAME" >/dev/null 2>&1; then
-  error "Secret $ENV_SECRET_NAME not found and centralized scripts are missing"
-  error "Cannot proceed without database credentials"
-  exit 1
+CREATE_SECRETS_SCRIPT="${DEVOPS_DIR}/scripts/infrastructure/create-service-secrets.sh"
+if [[ -d "$DEVOPS_DIR" && -f "$CREATE_SECRETS_SCRIPT" ]]; then
+  info "Configuring service secrets using centralized script..."
+  chmod +x "$CREATE_SECRETS_SCRIPT"
+  SERVICE_NAME="$APP_NAME" NAMESPACE="$NAMESPACE" SECRET_NAME="$ENV_SECRET_NAME" \
+  POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-}" \
+  bash "$CREATE_SECRETS_SCRIPT" || { error "Secret setup failed"; exit 1; }
+  success "Service secrets configured"
 fi
 
-TOKEN="${GH_PAT:-${GIT_SECRET:-${GITHUB_TOKEN:-}}}"
-CLONE_URL="https://github.com/${DEVOPS_REPO}.git"
-[[ -n $TOKEN ]] && CLONE_URL="https://x-access-token:${TOKEN}@github.com/${DEVOPS_REPO}.git"
-
+# =============================================================================
+# DEPLOYMENT (Helm Value Update)
+# =============================================================================
 # Source centralized Helm values update script
-source "${HOME}/devops-k8s/scripts/helm/update-values.sh" 2>/dev/null || {
-  warn "Centralized helm update script not available"
+source "${DEVOPS_DIR}/scripts/helm/update-values.sh" 2>/dev/null || {
+  warn "Centralized helm update script not available at ${DEVOPS_DIR}/scripts/helm/update-values.sh"
 }
 
-# Update Helm values using centralized script
+# Update Helm values using centralized script function
 if declare -f update_helm_values >/dev/null 2>&1; then
-  update_helm_values "$APP_NAME" "$GIT_COMMIT_ID" "$IMAGE_REPO"
+  info "Updating Helm values in devops repo..."
+  export GIT_EMAIL="$GIT_EMAIL"
+  export GIT_USER="$GIT_USER"
+  update_helm_values "$APP_NAME" "$GIT_COMMIT_ID" "$IMAGE_REPO" || warn "Helm values update failed"
 else
-  warn "update_helm_values function not available - helm values not updated"
+  warn "update_helm_values function not available - seeking binary fallback"
+  UPDATE_HELM_BINARY="${DEVOPS_DIR}/scripts/tools/update-helm-values.sh"
+  if [[ -f "$UPDATE_HELM_BINARY" ]]; then
+    chmod +x "$UPDATE_HELM_BINARY"
+    "$UPDATE_HELM_BINARY" "$APP_NAME" "$GIT_COMMIT_ID" || warn "Helm binary update failed"
+  fi
 fi
 
 info "Deployment summary"
 echo "  Image      : ${IMAGE_REPO}:${GIT_COMMIT_ID}"
 echo "  Namespace  : ${NAMESPACE}"
-echo "  Databases  : ${SETUP_DATABASES} (${DB_TYPES})"
+echo "  Deployment : ${DEPLOY}"
+echo "  ArgoCD will auto-deploy the new tag"

@@ -185,9 +185,22 @@ jobs:
 
           if [[ $FAIL -eq 1 ]]; then
             echo ""
-            echo "❌ Secret verification failed — re-run workflow if secrets were just synced"
+            echo "❌ Secret verification failed!"
+            echo ""
+            echo "Possible causes:"
+            echo "  1. Secrets were just synced in this workflow run."
+            echo "     GitHub loads secrets when each job STARTS."
+            echo "     If sync-secrets just created them, re-run this workflow."
+            echo ""
+            echo "  2. devops-k8s PROPAGATE_PAT may lack write access."
+            echo "     Check: https://github.com/Bengo-Hub/devops-k8s/actions"
+            echo ""
+            echo "  3. Corrupted repo-level secret overriding correct value."
+            echo "     Fix: delete the bad secret, then re-run:"
+            echo "     gh secret delete <NAME> --repo ${{ github.repository }}"
             exit 1
           fi
+
           echo ""
           echo "✅ All secrets verified"
         env:
@@ -196,6 +209,7 @@ jobs:
           KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+
       - name: Run production deployment
         if: needs.sync-secrets.outputs.result != 'synced'
         env:
@@ -203,22 +217,16 @@ jobs:
           GH_PAT: ${{ secrets.GH_PAT }}
           REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
           REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
-          GITHUB_SHA: ${{ github.sha }}
-          DEPLOY: true
-          SETUP_DATABASES: true
-          DB_TYPES: postgres,redis
-          NAMESPACE: notifications
-          ENV_SECRET_NAME: notifications-api-env
-          REGISTRY_SERVER: docker.io
-          REGISTRY_NAMESPACE: codevertex
-          VALUES_FILE_PATH: apps/notifications-api/values.yaml
-          APP_NAME: notifications-api
-          GIT_USER: ${{ secrets.GIT_USER || 'Notifications Bot' }}
-          GIT_EMAIL: ${{ secrets.GIT_EMAIL || 'dev@bengobox.com' }}
-          # Database passwords from shared infrastructure
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
           RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
+          GITHUB_SHA: ${{ github.sha }}
+          DEPLOY: true
+          SETUP_DATABASES: true
+          NAMESPACE: notifications
+          APP_NAME: notifications-api
+          GIT_USER: "Notifications Bot"
+          GIT_EMAIL: "dev@bengobox.com"
         run: |
           chmod +x build.sh
           ./build.sh
