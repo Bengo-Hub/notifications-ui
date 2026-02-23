@@ -138,12 +138,15 @@ jobs:
         env:
           KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
           GH_PAT: ${{ secrets.GH_PAT }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
           REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
           GITHUB_SHA: ${{ github.sha }}
-          GIT_USER: ${{ secrets.GIT_USER || 'Notifications Bot' }}
-          GIT_EMAIL: ${{ secrets.GIT_EMAIL || 'dev@bengobox.com' }}
+          DEPLOY: true
+          NAMESPACE: notifications
+          APP_NAME: notifications-ui
+          GIT_USER: "Notifications Bot"
+          GIT_EMAIL: "dev@bengobox.com"
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
         run: |
           chmod +x build.sh
           ./build.sh
