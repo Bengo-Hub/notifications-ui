@@ -2,6 +2,32 @@ basePath: /api/v1
 definitions:
   internal_http_handlers.CreateMessageRequest:
     type: object
+  internal_http_handlers.DeliveryStatsResponse:
+    properties:
+      channelBreakdown:
+        additionalProperties:
+          type: integer
+        type: object
+      deliveryRate:
+        type: number
+      errorRate:
+        type: number
+      timeSeries:
+        items:
+          $ref: '#/definitions/internal_http_handlers.TimeSeriesPoint'
+        type: array
+      totalSent:
+        type: integer
+    type: object
+  internal_http_handlers.TimeSeriesPoint:
+    properties:
+      date:
+        type: string
+      delivered:
+        type: integer
+      sent:
+        type: integer
+    type: object
   internal_http_handlers.enqueueResponse:
     properties:
       requestId:
@@ -63,7 +89,7 @@ definitions:
         example: payment_success
         type: string
     type: object
-host: notifications.codevrtexitsolutions.com
+host: notificationsapi.codevertexitsolutions.com
 info:
   contact: {}
   description: HTTP API for the BengoBox notifications service.
@@ -163,6 +189,32 @@ paths:
       summary: Get template content
       tags:
       - Templates
+  /analytics/delivery/{tenantId}:
+    get:
+      description: 'Returns delivery statistics for the tenant. Query: range (e.g.
+        24h, 7d). Stub implementation; implement with real data when analytics store
+        exists.'
+      parameters:
+      - description: Tenant identifier
+        in: path
+        name: tenantId
+        required: true
+        type: string
+      - description: Time range (e.g. 24h, 7d)
+        in: query
+        name: range
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_http_handlers.DeliveryStatsResponse'
+      security:
+      - bearerAuth: []
+      - ApiKeyAuth: []
+      summary: Delivery analytics
+      tags:
+      - Analytics
   /healthz:
     get:
       description: Returns OK when the API process is running.

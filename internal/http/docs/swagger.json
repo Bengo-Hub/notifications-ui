@@ -10,9 +10,49 @@
         "contact": {},
         "version": "0.1.0"
     },
-    "host": "notifications.codevrtexitsolutions.com",
+    "host": "notificationsapi.codevertexitsolutions.com",
     "basePath": "/api/v1",
     "paths": {
+        "/analytics/delivery/{tenantId}": {
+            "get": {
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns delivery statistics for the tenant. Query: range (e.g. 24h, 7d). Stub implementation; implement with real data when analytics store exists.",
+                "tags": [
+                    "Analytics"
+                ],
+                "summary": "Delivery analytics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tenant identifier",
+                        "name": "tenantId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Time range (e.g. 24h, 7d)",
+                        "name": "range",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_http_handlers.DeliveryStatsResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/healthz": {
             "get": {
                 "description": "Returns OK when the API process is running.",
@@ -232,6 +272,46 @@
     "definitions": {
         "internal_http_handlers.CreateMessageRequest": {
             "type": "object"
+        },
+        "internal_http_handlers.DeliveryStatsResponse": {
+            "type": "object",
+            "properties": {
+                "channelBreakdown": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
+                },
+                "deliveryRate": {
+                    "type": "number"
+                },
+                "errorRate": {
+                    "type": "number"
+                },
+                "timeSeries": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_http_handlers.TimeSeriesPoint"
+                    }
+                },
+                "totalSent": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_http_handlers.TimeSeriesPoint": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "type": "string"
+                },
+                "delivered": {
+                    "type": "integer"
+                },
+                "sent": {
+                    "type": "integer"
+                }
+            }
         },
         "internal_http_handlers.enqueueResponse": {
             "type": "object",

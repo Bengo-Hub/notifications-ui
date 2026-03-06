@@ -101,6 +101,8 @@ type SecurityConfig struct {
 	Audience   string `envconfig:"JWT_AUDIENCE" default:"codevertex"`
 	// API key validation database URL (optional, enables API key authentication)
 	APIKeyDBURL string `envconfig:"API_KEY_DB_URL"`
+	// Encryption key for provider secrets at rest (32 bytes, base64). If empty, secrets are stored plain.
+	EncryptionKey string `envconfig:"ENCRYPTION_KEY"`
 }
 
 func Load() (*Config, error) {

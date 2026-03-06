@@ -13,15 +13,20 @@ import (
 	"github.com/bengobox/notifications-api/internal/providers/sms"
 )
 
-// Manager resolves providers per-tenant with DB overrides and env fallbacks.
+const platformTenantID = "platform"
+
+// Manager resolves providers per-tenant. Credentials are loaded from platform config (tenant_id=platform);
+// env fallbacks are used when platform DB config is missing.
 type Manager struct {
-	cfg   config.ProviderConfig
-	db    *pgxpool.Pool
-	dbCfg config.PostgresConfig
+	cfg            config.ProviderConfig
+	db             *pgxpool.Pool
+	dbCfg          config.PostgresConfig
+	decryptionKey  []byte
 }
 
-func NewManager(db *pgxpool.Pool, dbCfg config.PostgresConfig, cfg config.ProviderConfig) *Manager {
-	return &Manager{db: db, dbCfg: dbCfg, cfg: cfg}
+// NewManager creates a provider manager. decryptionKey is optional (32 bytes) for decrypting provider secrets at rest.
+func NewManager(db *pgxpool.Pool, dbCfg config.PostgresConfig, cfg config.ProviderConfig, decryptionKey []byte) *Manager {
+	return &Manager{db: db, dbCfg: dbCfg, cfg: cfg, decryptionKey: decryptionKey}
 }
 
 func (m *Manager) GetEmailProvider(ctx context.Context, tenantID string, preferred string) (EmailProvider, error) {
@@ -33,8 +38,8 @@ func (m *Manager) GetEmailProvider(ctx context.Context, tenantID string, preferr
 	for _, name := range dedup(order) {
 		switch name {
 		case "smtp":
-			// DB override
-			s, _ := pcfg.LoadTenantProviderSettings(ctx, m.dbCfg, tenantID, "email", "smtp")
+			// Platform config (tenant_id=platform); fallback to env
+			s, _ := pcfg.LoadTenantProviderSettings(ctx, m.dbCfg, platformTenantID, "email", "smtp", m.decryptionKey)
 			host := firstNonEmpty(s["host"], m.cfg.SMTPHost)
 			port := parseInt(firstNonEmpty(s["port"], strconv.Itoa(m.cfg.SMTPPort)))
 			user := firstNonEmpty(s["username"], m.cfg.SMTPUsername)
@@ -50,8 +55,8 @@ func (m *Manager) GetEmailProvider(ctx context.Context, tenantID string, preferr
 				StartTLS: startTLS,
 			}), nil
 		case "sendgrid":
-			// DB override
-			s, _ := pcfg.LoadTenantProviderSettings(ctx, m.dbCfg, tenantID, "email", "sendgrid")
+			// Platform config (tenant_id=platform); fallback to env
+			s, _ := pcfg.LoadTenantProviderSettings(ctx, m.dbCfg, platformTenantID, "email", "sendgrid", m.decryptionKey)
 			apiKey := firstNonEmpty(s["api_key"], m.cfg.SendGridAPIKey)
 			from := firstNonEmpty(s["from"], m.cfg.DefaultEmailSender)
 			return &sendGridAdapter{apiKey: apiKey, from: from}, nil
@@ -76,25 +81,25 @@ func (m *Manager) GetSMSProvider(ctx context.Context, tenantID string, preferred
 	for _, name := range dedup(order) {
 		switch name {
 		case "twilio":
-			s, _ := pcfg.LoadTenantProviderSettings(ctx, m.dbCfg, tenantID, "sms", "twilio")
+			s, _ := pcfg.LoadTenantProviderSettings(ctx, m.dbCfg, platformTenantID, "sms", "twilio", m.decryptionKey)
 			sid := firstNonEmpty(s["account_sid"], m.cfg.TwilioAccountSID)
 			token := firstNonEmpty(s["auth_token"], m.cfg.TwilioAuthToken)
 			from := firstNonEmpty(s["from"], m.cfg.DefaultSMSSender)
 			return &twilioAdapter{accountSID: sid, authToken: token, from: from}, nil
 		case "africastalking":
-			s, _ := pcfg.LoadTenantProviderSettings(ctx, m.dbCfg, tenantID, "sms", "africastalking")
+			s, _ := pcfg.LoadTenantProviderSettings(ctx, m.dbCfg, platformTenantID, "sms", "africastalking", m.decryptionKey)
 			user := firstNonEmpty(s["username"], m.cfg.AfricasTalkingUsername)
 			key := firstNonEmpty(s["api_key"], m.cfg.AfricasTalkingKey)
 			from := firstNonEmpty(s["from"], m.cfg.DefaultSMSSender)
 			return &africasTalkingAdapter{username: user, apiKey: key, from: from}, nil
 		case "vonage":
-			s, _ := pcfg.LoadTenantProviderSettings(ctx, m.dbCfg, tenantID, "sms", "vonage")
+			s, _ := pcfg.LoadTenantProviderSettings(ctx, m.dbCfg, platformTenantID, "sms", "vonage", m.decryptionKey)
 			key := firstNonEmpty(s["api_key"], m.cfg.VonageAPIKey)
 			secret := firstNonEmpty(s["api_secret"], m.cfg.VonageAPISecret)
 			from := firstNonEmpty(s["from"], m.cfg.DefaultSMSSender)
 			return &vonageAdapter{apiKey: key, apiSecret: secret, from: from}, nil
 		case "plivo":
-			s, _ := pcfg.LoadTenantProviderSettings(ctx, m.dbCfg, tenantID, "sms", "plivo")
+			s, _ := pcfg.LoadTenantProviderSettings(ctx, m.dbCfg, platformTenantID, "sms", "plivo", m.decryptionKey)
 			id := firstNonEmpty(s["auth_id"], m.cfg.PlivoAuthID)
 			token := firstNonEmpty(s["auth_token"], m.cfg.PlivoAuthToken)
 			from := firstNonEmpty(s["from"], m.cfg.DefaultSMSSender)
@@ -102,6 +107,29 @@ func (m *Manager) GetSMSProvider(ctx context.Context, tenantID string, preferred
 		}
 	}
 	return &twilioAdapter{accountSID: m.cfg.TwilioAccountSID, authToken: m.cfg.TwilioAuthToken, from: m.cfg.DefaultSMSSender}, nil
+}
+
+// TestConnection loads platform config for the given channel/provider, builds the provider, and sends a test message to the given recipient.
+func (m *Manager) TestConnection(ctx context.Context, channel, providerName, to string) error {
+	if to == "" {
+		return nil // callers should validate
+	}
+	switch channel {
+	case "email":
+		prov, err := m.GetEmailProvider(ctx, platformTenantID, providerName)
+		if err != nil {
+			return err
+		}
+		return prov.SendEmail(ctx, "", []string{to}, "Test connection", "<p>Test notification from Notifications API.</p>", "Test notification from Notifications API.")
+	case "sms":
+		prov, err := m.GetSMSProvider(ctx, platformTenantID, providerName)
+		if err != nil {
+			return err
+		}
+		return prov.SendSMS(ctx, "", []string{to}, "Test SMS from Notifications API.")
+	default:
+		return nil
+	}
 }
 
 // Helpers

@@ -15,6 +15,46 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/analytics/delivery/{tenantId}": {
+            "get": {
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns delivery statistics for the tenant. Query: range (e.g. 24h, 7d). Stub implementation; implement with real data when analytics store exists.",
+                "tags": [
+                    "Analytics"
+                ],
+                "summary": "Delivery analytics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tenant identifier",
+                        "name": "tenantId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Time range (e.g. 24h, 7d)",
+                        "name": "range",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_http_handlers.DeliveryStatsResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/healthz": {
             "get": {
                 "description": "Returns OK when the API process is running.",
@@ -235,6 +275,46 @@ const docTemplate = `{
         "internal_http_handlers.CreateMessageRequest": {
             "type": "object"
         },
+        "internal_http_handlers.DeliveryStatsResponse": {
+            "type": "object",
+            "properties": {
+                "channelBreakdown": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
+                },
+                "deliveryRate": {
+                    "type": "number"
+                },
+                "errorRate": {
+                    "type": "number"
+                },
+                "timeSeries": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_http_handlers.TimeSeriesPoint"
+                    }
+                },
+                "totalSent": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_http_handlers.TimeSeriesPoint": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "type": "string"
+                },
+                "delivered": {
+                    "type": "integer"
+                },
+                "sent": {
+                    "type": "integer"
+                }
+            }
+        },
         "internal_http_handlers.enqueueResponse": {
             "type": "object",
             "properties": {
@@ -345,7 +425,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "0.1.0",
-	Host:             "notifications.codevrtexitsolutions.com",
+	Host:             "notificationsapi.codevertexitsolutions.com",
 	BasePath:         "/api/v1",
 	Schemes:          []string{"http", "https"},
 	Title:            "Notifications Service API",

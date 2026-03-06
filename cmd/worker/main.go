@@ -17,6 +17,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/bengobox/notifications-api/internal/config"
+	"github.com/bengobox/notifications-api/internal/encryption"
 	"github.com/bengobox/notifications-api/internal/messaging"
 	"github.com/bengobox/notifications-api/internal/platform/branding"
 	"github.com/bengobox/notifications-api/internal/platform/database"
@@ -73,7 +74,7 @@ func main() {
 	if err != nil {
 		logg.Warn("postgres not available for provider overrides", zap.Error(err))
 	}
-	pm := providers.NewManager(dbPool, cfg.Postgres, cfg.Providers)
+	pm := providers.NewManager(dbPool, cfg.Postgres, cfg.Providers, encryption.KeyFromEnv(cfg.Security.EncryptionKey))
 
 	durable := "notifications-worker"
 	_, err = js.Subscribe(subject, func(m *nats.Msg) {

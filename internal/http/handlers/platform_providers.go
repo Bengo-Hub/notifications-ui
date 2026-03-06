@@ -3,25 +3,34 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 
 	"github.com/bengobox/notifications-api/internal/ent"
 	"github.com/bengobox/notifications-api/internal/ent/providersetting"
+	"github.com/bengobox/notifications-api/internal/encryption"
+	"github.com/bengobox/notifications-api/internal/providers"
 )
 
 const platformTenantID = "platform"
 
 // PlatformProviders handles platform-level notification provider configuration.
 type PlatformProviders struct {
-	client *ent.Client
-	logger *zap.Logger
+	client        *ent.Client
+	logger        *zap.Logger
+	encryptionKey []byte
+	manager       *providers.Manager
 }
 
-// NewPlatformProviders creates a new PlatformProviders handler.
-func NewPlatformProviders(client *ent.Client, logger *zap.Logger) *PlatformProviders {
-	return &PlatformProviders{client: client, logger: logger}
+// NewPlatformProviders creates a new PlatformProviders handler. encryptionKey is optional (32 bytes) for encrypting secrets at rest. manager is optional, used for test connection endpoint.
+func NewPlatformProviders(client *ent.Client, logger *zap.Logger, encryptionKey []byte, manager *providers.Manager) *PlatformProviders {
+	return &PlatformProviders{client: client, logger: logger, encryptionKey: encryptionKey, manager: manager}
+}
+
+type testProviderRequest struct {
+	To string `json:"to"` // Email or phone for test message
 }
 
 type providerResponse struct {
@@ -117,8 +126,16 @@ func (h *PlatformProviders) ConfigureProvider(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Create individual setting rows
+	// Create individual setting rows; encrypt secret keys when encryption key is set
 	for k, v := range req.Settings {
+		value := v
+		isEncrypted := false
+		if encryption.IsSecret(k) && len(h.encryptionKey) == 32 && v != "" {
+			if enc, err := encryption.Encrypt(v, h.encryptionKey); err == nil {
+				value = enc
+				isEncrypted = true
+			}
+		}
 		_, err := h.client.ProviderSetting.Create().
 			SetTenantID(platformTenantID).
 			SetChannel(req.ProviderType).
@@ -126,7 +143,8 @@ func (h *PlatformProviders) ConfigureProvider(w http.ResponseWriter, r *http.Req
 			SetProviderType(req.ProviderType).
 			SetProviderName(req.ProviderName).
 			SetKey(k).
-			SetValue(v).
+			SetValue(value).
+			SetIsEncrypted(isEncrypted).
 			SetIsPlatform(true).
 			SetIsActive(true).
 			SetStatus("active").
@@ -245,19 +263,54 @@ func (h *PlatformProviders) DeactivateProvider(w http.ResponseWriter, r *http.Re
 	jsonResponse(w, http.StatusOK, map[string]string{"message": "provider deactivated"})
 }
 
-// TestProvider sends a test notification via the specified provider.
+// TestProvider sends a test notification via the specified provider. Body may include {"to": "email@example.com"} or {"to": "+254700000000"}.
 func (h *PlatformProviders) TestProvider(w http.ResponseWriter, r *http.Request) {
-	// Provider testing delegates to the existing provider manager
-	// For now, return success if the provider is configured
 	idStr := chi.URLParam(r, "id")
 	id := 0
 	for _, c := range idStr {
+		if c < '0' || c > '9' {
+			jsonError(w, http.StatusBadRequest, "invalid provider id")
+			return
+		}
 		id = id*10 + int(c-'0')
 	}
 
-	setting, err := h.client.ProviderSetting.Get(r.Context(), id)
+	ctx := r.Context()
+	setting, err := h.client.ProviderSetting.Get(ctx, id)
 	if err != nil {
 		jsonError(w, http.StatusNotFound, "provider not found")
+		return
+	}
+	if setting.TenantID != platformTenantID || !setting.IsPlatform {
+		jsonError(w, http.StatusNotFound, "provider not found")
+		return
+	}
+
+	var req testProviderRequest
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	to := strings.TrimSpace(req.To)
+	if (setting.ProviderType == "email" || setting.ProviderType == "sms") && to == "" {
+		jsonError(w, http.StatusBadRequest, "test endpoint requires \"to\" (email or phone) in request body")
+		return
+	}
+
+	if h.manager == nil {
+		jsonResponse(w, http.StatusOK, map[string]any{
+			"success":       true,
+			"provider_type": setting.ProviderType,
+			"provider_name": setting.ProviderName,
+			"message":       "provider test skipped (no manager configured)",
+		})
+		return
+	}
+
+	if err := h.manager.TestConnection(ctx, setting.ProviderType, setting.ProviderName, to); err != nil {
+		h.logger.Warn("provider test failed", zap.String("provider", setting.ProviderName), zap.Error(err))
+		jsonResponse(w, http.StatusBadRequest, map[string]any{
+			"success": false,
+			"error":   err.Error(),
+			"message": "test connection failed",
+		})
 		return
 	}
 
@@ -265,7 +318,7 @@ func (h *PlatformProviders) TestProvider(w http.ResponseWriter, r *http.Request)
 		"success":       true,
 		"provider_type": setting.ProviderType,
 		"provider_name": setting.ProviderName,
-		"message":       "provider test initiated",
+		"message":       "test message sent successfully",
 	})
 }
 

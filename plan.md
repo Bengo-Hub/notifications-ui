@@ -25,8 +25,9 @@
    - Versioned templates for email/SMS/push, MJML or Go templating with localization support.
    - Media asset library with CDN links, preview sandbox, approval workflow.
 3. **Channel Providers & Routing (Priority 1)**
-   - Email: SendGrid/Mailgun primary, SMTP fallback.
+   - Email: SendGrid primary, SMTP fallback. Platform config at `/api/v1/platform/providers`; credentials encrypted at rest when `NOTIFICATIONS_ENCRYPTION_KEY` is set.
    - SMS: Twilio, Africa’s Talking, configurable custom provider adapters.
+   - **Provider test:** `POST /api/v1/platform/providers/{id}/test` with body `{"to": "email or phone"}` sends a test message (SMTP, SendGrid, Africa's Talking).
    - Push: Firebase Cloud Messaging, Apple Push, Web Push.
    - Smart routing with health-based failover, cost-aware routing matrix, provider credential vaulting.
 4. **Delivery Orchestration (Priority 2)**
@@ -97,7 +98,9 @@
    - [ ] Go/TS SDK updates
 8. **Sprint 7 – Observability & Admin (Weeks 14-15)**
    - [ ] Metrics dashboards and alerting policies
-   - [ ] Admin endpoints, provider health checks, sandbox mode
+   - [x] Platform admin endpoints: list/configure/update/test/deactivate providers at `/api/v1/platform/providers`; test connection per provider via `POST .../providers/{id}/test`
+   - [x] Provider secrets encrypted at rest (AES-256-GCM) when `NOTIFICATIONS_ENCRYPTION_KEY` is set; decrypted in provider config loader when building adapters
+   - [ ] Sandbox mode
 9. **Sprint 8 – Hardening & Launch (Weeks 16-17)**
    - [ ] Performance tuning, failover drills, security review
    - [ ] Documentation and production readiness review

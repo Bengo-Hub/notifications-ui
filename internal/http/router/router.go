@@ -14,7 +14,7 @@ import (
 	handlers "github.com/bengobox/notifications-api/internal/http/handlers"
 )
 
-func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handlers.NotificationHandler, templates *handlers.TemplateHandler, platformProviders *handlers.PlatformProviders, tenantProviders *handlers.TenantProviders, apiKey string, authMiddleware *authclient.AuthMiddleware, allowedOrigins []string) http.Handler {
+func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handlers.NotificationHandler, templates *handlers.TemplateHandler, platformProviders *handlers.PlatformProviders, tenantProviders *handlers.TenantProviders, analytics *handlers.AnalyticsHandler, apiKey string, authMiddleware *authclient.AuthMiddleware, allowedOrigins []string) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RealIP)
@@ -69,6 +69,11 @@ func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handler
 			// Platform admin routes (superuser-only)
 			protected.Route("/platform", func(platform chi.Router) {
 				platformProviders.RegisterPlatformProviderRoutes(platform)
+			})
+
+			// Analytics (platform or tenant-scoped)
+			protected.Route("/analytics", func(analyticsRouter chi.Router) {
+				analyticsRouter.Get("/delivery/{tenantId}", analytics.Delivery)
 			})
 
 			protected.Route("/{tenantId}", func(tenant chi.Router) {

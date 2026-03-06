@@ -7,12 +7,14 @@ import (
 	"github.com/bengobox/notifications-api/internal/config"
 	"github.com/bengobox/notifications-api/internal/database"
 	"github.com/bengobox/notifications-api/internal/ent/providersetting"
+	"github.com/bengobox/notifications-api/internal/encryption"
 )
 
 type Settings map[string]string
 
 // LoadTenantProviderSettings loads provider settings for a tenant/channel/provider using Ent.
-func LoadTenantProviderSettings(ctx context.Context, dbCfg config.PostgresConfig, tenantID, channel, provider string) (Settings, error) {
+// If decryptionKey is non-nil (32 bytes), values stored with is_encrypted=true are decrypted.
+func LoadTenantProviderSettings(ctx context.Context, dbCfg config.PostgresConfig, tenantID, channel, provider string, decryptionKey []byte) (Settings, error) {
 	dsn := dbCfg.URL
 	if env := os.Getenv("NOTIFICATIONS_POSTGRES_URL"); env != "" {
 		dsn = env
@@ -40,7 +42,13 @@ func LoadTenantProviderSettings(ctx context.Context, dbCfg config.PostgresConfig
 
 	out := Settings{}
 	for _, r := range rows {
-		out[r.Key] = r.Value
+		val := r.Value
+		if r.IsEncrypted && len(decryptionKey) == 32 {
+			if dec, err := encryption.Decrypt(val, decryptionKey); err == nil {
+				val = dec
+			}
+		}
+		out[r.Key] = val
 	}
 	return out, nil
 }

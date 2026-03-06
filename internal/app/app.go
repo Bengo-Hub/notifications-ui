@@ -20,9 +20,11 @@ import (
 	"github.com/bengobox/notifications-api/internal/config"
 	entdb "github.com/bengobox/notifications-api/internal/database"
 	"github.com/bengobox/notifications-api/internal/ent"
+	"github.com/bengobox/notifications-api/internal/encryption"
 	handlers "github.com/bengobox/notifications-api/internal/http/handlers"
 	router "github.com/bengobox/notifications-api/internal/http/router"
 	"github.com/bengobox/notifications-api/internal/modules/outbox"
+	"github.com/bengobox/notifications-api/internal/providers"
 	"github.com/bengobox/notifications-api/internal/platform/cache"
 	"github.com/bengobox/notifications-api/internal/platform/database"
 	"github.com/bengobox/notifications-api/internal/platform/events"
@@ -82,8 +84,10 @@ func New(ctx context.Context) (*App, error) {
 	healthHandler := handlers.NewHealthHandler(log, dbPool, redisClient, natsConn)
 	notificationHandler := handlers.NewNotificationHandler(log, natsConn, redisClient, cfg.Events)
 	templateHandler := handlers.NewTemplateHandler(templateLoader)
-	platformProviders := handlers.NewPlatformProviders(entClient, log)
+	providerManager := providers.NewManager(dbPool, cfg.Postgres, cfg.Providers, encryption.KeyFromEnv(cfg.Security.EncryptionKey))
+	platformProviders := handlers.NewPlatformProviders(entClient, log, encryption.KeyFromEnv(cfg.Security.EncryptionKey), providerManager)
 	tenantProviders := handlers.NewTenantProviders(entClient, log)
+	analyticsHandler := handlers.NewAnalyticsHandler()
 
 	// Initialize auth-service JWT validator
 	var authMiddleware *authclient.AuthMiddleware
@@ -153,7 +157,7 @@ func New(ctx context.Context) (*App, error) {
 		}
 	}
 
-	httpRouter := router.New(log, healthHandler, notificationHandler, templateHandler, platformProviders, tenantProviders, cfg.Security.APIKey, authMiddleware, cfg.HTTP.AllowedOrigins)
+	httpRouter := router.New(log, healthHandler, notificationHandler, templateHandler, platformProviders, tenantProviders, analyticsHandler, cfg.Security.APIKey, authMiddleware, cfg.HTTP.AllowedOrigins)
 
 	httpServer := &http.Server{
 		Addr:              fmt.Sprintf("%s:%d", cfg.HTTP.Host, cfg.HTTP.Port),
