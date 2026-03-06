@@ -1,5 +1,7 @@
 'use client';
 
+import { useMe } from '@/hooks/useMe';
+import { canAccessPlatform } from '@/lib/auth/roles';
 import { cn } from '@/lib/utils';
 import {
     Activity,
@@ -16,6 +18,8 @@ export function Sidebar() {
     const pathname = usePathname();
     const params = useParams();
     const orgSlug = params?.orgSlug as string;
+    const { user } = useMe();
+    const showPlatform = canAccessPlatform(user ?? undefined);
 
     const routes = [
         {
@@ -42,12 +46,14 @@ export function Sidebar() {
             href: `/${orgSlug}/settings/providers`,
             active: pathname.startsWith(`/${orgSlug}/settings`),
         },
-        {
-            label: 'Platform',
-            icon: Server,
-            href: '/platform/providers',
-            active: pathname.startsWith('/platform'),
-        },
+        ...(showPlatform
+            ? [{
+                label: 'Platform',
+                icon: Server,
+                href: '/platform/providers',
+                active: pathname.startsWith('/platform'),
+            }]
+            : []),
     ];
 
     return (

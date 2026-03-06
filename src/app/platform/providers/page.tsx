@@ -1,9 +1,9 @@
 'use client';
 
 import { Badge, Button, Card, CardContent } from '@/components/ui/base';
-import { settingsApi, ProviderSetting } from '@/lib/api/settings';
-import { Mail, MessageSquare, Plus, RefreshCw, Server } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { usePlatformProviders, useTestPlatformProvider } from '@/hooks/use-settings';
+import { Mail, MessageSquare, RefreshCw, Server } from 'lucide-react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 const CHANNELS = [
@@ -12,27 +12,11 @@ const CHANNELS = [
 ] as const;
 
 export default function PlatformProvidersPage() {
-    const [providers, setProviders] = useState<ProviderSetting[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { data: providers = [], isLoading: loading, refetch } = usePlatformProviders();
+    const testMutation = useTestPlatformProvider();
     const [testingId, setTestingId] = useState<string | null>(null);
     const [testTo, setTestTo] = useState('');
     const [testModalId, setTestModalId] = useState<number | null>(null);
-
-    const load = async () => {
-        try {
-            setLoading(true);
-            const res = await settingsApi.listPlatformProviders();
-            setProviders(res?.providers ?? []);
-        } catch (e) {
-            console.error(e);
-            toast.error('Failed to load platform providers');
-            setProviders([]);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => { load(); }, []);
 
     const handleTest = async (id: number, providerType: string) => {
         const to = testTo.trim();
@@ -44,14 +28,15 @@ export default function PlatformProvidersPage() {
         setTestModalId(null);
         setTestTo('');
         try {
-            const res = await settingsApi.testPlatformProvider(String(id), { to });
+            const res = await testMutation.mutateAsync({ id: String(id), to });
             if (res?.success) {
                 toast.success(res.message ?? 'Test sent successfully');
             } else {
                 toast.error(res?.error ?? 'Test failed');
             }
-        } catch (e: any) {
-            const msg = e?.response?.data?.error ?? e?.message ?? 'Test failed';
+        } catch (e: unknown) {
+            const msg = (e as { response?: { data?: { error?: string }; message?: string } })?.response?.data?.error
+                ?? (e as Error)?.message ?? 'Test failed';
             toast.error(msg);
         } finally {
             setTestingId(null);
@@ -78,7 +63,7 @@ export default function PlatformProvidersPage() {
                         Configure and test Email (SMTP, SendGrid) and SMS (Africa&apos;s Talking). Secrets are stored encrypted at rest.
                     </p>
                 </div>
-                <Button variant="outline" size="sm" onClick={load}>
+                <Button variant="outline" size="sm" onClick={() => refetch()}>
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Refresh
                 </Button>

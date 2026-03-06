@@ -1,61 +1,23 @@
 'use client';
 
 import { Badge, Button, Card, CardContent, CardHeader } from '@/components/ui/base';
-import { ActivityLog, analyticsApi, DeliveryStats } from '@/lib/api/analytics';
+import { useActivityLogs, useDeliveryStats } from '@/hooks/use-analytics';
 import { cn } from '@/lib/utils';
 import { Activity, AlertCircle, ArrowDownRight, ArrowUpRight, BarChart3, CheckCircle2, Clock, Download, Filter, Mail, MessageSquare, Smartphone, Zap } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
 
 export default function MonitoringPage() {
     const { orgSlug } = useParams() as { orgSlug: string };
-    const [stats, setStats] = useState<DeliveryStats | null>(null);
-    const [logs, setLogs] = useState<ActivityLog[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        loadData();
-    }, [orgSlug]);
-
-    const loadData = async () => {
-        try {
-            setLoading(true);
-            const [statsData, logsData] = await Promise.all([
-                analyticsApi.getDeliveryStats(orgSlug),
-                analyticsApi.getActivityLogs(orgSlug)
-            ]);
-            setStats(statsData);
-            setLogs(logsData || []);
-        } catch (error) {
-            console.error('Failed to load analytics:', error);
-            // Mock data for demo
-            setStats({
-                totalSent: 1284,
-                deliveryRate: 99.2,
-                errorRate: 0.8,
-                channelBreakdown: { email: 642, sms: 412, push: 230 },
-                timeSeries: Array.from({ length: 7 }, (_, i) => ({
-                    date: new Date(Date.now() - (6 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                    sent: 100 + Math.floor(Math.random() * 50),
-                    delivered: 98 + Math.floor(Math.random() * 50)
-                }))
-            });
-            setLogs([
-                { id: '1', templateName: 'OTP Verification', channel: 'sms', recipient: '+254712...890', status: 'delivered', timestamp: new Date().toISOString() },
-                { id: '2', templateName: 'Welcome Email', channel: 'email', recipient: 'john@example.com', status: 'delivered', timestamp: new Date(Date.now() - 5000).toISOString() },
-                { id: '3', templateName: 'Weighing Success', channel: 'push', recipient: 'Device_XYZ', status: 'sent', timestamp: new Date(Date.now() - 15000).toISOString() },
-            ]);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const { data: stats, isLoading: statsLoading } = useDeliveryStats(orgSlug);
+    const { data: logs = [], isLoading: logsLoading } = useActivityLogs(orgSlug);
+    const loading = statsLoading || logsLoading;
 
     if (loading) return <div className="p-12 text-center text-muted-foreground animate-pulse">Synchronizing real-time data...</div>;
 
     const kpis = [
-        { name: 'Total Messages', value: stats?.totalSent.toLocaleString(), trend: '+12%', icon: Zap, color: 'blue' },
-        { name: 'Delivery Rate', value: `${stats?.deliveryRate}%`, trend: '+0.4%', icon: CheckCircle2, color: 'green' },
-        { name: 'Error Rate', value: `${stats?.errorRate}%`, trend: '-0.1%', icon: AlertCircle, color: 'orange' },
+        { name: 'Total Messages', value: stats?.totalSent?.toLocaleString() ?? '—', trend: '+12%', icon: Zap, color: 'blue' },
+        { name: 'Delivery Rate', value: stats != null ? `${stats.deliveryRate}%` : '—', trend: '+0.4%', icon: CheckCircle2, color: 'green' },
+        { name: 'Error Rate', value: stats != null ? `${stats.errorRate}%` : '—', trend: '-0.1%', icon: AlertCircle, color: 'orange' },
     ];
 
     return (

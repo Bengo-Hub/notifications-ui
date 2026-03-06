@@ -1,38 +1,14 @@
 'use client';
 
 import { Badge, Button, Card, CardContent } from '@/components/ui/base';
-import { ProviderSetting, settingsApi } from '@/lib/api/settings';
+import { useTenantProviders } from '@/hooks/use-settings';
 import { cn } from '@/lib/utils';
 import { AlertCircle, ExternalLink, Globe, Lock, Mail, MessageSquare, Save, Smartphone } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
 
 export default function ProvidersPage() {
     const { orgSlug } = useParams() as { orgSlug: string };
-    const [providers, setProviders] = useState<ProviderSetting[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        loadProviders();
-    }, [orgSlug]);
-
-    const loadProviders = async () => {
-        try {
-            setLoading(true);
-            const data = await settingsApi.listProviders(orgSlug);
-            const list = (data as { providers?: ProviderSetting[] })?.providers ?? (Array.isArray(data) ? data : []);
-            setProviders(Array.isArray(list) ? list : []);
-        } catch (error) {
-            console.error('Failed to load providers:', error);
-            // Mock data for demo
-            setProviders([
-                { id: '1', tenant_id: orgSlug, channel: 'email', provider: 'smtp', provider_type: 'email', provider_name: 'SMTP', key: 'host', value: 'smtp.sendgrid.net', is_encrypted: false, is_platform: false, is_active: true, status: 'active' },
-                { id: '2', tenant_id: orgSlug, channel: 'sms', provider: 'twilio', provider_type: 'sms', provider_name: 'Twilio', key: 'sid', value: 'ACxxxxxxxxxxxx', is_encrypted: true, is_platform: false, is_active: true, status: 'active' },
-            ]);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const { data: providers = [], isLoading: loading } = useTenantProviders(orgSlug);
 
     const channels = [
         { id: 'email', name: 'Email', icon: Mail, description: 'SMTP, SendGrid, or AWS SES', color: 'blue' },

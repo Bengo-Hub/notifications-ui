@@ -1,46 +1,21 @@
 'use client';
 
 import { Badge, Button, Card, CardContent, CardHeader } from '@/components/ui/base';
-import { NotificationTemplate, templatesApi } from '@/lib/api/templates';
+import { useTemplates } from '@/hooks/use-templates';
 import { cn } from '@/lib/utils';
 import { Edit2, Mail, MessageSquare, MoreVertical, Plus, Search, Smartphone, Trash2, Zap } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
+import { useMemo, useState } from 'react';
 
 export default function TemplatesPage() {
     const { orgSlug } = useParams() as { orgSlug: string };
-    const [templates, setTemplates] = useState<NotificationTemplate[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { data: templates = [], isLoading: loading } = useTemplates(orgSlug);
     const [searchQuery, setSearchQuery] = useState('');
 
-    useEffect(() => {
-        loadTemplates();
-    }, [orgSlug]);
-
-    const loadTemplates = async () => {
-        try {
-            setLoading(true);
-            const data = await templatesApi.list(orgSlug);
-            setTemplates(data || []);
-        } catch (error) {
-            console.error('Failed to load templates:', error);
-            toast.error('Failed to load templates');
-            // Mock data for demonstration if API fails
-            setTemplates([
-                { id: '1', name: 'Welcome Email', type: 'email', subject: 'Welcome to TruLoad!', content: '...', organizationId: orgSlug, updatedAt: new Date().toISOString() },
-                { id: '2', name: 'OTP Verification', type: 'sms', content: 'Your verification code is: {{code}}', organizationId: orgSlug, updatedAt: new Date().toISOString() },
-                { id: '3', name: 'Weighing Success', type: 'push', content: 'Vehicle {{plate}} has been weighed.', organizationId: orgSlug, updatedAt: new Date().toISOString() },
-            ]);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const filteredTemplates = templates.filter(t =>
+    const filteredTemplates = useMemo(() => templates.filter(t =>
         t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         t.type.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    ), [templates, searchQuery]);
 
     const getTypeIcon = (type: string) => {
         switch (type) {

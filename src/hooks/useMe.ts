@@ -20,7 +20,7 @@ export function useMe() {
   const accessToken = session?.accessToken ?? null;
 
   const query = useQuery({
-    queryKey: ['auth-me', accessToken],
+    queryKey: ['me'],
     queryFn: async () => {
       if (!accessToken) return null;
       const user = await fetchProfile(accessToken);
@@ -29,7 +29,12 @@ export function useMe() {
     },
     enabled: !!accessToken,
     staleTime: ME_STALE_TIME_MS,
-    retry: false,
+    gcTime: ME_STALE_TIME_MS * 2,
+    retry: (failureCount, error: unknown) => {
+      const status = (error as { response?: { status?: number } })?.response?.status;
+      if (status === 401 || status === 403) return false;
+      return failureCount < 2;
+    },
   });
 
   const user = query.data ?? useAuthStore.getState().user;
