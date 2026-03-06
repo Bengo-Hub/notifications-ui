@@ -27,8 +27,8 @@ export interface ActivityLog {
 
 export const analyticsApi = {
     getDeliveryStats: (orgSlug: string, range: string = '24h') =>
-        apiClient.get<DeliveryStats>(`/analytics/delivery/${orgSlug}?range=${range}`),
+        apiClient.get<DeliveryStats>(`/api/v1/analytics/delivery/${orgSlug}?range=${range}`),
 
     getActivityLogs: (orgSlug: string, limit: number = 20) =>
-        apiClient.get<ActivityLog[]>(`/analytics/logs/${orgSlug}?limit=${limit}`),
+        apiClient.get<ActivityLog[]>(`/api/v1/analytics/logs/${orgSlug}?limit=${limit}`),
 };

@@ -6,6 +6,7 @@ import {
     Bell,
     LayoutDashboard,
     Mail,
+    Server,
     Settings
 } from 'lucide-react';
 import Link from 'next/link';
@@ -40,6 +41,12 @@ export function Sidebar() {
             icon: Settings,
             href: `/${orgSlug}/settings/providers`,
             active: pathname.startsWith(`/${orgSlug}/settings`),
+        },
+        {
+            label: 'Platform',
+            icon: Server,
+            href: '/platform/providers',
+            active: pathname.startsWith('/platform'),
         },
     ];
 

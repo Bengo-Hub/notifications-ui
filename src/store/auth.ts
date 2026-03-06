@@ -161,6 +161,12 @@ export const useAuthStore = create<AuthState>()(
                 session: state.session,
                 user: state.user,
             }),
+            // Sync token to apiClient as soon as session is rehydrated so every request has Bearer (fixes 401)
+            onRehydrateStorage: () => (state) => {
+                if (state?.session?.accessToken) {
+                    apiClient.setAccessToken(state.session.accessToken);
+                }
+            },
         }
     )
 );

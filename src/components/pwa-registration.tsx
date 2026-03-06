@@ -6,16 +6,31 @@ import { Download } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
+const PWA_PROMPT_DISMISS_KEY = 'notifications-ui-pwa-prompt-dismissed';
+
+function shouldShowPrompt(): boolean {
+    if (typeof window === 'undefined') return false;
+    try {
+        const dismissed = localStorage.getItem(PWA_PROMPT_DISMISS_KEY);
+        if (!dismissed) return true;
+        const ts = parseInt(dismissed, 10);
+        if (Number.isNaN(ts)) return true;
+        return Date.now() - ts >= 30 * 60 * 1000; // Re-prompt after 30 min if not installed
+    } catch {
+        return true;
+    }
+}
+
 export function PWARegistration() {
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
     const [showInstall, setShowInstall] = useState(false);
 
     useEffect(() => {
-        // 1. Handle PWA Installation
+        // 1. Handle PWA Installation – show at most once per day
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             setDeferredPrompt(e);
-            setShowInstall(true);
+            setShowInstall(shouldShowPrompt());
         });
 
         window.addEventListener('appinstalled', () => {
@@ -84,7 +99,10 @@ export function PWARegistration() {
                     <p className="text-xs text-muted-foreground truncate">Add to home screen for real-time alerts.</p>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => setShowInstall(false)}>Later</Button>
+                    <Button variant="ghost" size="sm" onClick={() => {
+                        setShowInstall(false);
+                        try { localStorage.setItem(PWA_PROMPT_DISMISS_KEY, String(Date.now())); } catch { /* no-op */ }
+                    }}>Later</Button>
                     <Button size="sm" onClick={handleInstall} className="shadow-lg shadow-primary/20">Install</Button>
                 </div>
             </div>

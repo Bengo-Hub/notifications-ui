@@ -20,7 +20,8 @@ export default function ProvidersPage() {
         try {
             setLoading(true);
             const data = await settingsApi.listProviders(orgSlug);
-            setProviders(data || []);
+            const list = (data as { providers?: ProviderSetting[] })?.providers ?? (Array.isArray(data) ? data : []);
+            setProviders(Array.isArray(list) ? list : []);
         } catch (error) {
             console.error('Failed to load providers:', error);
             // Mock data for demo

@@ -4,6 +4,12 @@
 **Status**: In Progress
 **Goal**: Ship a production-ready notifications management UI at `notifications.codevertexitsolutions.com` enabling `urban-loft` tenant admins to manage templates, view delivery logs, and configure branding.
 
+### Fixes applied (March 6)
+- **API paths**: UI now calls `/api/v1/{orgSlug}/templates` (was `/api/v1/templates/{orgSlug}`) and `/api/v1/{orgSlug}/providers/available`; platform providers at `/api/v1/platform/providers`. Fixes 401 on templates and 404 on settings/providers when backend routes are under tenantId.
+- **Analytics**: Backend added `GET /api/v1/analytics/delivery/{tenantId}?range=24h` (stub returns zeros). UI updated to use `/api/v1/analytics/delivery/...`. Fixes 404 on analytics/delivery.
+- **PWA**: Install prompt shown at most once per day (localStorage key `notifications-ui-pwa-prompt-dismissed`).
+- **Platform-admin-first**: Platform section at `/platform/providers`, `/platform/tenants`, `/platform/configuration`. Platform provider list is unscoped by tenant (backend returns all platform configs). Test button per provider calls `POST /api/v1/platform/providers/{id}/test` with `{"to": "email or phone"}` and shows success/failure. Backend stores provider secrets encrypted at rest when `NOTIFICATIONS_ENCRYPTION_KEY` is set.
+
 ---
 
 ## Hard Deadline Constraints
@@ -69,10 +75,11 @@
 **Priority**: P1
 **Owner**: Frontend
 
-- [ ] Verify `/urban-loft/settings/providers` shows configured providers
+- [ ] Verify `/urban-loft/settings/providers` shows configured providers (from platform; tenant sees only available providers)
 - [ ] Verify tenant admin can edit Tier 2 settings (from email, sender ID)
 - [ ] Verify Tier 1 settings (API keys) are NOT visible to tenant admin
 - [ ] Test: update from email -> next notification uses updated address
+- [ ] Platform admin: verify `/platform/providers` lists all platform configs (Email: SMTP, SendGrid; SMS: Africa's Talking) and "Test" button calls backend test endpoint and shows success/failure
 
 ### HP-2: Branding Configuration
 

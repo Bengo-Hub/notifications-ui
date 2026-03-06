@@ -25,30 +25,27 @@ export default function TemplateEditorPage() {
     const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit');
 
     useEffect(() => {
-        if (!isNew) {
+        if (!isNew && orgSlug) {
             loadTemplate();
         }
-    }, [id]);
+    }, [id, orgSlug]);
 
     const loadTemplate = async () => {
         try {
             setLoading(true);
-            const data = await templatesApi.get(id);
-            setTemplate(data);
+            const channel = template.type || 'email';
+            const data = await templatesApi.get(orgSlug, id, channel);
+            setTemplate({
+                id: data.id,
+                name: data.id,
+                type: data.channel as 'email' | 'sms' | 'push',
+                content: data.content ?? '',
+                organizationId: orgSlug,
+            });
         } catch (error) {
             console.error('Failed to load template:', error);
             toast.error('Failed to load template');
-            // Mock data for demo
-            if (id === '1') {
-                setTemplate({
-                    id: '1',
-                    name: 'Welcome Email',
-                    type: 'email',
-                    subject: 'Welcome to TruLoad, {{user_name}}!',
-                    content: '<h1>Welcome!</h1><p>Hi {{user_name}}, we are glad to have you...</p>',
-                    organizationId: orgSlug
-                });
-            }
+            setTemplate((prev) => ({ ...prev, id, name: id, organizationId: orgSlug }));
         } finally {
             setLoading(false);
         }
