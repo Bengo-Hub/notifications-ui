@@ -1,5 +1,3 @@
-import { apiClient } from '@/lib/api/client';
-
 const SSO_BASE_URL = process.env.NEXT_PUBLIC_SSO_URL || 'https://sso.codevertexitsolutions.com';
 const SSO_CLIENT_ID = process.env.NEXT_PUBLIC_SSO_CLIENT_ID || 'notifications-ui';
 
@@ -66,6 +64,12 @@ export async function exchangeCodeForTokens(params: TokenExchangeParams) {
     return response.json();
 }
 
-export async function fetchProfile() {
-    return apiClient.get<any>('auth/me');
+export async function fetchProfile(accessToken: string) {
+    const response = await fetch(`${SSO_BASE_URL}/api/v1/auth/me`, {
+        headers: { 'Authorization': `Bearer ${accessToken}` },
+    });
+    if (!response.ok) {
+        throw new Error('Failed to fetch profile');
+    }
+    return response.json();
 }

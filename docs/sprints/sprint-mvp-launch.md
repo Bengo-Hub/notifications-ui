@@ -1,0 +1,201 @@
+# Sprint MVP Launch (March 17, 2026)
+
+**Duration**: March 6 -- March 17, 2026 (10 working days)
+**Status**: In Progress
+**Goal**: Ship a production-ready notifications management UI at `notifications.codevertexitsolutions.com` enabling `urban-loft` tenant admins to manage templates, view delivery logs, and configure branding.
+
+---
+
+## Hard Deadline Constraints
+
+- **March 17**: All BengoBox services go live; notifications-ui must be accessible for tenant admins
+- **Tenant**: `urban-loft` only (The Urban Loft Cafe)
+- **Outlet**: Busia only
+- **Scope**: Template management, delivery monitoring, provider configuration (Tier 2), branding. Advanced analytics deferred.
+
+---
+
+## Critical Path Tasks
+
+### CP-1: SSO Authentication via Auth Service
+
+**Priority**: P0 -- blocks all authenticated pages
+**Owner**: Frontend
+
+- [ ] Verify OIDC PKCE flow redirects to `auth.codevertexitsolutions.com/login`
+- [ ] Verify callback at `/{orgSlug}/auth/callback` exchanges code for tokens
+- [ ] Verify tokens are stored in session and used for API calls
+- [ ] Verify unauthenticated users are redirected to login
+- [ ] Test: login as `admin@theurbanloftcafe.com`, verify access to `/urban-loft/dashboard`
+- [ ] Verify OAuth client `notifications-ui` is registered in auth-service with correct redirect URI
+
+### CP-2: Dashboard Loads with Real Data
+
+**Priority**: P0
+**Owner**: Frontend
+
+- [ ] Verify `/urban-loft/dashboard` loads without errors
+- [ ] Verify dashboard metrics (sent count, delivery rate) fetch from notifications-api
+- [ ] Verify recent activity feed displays delivery events
+- [ ] Handle empty state gracefully (no notifications sent yet)
+
+### CP-3: Template Management
+
+**Priority**: P0 -- admins need to view/edit notification templates
+**Owner**: Frontend
+
+- [ ] Verify `/urban-loft/templates` lists templates from notifications-api
+- [ ] Verify template editor loads for individual templates
+- [ ] Verify template save/update works
+- [ ] Verify "Test Send" sends a preview notification
+- [ ] Verify MVP templates are visible: `order_confirmation`, `order_status_update`, `order_ready`, `payment_receipt`, `welcome_email`
+
+### CP-4: Multi-Tenant Context Isolation
+
+**Priority**: P0
+**Owner**: Frontend
+
+- [ ] Verify `[orgSlug]` parameter is extracted from URL and passed to all API calls
+- [ ] Verify API calls include correct tenant scoping headers
+- [ ] Verify branding context (logo, colors) loads per organisation
+- [ ] Test: navigating to a non-existent org slug returns 404 or redirect
+
+---
+
+## High Priority Tasks
+
+### HP-1: Provider Configuration (Tier 2)
+
+**Priority**: P1
+**Owner**: Frontend
+
+- [ ] Verify `/urban-loft/settings/providers` shows configured providers
+- [ ] Verify tenant admin can edit Tier 2 settings (from email, sender ID)
+- [ ] Verify Tier 1 settings (API keys) are NOT visible to tenant admin
+- [ ] Test: update from email -> next notification uses updated address
+
+### HP-2: Branding Configuration
+
+**Priority**: P1
+**Owner**: Frontend
+
+- [ ] Verify `/urban-loft/settings/branding` loads current branding
+- [ ] Verify logo, colors, footer text can be updated
+- [ ] Verify live preview renders correctly
+- [ ] Test: update branding -> email template preview reflects changes
+
+### HP-3: Delivery Monitoring
+
+**Priority**: P1
+**Owner**: Frontend
+
+- [ ] Verify `/urban-loft/monitoring` shows delivery log table
+- [ ] Verify filtering by channel, status, date range works
+- [ ] Verify clicking a row shows delivery details
+- [ ] Verify provider health status cards display correctly
+
+### HP-4: Responsive Layout
+
+**Priority**: P1
+**Owner**: Frontend
+
+- [ ] Verify sidebar navigation works on desktop
+- [ ] Verify mobile layout is usable (hamburger menu or bottom nav)
+- [ ] Verify tables scroll horizontally on mobile
+- [ ] Verify template editor stacks vertically on mobile
+
+---
+
+## Medium Priority Tasks
+
+### MP-1: Security Settings Page
+
+**Priority**: P2
+
+- [ ] Verify `/urban-loft/settings/security` loads
+- [ ] Verify webhook signing secret is displayed (masked)
+- [ ] Verify copy-to-clipboard works
+
+### MP-2: Error Handling & Empty States
+
+**Priority**: P2
+
+- [ ] Verify network errors show toast notification with retry
+- [ ] Verify empty states (no templates, no logs) show helpful messaging
+- [ ] Verify session expiry redirects to login gracefully
+
+### MP-3: Performance
+
+**Priority**: P2
+
+- [ ] Verify page load time < 3s on 3G
+- [ ] Verify Next.js code splitting is working
+- [ ] Verify API calls use appropriate caching (TanStack Query or equivalent)
+
+---
+
+## Out of Scope (Post-MVP)
+
+- Push notification device registration UX
+- Advanced analytics (charts, trends, A/B comparisons)
+- Template version history
+- Bulk notification UI
+- Scheduled notification management
+- Export delivery logs to CSV
+- Multi-language template editor
+- Dark mode
+
+---
+
+## Deployment Checklist
+
+### Pre-Launch (March 14-16)
+
+- [ ] Verify environment variables in K8s ConfigMap/Secrets:
+  - `NEXT_PUBLIC_API_BASE_URL` -> `https://notificationsapi.codevertexitsolutions.com`
+  - SSO client ID, redirect URI
+- [ ] Verify OAuth client `notifications-ui` registered in auth-service
+- [ ] Build production Docker image and push to registry
+- [ ] Smoke test all pages on staging with `urban-loft` org slug
+- [ ] Verify CORS between notifications-ui and notifications-api
+
+### Launch Day (March 17)
+
+- [ ] Deploy final image via ArgoCD
+- [ ] Verify landing page loads at `https://notifications.codevertexitsolutions.com`
+- [ ] Verify SSO login works
+- [ ] Verify `/urban-loft/dashboard` shows real data
+- [ ] Verify `/urban-loft/templates` lists MVP templates
+- [ ] Monitor for JavaScript errors
+
+### Post-Launch (March 18-21)
+
+- [ ] Monitor page load performance
+- [ ] Review browser console errors
+- [ ] Collect tenant admin feedback on template management UX
+- [ ] Triage blocking bugs as hotfixes
+
+---
+
+## Risk Register
+
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Auth-service SSO down | Cannot login to notifications-ui | Display maintenance page; monitor auth-service health |
+| Notifications-api unreachable | Dashboard/templates show empty/errors | Graceful error states; retry logic; API health monitoring |
+| Branding not loaded | Emails use default/broken styling | Fallback branding defaults; verify branding seed on deploy |
+| Template editor MJML rendering fails | Cannot preview email templates | Client-side MJML renderer with error boundary |
+| Org slug mismatch | 403/404 on all API calls | Validate slug on mount; redirect to default org on error |
+
+---
+
+## Success Criteria
+
+- [ ] Tenant admin can login and access `/urban-loft/dashboard`
+- [ ] Tenant admin can view and edit notification templates
+- [ ] Delivery logs show notifications triggered by ordering/payment events
+- [ ] Branding configuration updates reflect in email template previews
+- [ ] Provider settings (Tier 2) are editable by tenant admin
+- [ ] Platform secrets (Tier 1) are NOT accessible from notifications-ui
+- [ ] Page load time < 3s on broadband
+- [ ] Zero JavaScript errors on critical paths (login, dashboard, templates)

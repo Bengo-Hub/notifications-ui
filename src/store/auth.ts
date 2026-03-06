@@ -58,7 +58,7 @@ export const useAuthStore = create<AuthState>()(
                 set({ status: 'loading' });
 
                 try {
-                    const user = await fetchProfile();
+                    const user = await fetchProfile(session.accessToken);
                     set({ user, status: 'authenticated' });
                 } catch (error) {
                     console.error('Failed to initialize auth:', error);
@@ -119,11 +119,10 @@ export const useAuthStore = create<AuthState>()(
                     apiClient.setAccessToken(session.accessToken);
                     set({ session });
 
-                    // Polling for user profile sync
                     let attempts = 0;
                     while (attempts < 5) {
                         try {
-                            const user = await fetchProfile();
+                            const user = await fetchProfile(session.accessToken);
                             set({ user, status: 'authenticated' });
                             return;
                         } catch {
@@ -145,8 +144,10 @@ export const useAuthStore = create<AuthState>()(
             },
 
             fetchUser: async () => {
+                const { session } = get();
+                if (!session) return;
                 try {
-                    const user = await fetchProfile();
+                    const user = await fetchProfile(session.accessToken);
                     set({ user });
                 } catch (error) {
                     console.error('Fetch user failed:', error);
