@@ -42,5 +42,8 @@
 - Inject branding variables into email templates
 - Fallback to tenant ID when no branding configured
 
+### RBAC (MVP)
+- **No local Role/Permission schema.** Authorization is delegated to **auth-api JWT**: the service validates the Bearer token and respects claims (tenant_id, user_id, scopes/permissions) from auth-api. No seed for roles or permissions in this service; permission codes (e.g. `notifications:read`, `templates:read`) are defined and enforced centrally in auth-api.
+
 ### Build Status
 - `go build ./...` — 0 errors (2 pre-existing vet warnings in smtp.go and health_test.go)

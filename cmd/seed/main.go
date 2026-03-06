@@ -31,19 +31,20 @@ func main() {
 		log.Fatalf("migrate: %v", err)
 	}
 
-	// Simplified seeding for all ecosystem tenants
+	// Default tenants (must match auth-api slugs: codevertex, mss, urban-loft, kura, ultichange).
+	// Codevertex = platform owner; others = Masterspace, Urban Loft, KURA, UltiChange.
 	tenants := []struct {
-		ID    string
-		Name  string
-		Logo  string
-		Color string
+		ID         string
+		Name       string
+		Logo       string
+		Color      string
+		BaseDomain string
 	}{
-		{"codevertex", "CodeVertex", "https://codevertexitsolutions.com/logo.png", "#0F766E"},
-		{"mss", "Masterspace Solutions", "https://masterspace.co.ke/logo.png", "#2563eb"},
-		{"urban-loft", "Urban Loft Cafe", "https://theurbanloftcafe.com/logo.png", "#f97316"},
-		{"kura", "Kenya Urban Roads Authority", "https://kura.go.ke/logo.png", "#059669"},
-		{"ultichange", "UltiChange", "https://ultichange.org/logo.png", "#4f46e5"},
-		{"game-stats", "Game Stats", "https://game-stats.mosuon.com/logo.png", "#9333ea"},
+		{"codevertex", "CodeVertex", "https://codevertexitsolutions.com/logo.png", "#0F766E", "codevertexitsolutions.com"},
+		{"mss", "Masterspace Solutions", "https://masterspace.co.ke/logo.png", "#2563eb", "masterspace.co.ke"},
+		{"urban-loft", "Urban Loft Cafe", "https://theurbanloftcafe.com/logo.png", "#f97316", "theurbanloftcafe.com"},
+		{"kura", "Kenya Urban Roads Authority", "https://kura.go.ke/logo.png", "#059669", "kura.go.ke"},
+		{"ultichange", "UltiChange", "https://ultichange.org/logo.png", "#4f46e5", "ultichange.org"},
 	}
 
 	for _, t := range tenants {
@@ -56,8 +57,9 @@ func main() {
 				SetPrimaryColor(t.Color).
 				SetSecondaryColor("#1f2937").
 				SetMetadata(map[string]interface{}{
-					"from_email": fmt.Sprintf("notifications@%s.masterspace.co.ke", t.ID),
-					"from_name":  t.Name,
+					"from_email":  fmt.Sprintf("notifications@%s", t.BaseDomain),
+					"from_name":   t.Name,
+					"base_domain": t.BaseDomain,
 				}).Save(ctx)
 			if err == nil {
 				fmt.Printf("✓ Created branding for: %s\n", t.ID)
