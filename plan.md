@@ -11,6 +11,9 @@
 - **Queue/Eventing:** NATS JetStream or Kafka for inbound events, AWS SQS-compatible adapter for managed deployments.
 - **Infrastructure:** Containerized with Docker, Helm charts for k8s, GitHub Actions CI/CD, Terraform modules for cloud provisioning, OpenTelemetry instrumentation, Prometheus metrics.
 - **Security:** mTLS between services, JWT-based client auth, secret rotation via Vault, per-tenant API keys, signed webhooks, organisation/branch-aware RBAC.
+- **RBAC:** No local roles/permissions store. **Identity and roles are sourced from auth-api** (GET `/api/v1/auth/me`). Frontends (notifications-ui) use TanStack Query with TTL to cache /me; nav and route protection use returned roles/permissions. API authorization: JWT validation via `shared-auth-client`; no per-endpoint role checks in this service.
+- **Redis:** Used for rate limiting, idempotency (24h TTL), and short-lived tokens. Health check validates Postgres, Redis, and NATS.
+- **Events:** NATS JetStream for queue workers; outbox pattern via `shared-events` for reliable publishing. Subject: `notifications.events`.
 - **Auth-Service SSO Integration:** ✅ **COMPLETED** - Integrated `shared/auth-client` v0.1.0 library for production-ready JWT validation using JWKS from auth-service. Replaced custom JWT validator with production-ready JWKS-based validation. All protected `/v1/{tenantId}` routes require valid Bearer tokens. Falls back to API key auth if JWT not configured. Swagger documentation updated with BearerAuth security definition. **Deployment:** Uses monorepo `replace` directives with versioned dependency (`v0.1.0`). Go workspace (`go.work`) handles local development automatically. Each service has independent DevOps workflows and can be deployed separately while sharing the auth library. See `shared/auth-client/DEPLOYMENT.md` and `shared/auth-client/TAGGING.md` for details.
 
 ## Runtime Ports
