@@ -1,15 +1,17 @@
 'use client';
 
+import { useMe } from '@/hooks/useMe';
 import { useAuthStore } from '@/store/auth';
-import { useParams, usePathname, useRouter } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
 import { ReactNode, useEffect } from 'react';
 
 /**
  * AuthProvider - manages global authentication state and redirection.
+ * Uses TanStack Query (useMe) for /me with TTL; roles/permissions drive nav and route protection.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const { status, initialize, user } = useAuthStore();
-    const router = useRouter();
+    const { status, initialize } = useAuthStore();
+    const { isLoading: meLoading } = useMe();
     const pathname = usePathname();
     const params = useParams();
     const orgSlug = params?.orgSlug as string;
@@ -20,16 +22,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         if (status === 'idle' && !pathname?.includes('/auth')) {
-            // If we are on a protected route and not authenticated, redirect to login or SSO
-            // For now, let's just trigger SSO redirect if we have an orgSlug
             if (orgSlug) {
                 useAuthStore.getState().redirectToSSO(orgSlug, window.location.href);
             }
         }
     }, [status, pathname, orgSlug]);
 
-    // Loading state for protected routes
-    if (status === 'loading' && !pathname?.includes('/auth')) {
+    const loading = status === 'loading' || (status === 'authenticated' && meLoading);
+    if (loading && !pathname?.includes('/auth')) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background">
                 <div className="animate-pulse text-muted-foreground">Initializing session...</div>

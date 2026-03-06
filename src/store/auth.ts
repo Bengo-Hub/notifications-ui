@@ -37,6 +37,7 @@ interface AuthState {
     handleSSOCallback: (orgSlug: string, code: string, callbackUrl: string) => Promise<void>;
     logout: () => Promise<void>;
     fetchUser: () => Promise<void>;
+    setUser: (user: UserProfile | null) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -153,6 +154,8 @@ export const useAuthStore = create<AuthState>()(
                     console.error('Fetch user failed:', error);
                 }
             },
+
+            setUser: (user) => set({ user }),
         }),
         {
             name: 'notifications-auth-storage',

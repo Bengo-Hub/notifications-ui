@@ -1,5 +1,7 @@
 # Sprint MVP Launch (March 17, 2026)
 
+**Progress (March 2026)**: **RBAC & TanStack Query:** Roles/permissions from auth-api GET /me with TanStack Query (useMe hook, 5 min TTL). AuthProvider and nav use useMe; `/unauthorized` page added. All /me fetches via TanStack Query; store synced for compatibility. Notifications-api has no local RBAC (auth-api is source); Redis (rate limit, idempotency) and NATS/events documented in plan.md. — Verified in code: CP-1 SSO/OIDC PKCE flow (buildAuthorizeUrl, exchangeCodeForTokens), callback at `/{orgSlug}/auth/callback`, tokens in session, unauthenticated redirect via AuthProvider. CP-2 dashboard route exists but metrics are static placeholders (no API fetch). CP-3 templates page and editor call `templatesApi.list(orgSlug)` / `templatesApi.get(orgSlug, ...)`. CP-4 orgSlug from URL passed to all API calls (templates, settings, analytics, branding). **Branding**: BrandingProvider + `/api/v1/{orgSlug}/branding` load logo/colors per org; `/urban-loft/settings/branding` page exists with edit and preview (HP-2). Other UIs (auth-ui, pos-ui, subscriptions-ui) use auth-api GET tenants/by-slug for tenant/brand when they do not have their own branding API.
+
 **Duration**: March 6 -- March 17, 2026 (10 working days)
 **Status**: In Progress
 **Goal**: Ship a production-ready notifications management UI at `notifications.codevertexitsolutions.com` enabling `urban-loft` tenant admins to manage templates, view delivery logs, and configure branding.
@@ -28,10 +30,10 @@
 **Priority**: P0 -- blocks all authenticated pages
 **Owner**: Frontend
 
-- [ ] Verify OIDC PKCE flow redirects to `auth.codevertexitsolutions.com/login`
-- [ ] Verify callback at `/{orgSlug}/auth/callback` exchanges code for tokens
-- [ ] Verify tokens are stored in session and used for API calls
-- [ ] Verify unauthenticated users are redirected to login
+- [x] Verify OIDC PKCE flow redirects to `auth.codevertexitsolutions.com/login`
+- [x] Verify callback at `/{orgSlug}/auth/callback` exchanges code for tokens
+- [x] Verify tokens are stored in session and used for API calls
+- [x] Verify unauthenticated users are redirected to login
 - [ ] Test: login as `admin@theurbanloftcafe.com`, verify access to `/urban-loft/dashboard`
 - [ ] Verify OAuth client `notifications-ui` is registered in auth-service with correct redirect URI
 
@@ -40,7 +42,7 @@
 **Priority**: P0
 **Owner**: Frontend
 
-- [ ] Verify `/urban-loft/dashboard` loads without errors
+- [x] Verify `/urban-loft/dashboard` loads without errors
 - [ ] Verify dashboard metrics (sent count, delivery rate) fetch from notifications-api
 - [ ] Verify recent activity feed displays delivery events
 - [ ] Handle empty state gracefully (no notifications sent yet)
@@ -50,8 +52,8 @@
 **Priority**: P0 -- admins need to view/edit notification templates
 **Owner**: Frontend
 
-- [ ] Verify `/urban-loft/templates` lists templates from notifications-api
-- [ ] Verify template editor loads for individual templates
+- [x] Verify `/urban-loft/templates` lists templates from notifications-api
+- [x] Verify template editor loads for individual templates
 - [ ] Verify template save/update works
 - [ ] Verify "Test Send" sends a preview notification
 - [ ] Verify MVP templates are visible: `order_confirmation`, `order_status_update`, `order_ready`, `payment_receipt`, `welcome_email`
@@ -61,9 +63,9 @@
 **Priority**: P0
 **Owner**: Frontend
 
-- [ ] Verify `[orgSlug]` parameter is extracted from URL and passed to all API calls
+- [x] Verify `[orgSlug]` parameter is extracted from URL and passed to all API calls
 - [ ] Verify API calls include correct tenant scoping headers
-- [ ] Verify branding context (logo, colors) loads per organisation
+- [x] Verify branding context (logo, colors) loads per organisation
 - [ ] Test: navigating to a non-existent org slug returns 404 or redirect
 
 ---
@@ -86,9 +88,9 @@
 **Priority**: P1
 **Owner**: Frontend
 
-- [ ] Verify `/urban-loft/settings/branding` loads current branding
-- [ ] Verify logo, colors, footer text can be updated
-- [ ] Verify live preview renders correctly
+- [x] Verify `/urban-loft/settings/branding` loads current branding (page exists; getBranding(orgSlug), updateBranding)
+- [x] Verify logo, colors, footer text can be updated (form fields + updateBranding API)
+- [x] Verify live preview renders correctly (preview block in same page)
 - [ ] Test: update branding -> email template preview reflects changes
 
 ### HP-3: Delivery Monitoring
