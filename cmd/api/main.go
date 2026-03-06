@@ -16,7 +16,7 @@ import (
 // @description HTTP API for the BengoBox notifications service.
 // @BasePath /api/v1
 // @schemes http https
-// @host notifications.codevrtexitsolutions.com
+// @host notificationsapi.codevertexitsolutions.com
 // @securityDefinitions.apikey bearerAuth
 // @in header
 // @name Authorization
