@@ -17,20 +17,21 @@ import (
 	authclient "github.com/Bengo-Hub/shared-auth-client"
 	eventslib "github.com/Bengo-Hub/shared-events"
 
+	"database/sql"
+
 	"github.com/bengobox/notifications-api/internal/config"
 	entdb "github.com/bengobox/notifications-api/internal/database"
-	"github.com/bengobox/notifications-api/internal/ent"
 	"github.com/bengobox/notifications-api/internal/encryption"
+	"github.com/bengobox/notifications-api/internal/ent"
 	handlers "github.com/bengobox/notifications-api/internal/http/handlers"
 	router "github.com/bengobox/notifications-api/internal/http/router"
 	"github.com/bengobox/notifications-api/internal/modules/outbox"
-	"github.com/bengobox/notifications-api/internal/providers"
 	"github.com/bengobox/notifications-api/internal/platform/cache"
 	"github.com/bengobox/notifications-api/internal/platform/database"
 	"github.com/bengobox/notifications-api/internal/platform/events"
 	"github.com/bengobox/notifications-api/internal/platform/templates"
+	"github.com/bengobox/notifications-api/internal/providers"
 	"github.com/bengobox/notifications-api/internal/shared/logger"
-	"database/sql"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -82,12 +83,12 @@ func New(ctx context.Context) (*App, error) {
 	}
 
 	healthHandler := handlers.NewHealthHandler(log, dbPool, redisClient, natsConn)
-	notificationHandler := handlers.NewNotificationHandler(log, natsConn, redisClient, cfg.Events)
-	templateHandler := handlers.NewTemplateHandler(templateLoader)
+	notificationHandler := handlers.NewNotificationHandler(log, natsConn, redisClient, cfg.Events, entClient)
+	templateHandler := handlers.NewTemplateHandler(templateLoader, notificationHandler)
 	providerManager := providers.NewManager(dbPool, cfg.Postgres, cfg.Providers, encryption.KeyFromEnv(cfg.Security.EncryptionKey))
 	platformProviders := handlers.NewPlatformProviders(entClient, log, encryption.KeyFromEnv(cfg.Security.EncryptionKey), providerManager)
 	tenantProviders := handlers.NewTenantProviders(entClient, log)
-	analyticsHandler := handlers.NewAnalyticsHandler()
+	analyticsHandler := handlers.NewAnalyticsHandler(entClient, log)
 
 	// Initialize auth-service JWT validator
 	var authMiddleware *authclient.AuthMiddleware

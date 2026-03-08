@@ -6,6 +6,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// DeliveryLog is the predicate function for deliverylog builders.
+type DeliveryLog func(*sql.Selector)
+
 // OutboxEvent is the predicate function for outboxevent builders.
 type OutboxEvent func(*sql.Selector)
 

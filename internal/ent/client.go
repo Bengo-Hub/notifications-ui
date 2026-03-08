@@ -15,6 +15,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
+	"github.com/bengobox/notifications-api/internal/ent/deliverylog"
 	"github.com/bengobox/notifications-api/internal/ent/outboxevent"
 	"github.com/bengobox/notifications-api/internal/ent/providersetting"
 	"github.com/bengobox/notifications-api/internal/ent/tenantbranding"
@@ -25,6 +26,8 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// DeliveryLog is the client for interacting with the DeliveryLog builders.
+	DeliveryLog *DeliveryLogClient
 	// OutboxEvent is the client for interacting with the OutboxEvent builders.
 	OutboxEvent *OutboxEventClient
 	// ProviderSetting is the client for interacting with the ProviderSetting builders.
@@ -42,6 +45,7 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.DeliveryLog = NewDeliveryLogClient(c.config)
 	c.OutboxEvent = NewOutboxEventClient(c.config)
 	c.ProviderSetting = NewProviderSettingClient(c.config)
 	c.TenantBranding = NewTenantBrandingClient(c.config)
@@ -137,6 +141,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	return &Tx{
 		ctx:             ctx,
 		config:          cfg,
+		DeliveryLog:     NewDeliveryLogClient(cfg),
 		OutboxEvent:     NewOutboxEventClient(cfg),
 		ProviderSetting: NewProviderSettingClient(cfg),
 		TenantBranding:  NewTenantBrandingClient(cfg),
@@ -159,6 +164,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	return &Tx{
 		ctx:             ctx,
 		config:          cfg,
+		DeliveryLog:     NewDeliveryLogClient(cfg),
 		OutboxEvent:     NewOutboxEventClient(cfg),
 		ProviderSetting: NewProviderSettingClient(cfg),
 		TenantBranding:  NewTenantBrandingClient(cfg),
@@ -168,7 +174,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		OutboxEvent.
+//		DeliveryLog.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -190,6 +196,7 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
+	c.DeliveryLog.Use(hooks...)
 	c.OutboxEvent.Use(hooks...)
 	c.ProviderSetting.Use(hooks...)
 	c.TenantBranding.Use(hooks...)
@@ -198,6 +205,7 @@ func (c *Client) Use(hooks ...Hook) {
 // Intercept adds the query interceptors to all the entity clients.
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
+	c.DeliveryLog.Intercept(interceptors...)
 	c.OutboxEvent.Intercept(interceptors...)
 	c.ProviderSetting.Intercept(interceptors...)
 	c.TenantBranding.Intercept(interceptors...)
@@ -206,6 +214,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
+	case *DeliveryLogMutation:
+		return c.DeliveryLog.mutate(ctx, m)
 	case *OutboxEventMutation:
 		return c.OutboxEvent.mutate(ctx, m)
 	case *ProviderSettingMutation:
@@ -214,6 +224,139 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.TenantBranding.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
+	}
+}
+
+// DeliveryLogClient is a client for the DeliveryLog schema.
+type DeliveryLogClient struct {
+	config
+}
+
+// NewDeliveryLogClient returns a client for the DeliveryLog from the given config.
+func NewDeliveryLogClient(c config) *DeliveryLogClient {
+	return &DeliveryLogClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `deliverylog.Hooks(f(g(h())))`.
+func (c *DeliveryLogClient) Use(hooks ...Hook) {
+	c.hooks.DeliveryLog = append(c.hooks.DeliveryLog, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `deliverylog.Intercept(f(g(h())))`.
+func (c *DeliveryLogClient) Intercept(interceptors ...Interceptor) {
+	c.inters.DeliveryLog = append(c.inters.DeliveryLog, interceptors...)
+}
+
+// Create returns a builder for creating a DeliveryLog entity.
+func (c *DeliveryLogClient) Create() *DeliveryLogCreate {
+	mutation := newDeliveryLogMutation(c.config, OpCreate)
+	return &DeliveryLogCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of DeliveryLog entities.
+func (c *DeliveryLogClient) CreateBulk(builders ...*DeliveryLogCreate) *DeliveryLogCreateBulk {
+	return &DeliveryLogCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *DeliveryLogClient) MapCreateBulk(slice any, setFunc func(*DeliveryLogCreate, int)) *DeliveryLogCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &DeliveryLogCreateBulk{err: fmt.Errorf("calling to DeliveryLogClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*DeliveryLogCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &DeliveryLogCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for DeliveryLog.
+func (c *DeliveryLogClient) Update() *DeliveryLogUpdate {
+	mutation := newDeliveryLogMutation(c.config, OpUpdate)
+	return &DeliveryLogUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *DeliveryLogClient) UpdateOne(dl *DeliveryLog) *DeliveryLogUpdateOne {
+	mutation := newDeliveryLogMutation(c.config, OpUpdateOne, withDeliveryLog(dl))
+	return &DeliveryLogUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *DeliveryLogClient) UpdateOneID(id uuid.UUID) *DeliveryLogUpdateOne {
+	mutation := newDeliveryLogMutation(c.config, OpUpdateOne, withDeliveryLogID(id))
+	return &DeliveryLogUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for DeliveryLog.
+func (c *DeliveryLogClient) Delete() *DeliveryLogDelete {
+	mutation := newDeliveryLogMutation(c.config, OpDelete)
+	return &DeliveryLogDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *DeliveryLogClient) DeleteOne(dl *DeliveryLog) *DeliveryLogDeleteOne {
+	return c.DeleteOneID(dl.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *DeliveryLogClient) DeleteOneID(id uuid.UUID) *DeliveryLogDeleteOne {
+	builder := c.Delete().Where(deliverylog.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &DeliveryLogDeleteOne{builder}
+}
+
+// Query returns a query builder for DeliveryLog.
+func (c *DeliveryLogClient) Query() *DeliveryLogQuery {
+	return &DeliveryLogQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeDeliveryLog},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a DeliveryLog entity by its id.
+func (c *DeliveryLogClient) Get(ctx context.Context, id uuid.UUID) (*DeliveryLog, error) {
+	return c.Query().Where(deliverylog.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *DeliveryLogClient) GetX(ctx context.Context, id uuid.UUID) *DeliveryLog {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *DeliveryLogClient) Hooks() []Hook {
+	return c.hooks.DeliveryLog
+}
+
+// Interceptors returns the client interceptors.
+func (c *DeliveryLogClient) Interceptors() []Interceptor {
+	return c.inters.DeliveryLog
+}
+
+func (c *DeliveryLogClient) mutate(ctx context.Context, m *DeliveryLogMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&DeliveryLogCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&DeliveryLogUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&DeliveryLogUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&DeliveryLogDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown DeliveryLog mutation op: %q", m.Op())
 	}
 }
 
@@ -619,9 +762,9 @@ func (c *TenantBrandingClient) mutate(ctx context.Context, m *TenantBrandingMuta
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		OutboxEvent, ProviderSetting, TenantBranding []ent.Hook
+		DeliveryLog, OutboxEvent, ProviderSetting, TenantBranding []ent.Hook
 	}
 	inters struct {
-		OutboxEvent, ProviderSetting, TenantBranding []ent.Interceptor
+		DeliveryLog, OutboxEvent, ProviderSetting, TenantBranding []ent.Interceptor
 	}
 )

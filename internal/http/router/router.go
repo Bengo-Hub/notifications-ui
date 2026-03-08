@@ -74,6 +74,7 @@ func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handler
 			// Analytics (platform or tenant-scoped)
 			protected.Route("/analytics", func(analyticsRouter chi.Router) {
 				analyticsRouter.Get("/delivery/{tenantId}", analytics.Delivery)
+				analyticsRouter.Get("/logs/{tenantId}", analytics.Logs)
 			})
 
 			protected.Route("/{tenantId}", func(tenant chi.Router) {
@@ -84,6 +85,8 @@ func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handler
 				tenant.Route("/templates", func(tmpl chi.Router) {
 					tmpl.Get("/", templates.List)
 					tmpl.Get("/{id}", templates.Get)
+					tmpl.Put("/{id}", templates.Update)
+					tmpl.Post("/{id}/test", templates.TestSend)
 				})
 
 				// Tenant provider selection + branding

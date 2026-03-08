@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/bengobox/notifications-api/internal/ent/deliverylog"
 	"github.com/bengobox/notifications-api/internal/ent/outboxevent"
 	"github.com/bengobox/notifications-api/internal/ent/providersetting"
 	"github.com/bengobox/notifications-api/internal/ent/tenantbranding"
@@ -75,6 +76,7 @@ var (
 func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
+			deliverylog.Table:     deliverylog.ValidColumn,
 			outboxevent.Table:     outboxevent.ValidColumn,
 			providersetting.Table: providersetting.ValidColumn,
 			tenantbranding.Table:  tenantbranding.ValidColumn,

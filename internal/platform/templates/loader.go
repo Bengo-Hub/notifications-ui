@@ -81,6 +81,51 @@ type Summary struct {
 	Channel string `json:"channel"`
 }
 
+// Write saves template content to the filesystem under the configured directory.
+// Only writes under baseDir; returns error if path would escape (e.g. path traversal).
+// Channel must be one of: email, sms, push. Id must not contain path separators.
+func (l *Loader) Write(_ context.Context, channel, id, content string) error {
+	if channel == "" || id == "" {
+		return fmt.Errorf("channel and id required")
+	}
+	if strings.Contains(id, "/") || strings.Contains(id, "..") {
+		return fmt.Errorf("invalid id: path traversal not allowed")
+	}
+	baseDir, err := filepath.Abs(l.cfg.Directory)
+	if err != nil {
+		return fmt.Errorf("template directory: %w", err)
+	}
+	channel = strings.ToLower(channel)
+	switch channel {
+	case "email", "sms", "push":
+	default:
+		return fmt.Errorf("invalid channel: %s", channel)
+	}
+	ext := ".txt"
+	if channel == "email" {
+		ext = ".html"
+	} else if channel == "push" {
+		ext = ".json"
+	}
+	targetPath := filepath.Join(baseDir, channel, id+ext)
+	// Ensure target is under baseDir
+	rel, err := filepath.Rel(baseDir, targetPath)
+	if err != nil || strings.HasPrefix(rel, "..") {
+		return fmt.Errorf("invalid path: write not under template directory")
+	}
+	if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
+		return fmt.Errorf("mkdir: %w", err)
+	}
+	if err := os.WriteFile(targetPath, []byte(content), 0644); err != nil {
+		return fmt.Errorf("write template: %w", err)
+	}
+	// Invalidate cache for this template
+	l.mu.Lock()
+	delete(l.cache, channel+"/"+id)
+	l.mu.Unlock()
+	return nil
+}
+
 // List scans the templates directory and returns available templates.
 func (l *Loader) List(_ context.Context) ([]Summary, error) {
 	var out []Summary

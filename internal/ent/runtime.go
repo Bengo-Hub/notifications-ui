@@ -5,6 +5,7 @@ package ent
 import (
 	"time"
 
+	"github.com/bengobox/notifications-api/internal/ent/deliverylog"
 	"github.com/bengobox/notifications-api/internal/ent/outboxevent"
 	"github.com/bengobox/notifications-api/internal/ent/providersetting"
 	"github.com/bengobox/notifications-api/internal/ent/schema"
@@ -15,6 +16,36 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	deliverylogFields := schema.DeliveryLog{}.Fields()
+	_ = deliverylogFields
+	// deliverylogDescTenantID is the schema descriptor for tenant_id field.
+	deliverylogDescTenantID := deliverylogFields[1].Descriptor()
+	// deliverylog.TenantIDValidator is a validator for the "tenant_id" field. It is called by the builders before save.
+	deliverylog.TenantIDValidator = deliverylogDescTenantID.Validators[0].(func(string) error)
+	// deliverylogDescTemplateID is the schema descriptor for template_id field.
+	deliverylogDescTemplateID := deliverylogFields[2].Descriptor()
+	// deliverylog.TemplateIDValidator is a validator for the "template_id" field. It is called by the builders before save.
+	deliverylog.TemplateIDValidator = deliverylogDescTemplateID.Validators[0].(func(string) error)
+	// deliverylogDescChannel is the schema descriptor for channel field.
+	deliverylogDescChannel := deliverylogFields[3].Descriptor()
+	// deliverylog.ChannelValidator is a validator for the "channel" field. It is called by the builders before save.
+	deliverylog.ChannelValidator = deliverylogDescChannel.Validators[0].(func(string) error)
+	// deliverylogDescRecipient is the schema descriptor for recipient field.
+	deliverylogDescRecipient := deliverylogFields[4].Descriptor()
+	// deliverylog.RecipientValidator is a validator for the "recipient" field. It is called by the builders before save.
+	deliverylog.RecipientValidator = deliverylogDescRecipient.Validators[0].(func(string) error)
+	// deliverylogDescStatus is the schema descriptor for status field.
+	deliverylogDescStatus := deliverylogFields[5].Descriptor()
+	// deliverylog.DefaultStatus holds the default value on creation for the status field.
+	deliverylog.DefaultStatus = deliverylogDescStatus.Default.(string)
+	// deliverylogDescCreatedAt is the schema descriptor for created_at field.
+	deliverylogDescCreatedAt := deliverylogFields[6].Descriptor()
+	// deliverylog.DefaultCreatedAt holds the default value on creation for the created_at field.
+	deliverylog.DefaultCreatedAt = deliverylogDescCreatedAt.Default.(func() time.Time)
+	// deliverylogDescID is the schema descriptor for id field.
+	deliverylogDescID := deliverylogFields[0].Descriptor()
+	// deliverylog.DefaultID holds the default value on creation for the id field.
+	deliverylog.DefaultID = deliverylogDescID.Default.(func() uuid.UUID)
 	outboxeventFields := schema.OutboxEvent{}.Fields()
 	_ = outboxeventFields
 	// outboxeventDescAggregateType is the schema descriptor for aggregate_type field.

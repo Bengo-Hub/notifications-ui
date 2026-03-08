@@ -8,6 +8,39 @@ import (
 )
 
 var (
+	// DeliveryLogsColumns holds the columns for the "delivery_logs" table.
+	DeliveryLogsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeString},
+		{Name: "template_id", Type: field.TypeString},
+		{Name: "channel", Type: field.TypeString},
+		{Name: "recipient", Type: field.TypeString},
+		{Name: "status", Type: field.TypeString, Default: "sent"},
+		{Name: "created_at", Type: field.TypeTime},
+	}
+	// DeliveryLogsTable holds the schema information for the "delivery_logs" table.
+	DeliveryLogsTable = &schema.Table{
+		Name:       "delivery_logs",
+		Columns:    DeliveryLogsColumns,
+		PrimaryKey: []*schema.Column{DeliveryLogsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "deliverylog_tenant_id",
+				Unique:  false,
+				Columns: []*schema.Column{DeliveryLogsColumns[1]},
+			},
+			{
+				Name:    "deliverylog_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{DeliveryLogsColumns[6]},
+			},
+			{
+				Name:    "deliverylog_tenant_id_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{DeliveryLogsColumns[1], DeliveryLogsColumns[6]},
+			},
+		},
+	}
 	// OutboxEventsColumns holds the columns for the "outbox_events" table.
 	OutboxEventsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -116,6 +149,7 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		DeliveryLogsTable,
 		OutboxEventsTable,
 		ProviderSettingsTable,
 		TenantBrandingsTable,

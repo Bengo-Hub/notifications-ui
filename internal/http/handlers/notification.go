@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/bengobox/notifications-api/internal/config"
+	"github.com/bengobox/notifications-api/internal/ent"
 	"github.com/bengobox/notifications-api/internal/messaging"
 )
 
@@ -21,6 +23,7 @@ type NotificationHandler struct {
 	nats      *nats.Conn
 	cache     *redis.Client
 	eventsCfg config.EventsConfig
+	entClient *ent.Client
 }
 
 type CreateMessageRequest struct {
@@ -32,12 +35,13 @@ type CreateMessageRequest struct {
 	Metadata map[string]any `json:"metadata" swaggertype:"object" example:"{\"subject\":\"Invoice INV-1001 is due\",\"provider\":\"smtp\"}"`
 }
 
-func NewNotificationHandler(log *zap.Logger, natsConn *nats.Conn, cache *redis.Client, eventsCfg config.EventsConfig) *NotificationHandler {
+func NewNotificationHandler(log *zap.Logger, natsConn *nats.Conn, cache *redis.Client, eventsCfg config.EventsConfig, entClient *ent.Client) *NotificationHandler {
 	return &NotificationHandler{
 		log:       log,
 		nats:      natsConn,
 		cache:     cache,
 		eventsCfg: eventsCfg,
+		entClient: entClient,
 	}
 }
 
@@ -146,7 +150,65 @@ func (h *NotificationHandler) Enqueue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	recordDeliveryLog(r.Context(), h.entClient, tenant, req.Template, req.Channel, req.To)
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
 	json.NewEncoder(w).Encode(enqueueResponse{Status: "queued", RequestID: requestID})
+}
+
+// EnqueueMessage enqueues a notification message (used by template test-send and other callers).
+// Returns requestID and error. If err != nil, the message was not queued.
+func (h *NotificationHandler) EnqueueMessage(ctx context.Context, tenantID, channel, templateID string, to []string, data, metadata map[string]any) (requestID string, err error) {
+	if tenantID == "" || channel == "" || templateID == "" || len(to) == 0 {
+		return "", fmt.Errorf("tenant, channel, template and to required")
+	}
+	rid, _ := ctx.Value("request_id").(string)
+	if rid == "" {
+		rid = fmt.Sprintf("test_%d", time.Now().UnixNano())
+	}
+	idemp := fmt.Sprintf("test:%s:%s:%s:%s", tenantID, channel, templateID, rid)
+	if h.cache != nil {
+		cctx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
+		defer cancel()
+		ok, _ := h.cache.SetNX(cctx, "idemp:"+idemp, rid, 24*time.Hour).Result()
+		if !ok {
+			return rid, nil // duplicate, treat as success
+		}
+	}
+	msg := messaging.Message{
+		TenantID:       tenantID,
+		Channel:        channel,
+		TemplateID:     templateID,
+		Data:           data,
+		To:             to,
+		Metadata:       metadata,
+		RequestID:      rid,
+		IdempotencyKey: idemp,
+		QueuedAt:       time.Now(),
+	}
+	if _, err := messaging.Publish(ctx, h.nats, h.eventsCfg, msg); err != nil {
+		return "", err
+	}
+	recordDeliveryLog(ctx, h.entClient, tenantID, templateID, channel, to)
+	return rid, nil
+}
+
+func recordDeliveryLog(ctx context.Context, client *ent.Client, tenantID, templateID, channel string, to []string) {
+	if client == nil || len(to) == 0 {
+		return
+	}
+	for _, recipient := range to {
+		_, err := client.DeliveryLog.Create().
+			SetTenantID(tenantID).
+			SetTemplateID(templateID).
+			SetChannel(channel).
+			SetRecipient(recipient).
+			SetStatus("sent").
+			Save(ctx)
+		if err != nil {
+			// best-effort; do not fail the request
+			return
+		}
+	}
 }

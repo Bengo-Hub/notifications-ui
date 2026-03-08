@@ -9,6 +9,18 @@ import (
 	"github.com/bengobox/notifications-api/internal/ent"
 )
 
+// The DeliveryLogFunc type is an adapter to allow the use of ordinary
+// function as DeliveryLog mutator.
+type DeliveryLogFunc func(context.Context, *ent.DeliveryLogMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f DeliveryLogFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.DeliveryLogMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.DeliveryLogMutation", m)
+}
+
 // The OutboxEventFunc type is an adapter to allow the use of ordinary
 // function as OutboxEvent mutator.
 type OutboxEventFunc func(context.Context, *ent.OutboxEventMutation) (ent.Value, error)
