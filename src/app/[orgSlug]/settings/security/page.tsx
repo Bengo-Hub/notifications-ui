@@ -1,9 +1,23 @@
 'use client';
 
 import { Badge, Button, Card, CardContent, CardHeader } from '@/components/ui/base';
-import { AlertTriangle, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, Copy, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 export default function SecuritySettingsPage() {
+    const [webhookSecret] = useState<string | null>(null); // TODO: load from GET /api/v1/{orgSlug}/settings/security when backend exposes it
+
+    const handleCopyWebhookSecret = async () => {
+        const value = webhookSecret ?? 'Not configured';
+        try {
+            await navigator.clipboard.writeText(value);
+            toast.success('Copied to clipboard');
+        } catch {
+            toast.error('Failed to copy');
+        }
+    };
+
     return (
         <div className="space-y-6">
             <Card>
@@ -14,6 +28,20 @@ export default function SecuritySettingsPage() {
                     </div>
                 </CardHeader>
                 <CardContent className="p-6 space-y-8">
+                    <div className="space-y-2">
+                        <h4 className="text-sm font-bold">Webhook signing secret</h4>
+                        <p className="text-xs text-muted-foreground">Use this secret to verify webhook payloads. Keep it confidential.</p>
+                        <div className="flex items-center gap-2">
+                            <div className="flex-1 bg-accent/20 p-2.5 rounded-lg border border-border text-xs font-mono flex items-center gap-2">
+                                <span className="truncate">{webhookSecret ? '••••••••••••••••••••' : 'Not available (configure at platform level)'}</span>
+                            </div>
+                            <Button type="button" variant="outline" size="sm" className="gap-1.5 shrink-0" onClick={handleCopyWebhookSecret}>
+                                <Copy className="h-3.5 w-3.5" />
+                                Copy
+                            </Button>
+                        </div>
+                    </div>
+
                     <div className="flex items-center justify-between">
                         <div className="space-y-1">
                             <h4 className="text-sm font-bold">Encrypted Storage</h4>

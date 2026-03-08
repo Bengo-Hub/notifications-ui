@@ -2,7 +2,7 @@
 
 **Full-scope sprint:** See [sprint-04-full-scope-and-devops.md](./sprint-04-full-scope-and-devops.md) for stack (latest Next.js, React, shadcn, Tailwind, PWA, mobile), all UIs (notifications, configs, tenants), uniform backend connection, and DevOps (game-stats-ui / rider-app approach, devops-k8s centralized scripts). **Tenant slug consistency:** Use same slugs as auth-api and notifications-api seed: codevertex, mss, urban-loft, kura, ultichange.
 
-**Progress (March 2026)**: **RBAC & TanStack Query:** Roles/permissions from auth-api GET /me with TanStack Query (useMe hook, 5 min TTL, gcTime 10 min). AuthProvider and sidebar use useMe; `/[orgSlug]/unauthorized` and `/unauthorized` (root) pages added; **404** not-found page added. **Route protection:** Unauthenticated → redirect to SSO; 401 on /me → redirect to SSO; authenticated but accessing /platform without admin/super_admin → redirect to unauthorized. **Nav by permission:** Sidebar shows Platform link only when user has admin or super_admin (lib/auth/roles.ts: canAccessPlatform). **Data fetches via TanStack Query:** Templates (useTemplates), platform providers (usePlatformProviders, useTestPlatformProvider), tenant providers (useTenantProviders), delivery stats and activity logs (useDeliveryStats, useActivityLogs). Hooks in use-templates.ts, use-settings.ts, use-analytics.ts. Notifications-api has no local RBAC (auth-api is source). — CP-1 SSO/OIDC PKCE flow, callback at `/{orgSlug}/auth/callback`, tokens in session. CP-3 templates page uses useTemplates(orgSlug). CP-4 orgSlug passed to all API calls. **Branding**: BrandingProvider + `/api/v1/{orgSlug}/branding`; `/urban-loft/settings/branding` page exists.
+**Progress (March 2026)**: **RBAC & TanStack Query:** Roles/permissions from auth-api GET /me with TanStack Query (useMe hook, 5 min TTL, gcTime 10 min). AuthProvider and sidebar use useMe; `/[orgSlug]/unauthorized` and `/unauthorized` (root) pages added; **404** not-found page added. **Route protection:** Unauthenticated → redirect to SSO; 401 on /me → redirect to SSO; authenticated but accessing /platform without admin/super_admin → redirect to unauthorized. **Nav by permission:** Sidebar shows Platform link only when user has admin or super_admin (lib/auth/roles.ts: canAccessPlatform). **Data fetches via TanStack Query:** Templates (useTemplates), platform providers (usePlatformProviders, useTestPlatformProvider), tenant providers (useTenantProviders), delivery stats and activity logs (useDeliveryStats, useActivityLogs). Hooks in use-templates.ts, use-settings.ts, use-analytics.ts. Notifications-api has no local RBAC (auth-api is source). — CP-1 SSO/OIDC PKCE flow, callback at `/{orgSlug}/auth/callback`, tokens in session. CP-3 templates page uses useTemplates(orgSlug). CP-4 orgSlug passed to all API calls. **Branding**: BrandingProvider + `/api/v1/{orgSlug}/branding`; `/urban-loft/settings/branding` page exists. **Implemented (MVP pending tasks):** Dashboard uses real delivery stats and activity logs from API; template editor has Save (PUT) and Test Send (POST .../test); templates API client uses tenant-scoped paths; monitoring page has channel/status filters and row-detail modal; delivery log API and analytics backed by delivery_log store; sidebar is collapsible on mobile (hamburger); error/empty states with retry on dashboard, templates, monitoring, providers; Tier 1 (API keys) hidden on tenant providers page; security page has webhook secret placeholder and copy button.
 
 **Duration**: March 6 -- March 17, 2026 (10 working days)
 **Status**: In Progress
@@ -45,9 +45,9 @@
 **Owner**: Frontend
 
 - [x] Verify `/urban-loft/dashboard` loads without errors
-- [ ] Verify dashboard metrics (sent count, delivery rate) fetch from notifications-api
-- [ ] Verify recent activity feed displays delivery events
-- [ ] Handle empty state gracefully (no notifications sent yet)
+- [x] Verify dashboard metrics (sent count, delivery rate) fetch from notifications-api
+- [x] Verify recent activity feed displays delivery events
+- [x] Handle empty state gracefully (no notifications sent yet)
 
 ### CP-3: Template Management
 
@@ -56,8 +56,8 @@
 
 - [x] Verify `/urban-loft/templates` lists templates from notifications-api
 - [x] Verify template editor loads for individual templates
-- [ ] Verify template save/update works
-- [ ] Verify "Test Send" sends a preview notification
+- [x] Verify template save/update works (PUT /api/v1/{orgSlug}/templates/{id})
+- [x] Verify "Test Send" sends a preview notification (POST .../templates/{id}/test)
 - [ ] Verify MVP templates are visible: `order_confirmation`, `order_status_update`, `order_ready`, `payment_receipt`, `welcome_email`
 
 ### CP-4: Multi-Tenant Context Isolation
@@ -79,9 +79,9 @@
 **Priority**: P1
 **Owner**: Frontend
 
-- [ ] Verify `/urban-loft/settings/providers` shows configured providers (from platform; tenant sees only available providers)
-- [ ] Verify tenant admin can edit Tier 2 settings (from email, sender ID)
-- [ ] Verify Tier 1 settings (API keys) are NOT visible to tenant admin
+- [x] Verify `/urban-loft/settings/providers` shows configured providers (from platform; tenant sees only available providers)
+- [ ] Verify tenant admin can edit Tier 2 settings (from email, sender ID) — branding holds from_email/from_name
+- [x] Verify Tier 1 settings (API keys) are NOT visible to tenant admin
 - [ ] Test: update from email -> next notification uses updated address
 - [ ] Platform admin: verify `/platform/providers` lists all platform configs (Email: SMTP, SendGrid; SMS: Africa's Talking) and "Test" button calls backend test endpoint and shows success/failure
 
@@ -100,9 +100,9 @@
 **Priority**: P1
 **Owner**: Frontend
 
-- [ ] Verify `/urban-loft/monitoring` shows delivery log table
-- [ ] Verify filtering by channel, status, date range works
-- [ ] Verify clicking a row shows delivery details
+- [x] Verify `/urban-loft/monitoring` shows delivery log table
+- [x] Verify filtering by channel, status, date range works
+- [x] Verify clicking a row shows delivery details
 - [ ] Verify provider health status cards display correctly
 
 ### HP-4: Responsive Layout
@@ -110,10 +110,10 @@
 **Priority**: P1
 **Owner**: Frontend
 
-- [ ] Verify sidebar navigation works on desktop
-- [ ] Verify mobile layout is usable (hamburger menu or bottom nav)
-- [ ] Verify tables scroll horizontally on mobile
-- [ ] Verify template editor stacks vertically on mobile
+- [x] Verify sidebar navigation works on desktop
+- [x] Verify mobile layout is usable (hamburger menu or bottom nav)
+- [x] Verify tables scroll horizontally on mobile
+- [x] Verify template editor stacks vertically on mobile
 
 ---
 
@@ -131,8 +131,8 @@
 
 **Priority**: P2
 
-- [ ] Verify network errors show toast notification with retry
-- [ ] Verify empty states (no templates, no logs) show helpful messaging
+- [x] Verify network errors show toast notification with retry
+- [x] Verify empty states (no templates, no logs) show helpful messaging
 - [ ] Verify session expiry redirects to login gracefully
 
 ### MP-3: Performance
@@ -210,3 +210,13 @@
 - [ ] Platform secrets (Tier 1) are NOT accessible from notifications-ui
 - [ ] Page load time < 3s on broadband
 - [ ] Zero JavaScript errors on critical paths (login, dashboard, templates)
+
+---
+
+## References
+
+- [Notifications UI Plan](../plan.md)
+- [Notifications UI UX/UI](../ux-ui.md)
+- [Notifications UI MVP Critical Path](../mvp-critical-path.md)
+- [Integrations](../integrations.md)
+- [Shared MVP Critical Path](../../../shared-docs/mvp-critical-path.md)

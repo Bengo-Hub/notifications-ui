@@ -9,7 +9,7 @@ import { useMemo, useState } from 'react';
 
 export default function TemplatesPage() {
     const { orgSlug } = useParams() as { orgSlug: string };
-    const { data: templates = [], isLoading: loading } = useTemplates(orgSlug);
+    const { data: templates = [], isLoading: loading, isError, refetch } = useTemplates(orgSlug);
     const [searchQuery, setSearchQuery] = useState('');
 
     const filteredTemplates = useMemo(() => templates.filter(t =>
@@ -39,6 +39,13 @@ export default function TemplatesPage() {
                 </Button>
             </div>
 
+            {isError && (
+                <div className="rounded-2xl border border-destructive/50 bg-destructive/5 p-4 flex items-center justify-between">
+                    <p className="text-sm text-destructive">Failed to load templates.</p>
+                    <button onClick={() => refetch()} className="text-sm font-medium text-primary hover:underline">Retry</button>
+                </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card className="md:col-span-2">
                     <CardHeader className="flex flex-row items-center justify-between py-3">
@@ -59,11 +66,15 @@ export default function TemplatesPage() {
                         </div>
                     </CardHeader>
                     <CardContent className="p-0">
-                        <div className="divide-y divide-border">
+                        <div className="divide-y divide-border overflow-x-auto">
                             {loading ? (
                                 <div className="p-12 text-center text-muted-foreground">Loading templates...</div>
                             ) : filteredTemplates.length === 0 ? (
-                                <div className="p-12 text-center text-muted-foreground">No templates found.</div>
+                                <div className="p-12 text-center">
+                                    <p className="text-muted-foreground">
+                                        {templates.length === 0 ? 'No templates yet. Templates are provided by the platform and can be edited here once listed.' : 'No templates match your search.'}
+                                    </p>
+                                </div>
                             ) : filteredTemplates.map((template) => (
                                 <div key={template.id} className="p-4 flex items-center justify-between hover:bg-accent/5 transition-colors group">
                                     <div className="flex items-center gap-4">

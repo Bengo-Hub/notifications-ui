@@ -1,9 +1,11 @@
 'use client';
 
 import { Badge, Button, Card, CardContent, CardHeader } from '@/components/ui/base';
+import { templateKeys } from '@/hooks/use-templates';
 import { NotificationTemplate, templatesApi } from '@/lib/api/templates';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, Code, Eye, Info, Mail, MessageSquare, Plus, Save, Smartphone, Zap } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft, Code, Eye, Info, Mail, MessageSquare, Plus, Save, Send, Smartphone, Zap } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -11,6 +13,7 @@ import { toast } from 'sonner';
 export default function TemplateEditorPage() {
     const { orgSlug, id } = useParams() as { orgSlug: string; id: string };
     const router = useRouter();
+    const queryClient = useQueryClient();
     const isNew = id === 'new';
 
     const [template, setTemplate] = useState<Partial<NotificationTemplate>>({
@@ -55,18 +58,43 @@ export default function TemplateEditorPage() {
         try {
             setSaving(true);
             if (isNew) {
-                await templatesApi.create(template);
-                toast.success('Template created successfully');
-            } else {
-                await templatesApi.update(id, template);
-                toast.success('Template updated successfully');
+                toast.error('Creating new templates is not supported via API. Edit an existing template.');
+                return;
             }
+            const channel = template.type ?? 'email';
+            await templatesApi.update(orgSlug, id, channel, {
+                content: template.content ?? '',
+                subject: template.subject,
+            });
+            toast.success('Template updated successfully');
+            queryClient.invalidateQueries({ queryKey: templateKeys.all(orgSlug) });
             router.push(`/${orgSlug}/templates`);
         } catch (error) {
             console.error('Failed to save template:', error);
             toast.error('Failed to save template');
         } finally {
             setSaving(false);
+        }
+    };
+
+    const [testSending, setTestSending] = useState(false);
+    const [testRecipient, setTestRecipient] = useState('');
+    const handleTestSend = async () => {
+        const channel = template.type ?? 'email';
+        const to = testRecipient.trim() || (channel === 'email' ? 'test@example.com' : '+254700000000');
+        try {
+            setTestSending(true);
+            await templatesApi.testSend(orgSlug, id, channel, [to], {
+                name: 'Test User',
+                org_name: 'Test Org',
+            });
+            toast.success('Test notification queued for delivery');
+            queryClient.invalidateQueries({ queryKey: templateKeys.all(orgSlug) });
+        } catch (error) {
+            console.error('Test send failed:', error);
+            toast.error('Test send failed');
+        } finally {
+            setTestSending(false);
         }
     };
 
@@ -104,10 +132,27 @@ export default function TemplateEditorPage() {
                             Preview
                         </button>
                     </div>
-                    <Button onClick={handleSave} disabled={saving} className="gap-2 px-6">
-                        <Save className="h-4 w-4" />
-                        {saving ? 'Saving...' : 'Save Changes'}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        {!isNew && (
+                            <>
+                                <input
+                                    type="text"
+                                    placeholder={template.type === 'email' ? 'test@example.com' : 'Recipient'}
+                                    value={testRecipient}
+                                    onChange={(e) => setTestRecipient(e.target.value)}
+                                    className="w-48 bg-accent/20 border border-border rounded-lg py-1.5 px-3 text-sm"
+                                />
+                                <Button onClick={handleTestSend} disabled={testSending} variant="outline" className="gap-2">
+                                    <Send className="h-4 w-4" />
+                                    {testSending ? 'Sending...' : 'Test Send'}
+                                </Button>
+                            </>
+                        )}
+                        <Button onClick={handleSave} disabled={saving} className="gap-2 px-6">
+                            <Save className="h-4 w-4" />
+                            {saving ? 'Saving...' : 'Save Changes'}
+                        </Button>
+                    </div>
                 </div>
             </div>
 

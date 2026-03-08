@@ -8,7 +8,7 @@ import { useParams } from 'next/navigation';
 
 export default function ProvidersPage() {
     const { orgSlug } = useParams() as { orgSlug: string };
-    const { data: providers = [], isLoading: loading } = useTenantProviders(orgSlug);
+    const { data: providers = [], isLoading: loading, isError, refetch } = useTenantProviders(orgSlug);
 
     const channels = [
         { id: 'email', name: 'Email', icon: Mail, description: 'SMTP, SendGrid, or AWS SES', color: 'blue' },
@@ -16,13 +16,19 @@ export default function ProvidersPage() {
         { id: 'push', name: 'Web Push', icon: Smartphone, description: 'Firebase (FCM) or VAPID', color: 'orange' },
     ];
 
-    if (loading) return <div className="p-12 text-center text-muted-foreground transition-all animate-pulse">Initializing providers...</div>;
+    if (loading && providers.length === 0) return <div className="p-12 text-center text-muted-foreground transition-all animate-pulse">Initializing providers...</div>;
 
     return (
         <div className="space-y-6">
+            {isError && (
+                <div className="rounded-2xl border border-destructive/50 bg-destructive/5 p-4 flex items-center justify-between">
+                    <p className="text-sm text-destructive">Failed to load provider settings.</p>
+                    <button onClick={() => refetch()} className="text-sm font-medium text-primary hover:underline">Retry</button>
+                </div>
+            )}
             <div className="grid grid-cols-1 gap-6">
                 {channels.map((channel) => {
-                    const config = providers.find(p => p.channel === channel.id);
+                    const config = providers.find((p: { channel?: string; provider_type?: string }) => (p.channel ?? p.provider_type) === channel.id);
                     const Icon = channel.icon;
 
                     return (
@@ -70,19 +76,16 @@ export default function ProvidersPage() {
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     <div className="space-y-1.5">
                                                         <label className="text-xs font-bold text-muted-foreground flex items-center gap-1">
-                                                            <Globe className="h-3 w-3" /> Endpoint / Host
+                                                            <Globe className="h-3 w-3" /> Provider
                                                         </label>
                                                         <div className="bg-accent/20 p-2.5 rounded-lg border border-border text-xs font-mono truncate">
-                                                            {config.value}
+                                                            {config.provider_name ?? config.value}
                                                         </div>
                                                     </div>
-                                                    <div className="space-y-1.5">
-                                                        <label className="text-xs font-bold text-muted-foreground flex items-center gap-1">
-                                                            <Lock className="h-3 w-3" /> API Key / Secret
-                                                        </label>
-                                                        <div className="bg-accent/20 p-2.5 rounded-lg border border-border text-xs font-mono flex items-center justify-between">
-                                                            <span>••••••••••••••••</span>
-                                                            <button className="text-[10px] text-primary hover:underline">Reveal</button>
+                                                    <div className="space-y-1.5 flex items-end">
+                                                        <div className="bg-muted/30 p-2.5 rounded-lg border border-border text-xs text-muted-foreground flex items-center gap-2">
+                                                            <Lock className="h-3 w-3 shrink-0" />
+                                                            API keys and secrets are configured at platform level and are not visible here.
                                                         </div>
                                                     </div>
                                                 </div>

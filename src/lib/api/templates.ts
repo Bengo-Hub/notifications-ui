@@ -28,7 +28,14 @@ export const templatesApi = {
         apiClient.get<{ id: string; channel: string; content: string; mimeType: string }>(
             `/api/v1/${orgSlug}/templates/${id}?channel=${channel}`
         ),
-    create: (data: Partial<NotificationTemplate>) => apiClient.post<NotificationTemplate>('/api/v1/templates', data),
-    update: (id: string, data: Partial<NotificationTemplate>) => apiClient.patch<NotificationTemplate>(`/api/v1/templates/${id}`, data),
-    delete: (id: string) => apiClient.delete(`/api/v1/templates/${id}`),
+    update: (orgSlug: string, id: string, channel: string, data: { content: string; subject?: string }) =>
+        apiClient.put<{ id: string; channel: string; content: string; mimeType: string }>(
+            `/api/v1/${orgSlug}/templates/${id}?channel=${channel}`,
+            { content: data.content, subject: data.subject }
+        ),
+    testSend: (orgSlug: string, id: string, channel: string, to: string[], data?: Record<string, unknown>) =>
+        apiClient.post<{ status: string; requestId: string }>(
+            `/api/v1/${orgSlug}/templates/${id}/test`,
+            { channel, to, data: data ?? {} }
+        ),
 };
