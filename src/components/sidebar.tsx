@@ -25,7 +25,7 @@ export function Sidebar({ open = true, onClose }: SidebarProps) {
     const params = useParams();
     const orgSlug = params?.orgSlug as string;
     const { user } = useMe();
-    const showPlatform = canAccessPlatform(user ?? undefined);
+    const isPlatformOwner = orgSlug === 'codevertex';
 
     const routes = [
         {
@@ -52,7 +52,7 @@ export function Sidebar({ open = true, onClose }: SidebarProps) {
             href: `/${orgSlug}/settings/providers`,
             active: pathname.startsWith(`/${orgSlug}/settings`),
         },
-        ...(showPlatform
+        ...(isPlatformOwner
             ? [{
                 label: 'Platform',
                 icon: Server,
