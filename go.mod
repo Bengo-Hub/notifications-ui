@@ -4,12 +4,12 @@ go 1.24.0
 
 // Local development: replace with local path (remove when repo is created and tagged)
 // Map module path to correct GitHub repository
-replace github.com/Bengo-Hub/shared-auth-client => github.com/Bengo-Hub/auth-client v0.3.1
+replace github.com/Bengo-Hub/shared-auth-client => github.com/Bengo-Hub/auth-client v0.4.0
 
 require (
 	entgo.io/ent v0.13.1
-	github.com/Bengo-Hub/httpware v0.2.0
-	github.com/Bengo-Hub/shared-auth-client v0.3.1
+	github.com/Bengo-Hub/httpware v0.3.0
+	github.com/Bengo-Hub/shared-auth-client v0.4.0
 	github.com/Bengo-Hub/shared-events v0.2.0
 	github.com/gin-gonic/gin v1.11.0
 	github.com/go-chi/chi/v5 v5.0.12
