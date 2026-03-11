@@ -32,19 +32,27 @@ func loadBrandingSQL(ctx context.Context, db *pgxpool.Pool, tenantID string) (In
 		return Info{}, nil
 	}
 	const q = `
-SELECT name, email, phone, logo_url, primary_color, secondary_color
-FROM tenant_branding
-WHERE tenant_id = $1
+SELECT name, contact_email, contact_phone, logo_url, brand_colors
+FROM tenants
+WHERE id = $1
 LIMIT 1
 `
+	var colors map[string]any
 	var out Info
-	_ = db.QueryRow(ctx, q, tenantID).Scan(
+	err := db.QueryRow(ctx, q, tenantID).Scan(
 		&out.Name,
 		&out.Email,
 		&out.Phone,
 		&out.LogoURL,
-		&out.PrimaryColor,
-		&out.SecondaryColor,
+		&colors,
 	)
+	if err == nil {
+		if v, ok := colors["primary"].(string); ok {
+			out.PrimaryColor = v
+		}
+		if v, ok := colors["secondary"].(string); ok {
+			out.SecondaryColor = v
+		}
+	}
 	return out, nil
 }

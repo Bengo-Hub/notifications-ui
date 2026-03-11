@@ -34,11 +34,17 @@ type ProviderSetting struct {
 	Description string `json:"description,omitempty"`
 	// IsEncrypted holds the value of the "is_encrypted" field.
 	IsEncrypted bool `json:"is_encrypted,omitempty"`
-	// Platform-level provider config (tenant_id = 'platform')
+	// Platform-level provider config (associated with platform owner tenant UUID)
 	IsPlatform bool `json:"is_platform,omitempty"`
+	// If true, only platform owners can manage this setting, and it applies to all tenants
+	IsPlatformManaged bool `json:"is_platform_managed,omitempty"`
+	// sandbox, production
+	Environment string `json:"environment,omitempty"`
+	// Whether this setting's value should be masked in the UI
+	IsSecret bool `json:"is_secret,omitempty"`
 	// Whether this provider config is currently active
 	IsActive bool `json:"is_active,omitempty"`
-	// Provider status: active, inactive, error
+	// Provider status: active, fallback, error
 	Status       string `json:"status,omitempty"`
 	selectValues sql.SelectValues
 }
@@ -48,11 +54,11 @@ func (*ProviderSetting) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case providersetting.FieldIsEncrypted, providersetting.FieldIsPlatform, providersetting.FieldIsActive:
+		case providersetting.FieldIsEncrypted, providersetting.FieldIsPlatform, providersetting.FieldIsPlatformManaged, providersetting.FieldIsSecret, providersetting.FieldIsActive:
 			values[i] = new(sql.NullBool)
 		case providersetting.FieldID:
 			values[i] = new(sql.NullInt64)
-		case providersetting.FieldTenantID, providersetting.FieldChannel, providersetting.FieldProvider, providersetting.FieldProviderType, providersetting.FieldProviderName, providersetting.FieldKey, providersetting.FieldValue, providersetting.FieldDescription, providersetting.FieldStatus:
+		case providersetting.FieldTenantID, providersetting.FieldChannel, providersetting.FieldProvider, providersetting.FieldProviderType, providersetting.FieldProviderName, providersetting.FieldKey, providersetting.FieldValue, providersetting.FieldDescription, providersetting.FieldEnvironment, providersetting.FieldStatus:
 			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -135,6 +141,24 @@ func (ps *ProviderSetting) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				ps.IsPlatform = value.Bool
 			}
+		case providersetting.FieldIsPlatformManaged:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_platform_managed", values[i])
+			} else if value.Valid {
+				ps.IsPlatformManaged = value.Bool
+			}
+		case providersetting.FieldEnvironment:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field environment", values[i])
+			} else if value.Valid {
+				ps.Environment = value.String
+			}
+		case providersetting.FieldIsSecret:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_secret", values[i])
+			} else if value.Valid {
+				ps.IsSecret = value.Bool
+			}
 		case providersetting.FieldIsActive:
 			if value, ok := values[i].(*sql.NullBool); !ok {
 				return fmt.Errorf("unexpected type %T for field is_active", values[i])
@@ -212,6 +236,15 @@ func (ps *ProviderSetting) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("is_platform=")
 	builder.WriteString(fmt.Sprintf("%v", ps.IsPlatform))
+	builder.WriteString(", ")
+	builder.WriteString("is_platform_managed=")
+	builder.WriteString(fmt.Sprintf("%v", ps.IsPlatformManaged))
+	builder.WriteString(", ")
+	builder.WriteString("environment=")
+	builder.WriteString(ps.Environment)
+	builder.WriteString(", ")
+	builder.WriteString("is_secret=")
+	builder.WriteString(fmt.Sprintf("%v", ps.IsSecret))
 	builder.WriteString(", ")
 	builder.WriteString("is_active=")
 	builder.WriteString(fmt.Sprintf("%v", ps.IsActive))

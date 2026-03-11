@@ -19,6 +19,12 @@ type Config struct {
 	Providers ProviderConfig
 	Templates TemplateConfig
 	Security  SecurityConfig
+	Services  ServicesConfig
+}
+
+type ServicesConfig struct {
+	AuthAPI     string `envconfig:"AUTH_API_URL" default:"https://sso.codevertexitsolutions.com"`
+	TreasuryAPI string `envconfig:"TREASURY_API_URL" default:"https://booksapi.codevertexitsolutions.com"`
 }
 
 type AppConfig struct {

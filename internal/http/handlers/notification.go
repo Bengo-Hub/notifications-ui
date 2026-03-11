@@ -16,6 +16,7 @@ import (
 	"github.com/bengobox/notifications-api/internal/config"
 	"github.com/bengobox/notifications-api/internal/ent"
 	"github.com/bengobox/notifications-api/internal/messaging"
+	httpware "github.com/Bengo-Hub/httpware"
 )
 
 type NotificationHandler struct {
@@ -96,7 +97,7 @@ func (h *NotificationHandler) Enqueue(w http.ResponseWriter, r *http.Request) {
 
 	tenant := req.Tenant
 	if tenant == "" {
-		tenant = r.Context().Value("tenant_id").(string)
+		tenant = httpware.GetTenantID(r.Context())
 	}
 	if tenant == "" {
 		w.Header().Set("Content-Type", "application/json")
@@ -105,7 +106,7 @@ func (h *NotificationHandler) Enqueue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	requestID := r.Context().Value("request_id").(string)
+	requestID := httpware.GetRequestID(r.Context())
 	idemp := r.Header.Get("Idempotency-Key")
 	if idemp == "" {
 		// derive from payload
@@ -163,7 +164,7 @@ func (h *NotificationHandler) EnqueueMessage(ctx context.Context, tenantID, chan
 	if tenantID == "" || channel == "" || templateID == "" || len(to) == 0 {
 		return "", fmt.Errorf("tenant, channel, template and to required")
 	}
-	rid, _ := ctx.Value("request_id").(string)
+	rid := httpware.GetRequestID(ctx)
 	if rid == "" {
 		rid = fmt.Sprintf("test_%d", time.Now().UnixNano())
 	}

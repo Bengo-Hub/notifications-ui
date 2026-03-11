@@ -13,8 +13,12 @@ import (
 type Settings map[string]string
 
 // LoadTenantProviderSettings loads provider settings for a tenant/channel/provider using Ent.
+// Resolution hierarchy:
+// 1. Platform-managed settings (is_platform_managed=true, tenant_id='platform')
+// 2. Tenant-specific settings (tenant_id=tenantID)
+// 3. Platform fallback settings (is_platform_managed=false, tenant_id='platform')
 // If decryptionKey is non-nil (32 bytes), values stored with is_encrypted=true are decrypted.
-func LoadTenantProviderSettings(ctx context.Context, dbCfg config.PostgresConfig, tenantID, channel, provider string, decryptionKey []byte) (Settings, error) {
+func LoadTenantProviderSettings(ctx context.Context, dbCfg config.PostgresConfig, tenantID, environment, channel, provider string, decryptionKey []byte) (Settings, error) {
 	dsn := dbCfg.URL
 	if env := os.Getenv("NOTIFICATIONS_POSTGRES_URL"); env != "" {
 		dsn = env
@@ -28,19 +32,25 @@ func LoadTenantProviderSettings(ctx context.Context, dbCfg config.PostgresConfig
 	}
 	defer client.Close()
 
+	// Query both tenant and platform settings in one go
 	rows, err := client.ProviderSetting.
 		Query().
 		Where(
-			providersetting.TenantIDEQ(tenantID),
+			providersetting.TenantIDIn(tenantID, "platform"),
+			providersetting.EnvironmentEQ(environment),
 			providersetting.ChannelEQ(channel),
 			providersetting.ProviderEQ(provider),
+			providersetting.IsActive(true),
 		).
 		All(ctx)
 	if err != nil {
 		return Settings{}, err
 	}
 
-	out := Settings{}
+	platformManaged := Settings{}
+	tenantSpecific := Settings{}
+	platformFallback := Settings{}
+
 	for _, r := range rows {
 		val := r.Value
 		if r.IsEncrypted && len(decryptionKey) == 32 {
@@ -48,7 +58,26 @@ func LoadTenantProviderSettings(ctx context.Context, dbCfg config.PostgresConfig
 				val = dec
 			}
 		}
-		out[r.Key] = val
+
+		if r.TenantID == "platform" {
+			if r.IsPlatformManaged {
+				platformManaged[r.Key] = val
+			} else {
+				platformFallback[r.Key] = val
+			}
+		} else {
+			tenantSpecific[r.Key] = val
+		}
 	}
+
+	// Merge with hierarchy: platformFallback < tenantSpecific < platformManaged
+	out := platformFallback
+	for k, v := range tenantSpecific {
+		out[k] = v
+	}
+	for k, v := range platformManaged {
+		out[k] = v
+	}
+
 	return out, nil
 }

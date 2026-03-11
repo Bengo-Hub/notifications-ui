@@ -12,14 +12,20 @@ import (
 // Tx is a transactional client that is created by calling Client.Tx().
 type Tx struct {
 	config
+	// CreditTransaction is the client for interacting with the CreditTransaction builders.
+	CreditTransaction *CreditTransactionClient
 	// DeliveryLog is the client for interacting with the DeliveryLog builders.
 	DeliveryLog *DeliveryLogClient
 	// OutboxEvent is the client for interacting with the OutboxEvent builders.
 	OutboxEvent *OutboxEventClient
+	// PlatformBilling is the client for interacting with the PlatformBilling builders.
+	PlatformBilling *PlatformBillingClient
 	// ProviderSetting is the client for interacting with the ProviderSetting builders.
 	ProviderSetting *ProviderSettingClient
-	// TenantBranding is the client for interacting with the TenantBranding builders.
-	TenantBranding *TenantBrandingClient
+	// Tenant is the client for interacting with the Tenant builders.
+	Tenant *TenantClient
+	// TenantCredit is the client for interacting with the TenantCredit builders.
+	TenantCredit *TenantCreditClient
 
 	// lazily loaded.
 	client     *Client
@@ -151,10 +157,13 @@ func (tx *Tx) Client() *Client {
 }
 
 func (tx *Tx) init() {
+	tx.CreditTransaction = NewCreditTransactionClient(tx.config)
 	tx.DeliveryLog = NewDeliveryLogClient(tx.config)
 	tx.OutboxEvent = NewOutboxEventClient(tx.config)
+	tx.PlatformBilling = NewPlatformBillingClient(tx.config)
 	tx.ProviderSetting = NewProviderSettingClient(tx.config)
-	tx.TenantBranding = NewTenantBrandingClient(tx.config)
+	tx.Tenant = NewTenantClient(tx.config)
+	tx.TenantCredit = NewTenantCreditClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.
@@ -164,7 +173,7 @@ func (tx *Tx) init() {
 // of them in order to commit or rollback the transaction.
 //
 // If a closed transaction is embedded in one of the generated entities, and the entity
-// applies a query, for example: DeliveryLog.QueryXXX(), the query will be executed
+// applies a query, for example: CreditTransaction.QueryXXX(), the query will be executed
 // through the driver which created this transaction.
 //
 // Note that txDriver is not goroutine safe.

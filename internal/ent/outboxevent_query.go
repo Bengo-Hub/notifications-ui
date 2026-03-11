@@ -22,6 +22,7 @@ type OutboxEventQuery struct {
 	order      []outboxevent.OrderOption
 	inters     []Interceptor
 	predicates []predicate.OutboxEvent
+	modifiers  []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -343,6 +344,9 @@ func (oeq *OutboxEventQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 		nodes = append(nodes, node)
 		return node.assignValues(columns, values)
 	}
+	if len(oeq.modifiers) > 0 {
+		_spec.Modifiers = oeq.modifiers
+	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
@@ -357,6 +361,9 @@ func (oeq *OutboxEventQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 
 func (oeq *OutboxEventQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := oeq.querySpec()
+	if len(oeq.modifiers) > 0 {
+		_spec.Modifiers = oeq.modifiers
+	}
 	_spec.Node.Columns = oeq.ctx.Fields
 	if len(oeq.ctx.Fields) > 0 {
 		_spec.Unique = oeq.ctx.Unique != nil && *oeq.ctx.Unique
@@ -419,6 +426,9 @@ func (oeq *OutboxEventQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	if oeq.ctx.Unique != nil && *oeq.ctx.Unique {
 		selector.Distinct()
 	}
+	for _, m := range oeq.modifiers {
+		m(selector)
+	}
 	for _, p := range oeq.predicates {
 		p(selector)
 	}
@@ -434,6 +444,12 @@ func (oeq *OutboxEventQuery) sqlQuery(ctx context.Context) *sql.Selector {
 		selector.Limit(*limit)
 	}
 	return selector
+}
+
+// Modify adds a query modifier for attaching custom logic to queries.
+func (oeq *OutboxEventQuery) Modify(modifiers ...func(s *sql.Selector)) *OutboxEventSelect {
+	oeq.modifiers = append(oeq.modifiers, modifiers...)
+	return oeq.Select()
 }
 
 // OutboxEventGroupBy is the group-by builder for OutboxEvent entities.
@@ -524,4 +540,10 @@ func (oes *OutboxEventSelect) sqlScan(ctx context.Context, root *OutboxEventQuer
 	}
 	defer rows.Close()
 	return sql.ScanSlice(rows, v)
+}
+
+// Modify adds a query modifier for attaching custom logic to queries.
+func (oes *OutboxEventSelect) Modify(modifiers ...func(s *sql.Selector)) *OutboxEventSelect {
+	oes.modifiers = append(oes.modifiers, modifiers...)
+	return oes
 }

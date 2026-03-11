@@ -6,10 +6,11 @@ import (
 
 	"github.com/bengobox/notifications-api/internal/config"
 	"github.com/bengobox/notifications-api/internal/database"
-	"github.com/bengobox/notifications-api/internal/ent/tenantbranding"
+	enttenant "github.com/bengobox/notifications-api/internal/ent/tenant"
+	"github.com/google/uuid"
 )
 
-// LoadBrandingEnt loads tenant branding using Ent; falls back gracefully if Ent is not compiled.
+// LoadBrandingEnt loads tenant branding using Ent.
 func LoadBrandingEnt(ctx context.Context, dbCfg config.PostgresConfig, tenantID string) (Info, error) {
 	dsn := dbCfg.URL
 	if env := os.Getenv("NOTIFICATIONS_POSTGRES_URL"); env != "" {
@@ -23,33 +24,44 @@ func LoadBrandingEnt(ctx context.Context, dbCfg config.PostgresConfig, tenantID 
 		return Info{}, nil
 	}
 	defer client.Close()
-	b, err := client.TenantBranding.
+
+	// Query from Tenant entity instead of TenantBranding
+	t, err := client.Tenant.
 		Query().
-		Where(tenantbranding.TenantIDEQ(tenantID)).
+		Where(enttenant.IDEQ(parseUUID(tenantID))).
 		Only(ctx)
 	if err != nil {
 		return Info{}, nil
 	}
 
-	// Extract data from metadata field
 	info := Info{
-		LogoURL:        b.LogoURL,
-		PrimaryColor:   b.PrimaryColor,
-		SecondaryColor: b.SecondaryColor,
+		LogoURL: t.LogoURL,
+	}
+
+	// Extract brand colors
+	if t.BrandColors != nil {
+		if v, ok := t.BrandColors["primary"].(string); ok {
+			info.PrimaryColor = v
+		}
+		if v, ok := t.BrandColors["secondary"].(string); ok {
+			info.SecondaryColor = v
+		}
 	}
 
 	// Extract optional fields from metadata
-	if b.Metadata != nil {
-		if name, ok := b.Metadata["name"].(string); ok {
+	if t.Metadata != nil {
+		if name, ok := t.Metadata["from_name"].(string); ok {
 			info.Name = name
 		}
-		if email, ok := b.Metadata["email"].(string); ok {
+		if email, ok := t.Metadata["from_email"].(string); ok {
 			info.Email = email
-		}
-		if phone, ok := b.Metadata["phone"].(string); ok {
-			info.Phone = phone
 		}
 	}
 
 	return info, nil
+}
+
+func parseUUID(s string) uuid.UUID {
+	u, _ := uuid.Parse(s)
+	return u
 }

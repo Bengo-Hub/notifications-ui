@@ -9,6 +9,18 @@ import (
 	"github.com/bengobox/notifications-api/internal/ent"
 )
 
+// The CreditTransactionFunc type is an adapter to allow the use of ordinary
+// function as CreditTransaction mutator.
+type CreditTransactionFunc func(context.Context, *ent.CreditTransactionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f CreditTransactionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.CreditTransactionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.CreditTransactionMutation", m)
+}
+
 // The DeliveryLogFunc type is an adapter to allow the use of ordinary
 // function as DeliveryLog mutator.
 type DeliveryLogFunc func(context.Context, *ent.DeliveryLogMutation) (ent.Value, error)
@@ -33,6 +45,18 @@ func (f OutboxEventFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value,
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OutboxEventMutation", m)
 }
 
+// The PlatformBillingFunc type is an adapter to allow the use of ordinary
+// function as PlatformBilling mutator.
+type PlatformBillingFunc func(context.Context, *ent.PlatformBillingMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlatformBillingFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PlatformBillingMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformBillingMutation", m)
+}
+
 // The ProviderSettingFunc type is an adapter to allow the use of ordinary
 // function as ProviderSetting mutator.
 type ProviderSettingFunc func(context.Context, *ent.ProviderSettingMutation) (ent.Value, error)
@@ -45,16 +69,28 @@ func (f ProviderSettingFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Va
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ProviderSettingMutation", m)
 }
 
-// The TenantBrandingFunc type is an adapter to allow the use of ordinary
-// function as TenantBranding mutator.
-type TenantBrandingFunc func(context.Context, *ent.TenantBrandingMutation) (ent.Value, error)
+// The TenantFunc type is an adapter to allow the use of ordinary
+// function as Tenant mutator.
+type TenantFunc func(context.Context, *ent.TenantMutation) (ent.Value, error)
 
 // Mutate calls f(ctx, m).
-func (f TenantBrandingFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-	if mv, ok := m.(*ent.TenantBrandingMutation); ok {
+func (f TenantFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.TenantMutation); ok {
 		return f(ctx, mv)
 	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.TenantBrandingMutation", m)
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.TenantMutation", m)
+}
+
+// The TenantCreditFunc type is an adapter to allow the use of ordinary
+// function as TenantCredit mutator.
+type TenantCreditFunc func(context.Context, *ent.TenantCreditMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f TenantCreditFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.TenantCreditMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.TenantCreditMutation", m)
 }
 
 // Condition is a hook condition function.

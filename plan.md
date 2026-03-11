@@ -24,7 +24,13 @@
 1. **Tenancy & Org Management (Priority 1)**
    - Multi-organisation and multi-branch support with isolated data domains, branding overrides, and onboarding APIs for external apps to create/link tenants.
    - Per-organisation preferences, quota policies, audit trails, and billing metrics.
-2. **Template & Content Management (Priority 1)**
+3. **Credit-Based SMS/WhatsApp Billing (Priority 1)**
+   - Tracks credit balances per tenant for SMS and WhatsApp channels.
+   - Integration with **treasury-api** for credit purchases via shared pay links.
+   - Pre-send validation: prevents sending if balance is insufficient.
+   - Platform Admin: Set SMS/WhatsApp credit rates and overrides.
+   - Tenant Admin: View balance and top-up via Treasury.
+4. **Template & Content Management (Priority 1)**
    - Versioned templates for email/SMS/push, MJML or Go templating with localization support.
    - Media asset library with CDN links, preview sandbox, approval workflow.
 3. **Channel Providers & Routing (Priority 1)**
@@ -107,6 +113,11 @@
 9. **Sprint 8 – Hardening & Launch (Weeks 16-17)**
    - [ ] Performance tuning, failover drills, security review
    - [ ] Documentation and production readiness review
+10. **Sprint 9 – Credit-Based Billing (New)**
+    - [ ] Schema for `TenantCredit` and `CreditTransactions`
+    - [ ] Treasury integration (create payment intents for credits)
+    - [ ] Balance deduction logic in delivery workers
+    - [ ] Credit dashboard in notifications-ui
 
 ## Backlog Ideas
 - AI-assisted template writing & subject line scoring, in-app messaging channel, WhatsApp Business integration, voice/IVR support, sentiment analysis on responses, predictive send-time optimization.

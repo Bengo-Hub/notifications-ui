@@ -8,8 +8,10 @@ import (
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/schema"
 	"github.com/bengobox/notifications-api/internal/config"
 	"github.com/bengobox/notifications-api/internal/ent"
+	"github.com/bengobox/notifications-api/internal/ent/migrate"
 	_ "github.com/jackc/pgx/v5/stdlib" // register pgx driver
 )
 
@@ -37,7 +39,7 @@ func NewClient(ctx context.Context, cfg config.PostgresConfig) (*ent.Client, err
 func RunMigrations(ctx context.Context, client *ent.Client) error {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
-	if err := client.Schema.Create(ctx); err != nil {
+	if err := client.Schema.Create(ctx, schema.WithDir(migrate.Dir)); err != nil {
 		return fmt.Errorf("run migrations: %w", err)
 	}
 	return nil

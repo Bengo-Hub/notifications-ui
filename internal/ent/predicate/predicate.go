@@ -6,14 +6,23 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// CreditTransaction is the predicate function for credittransaction builders.
+type CreditTransaction func(*sql.Selector)
+
 // DeliveryLog is the predicate function for deliverylog builders.
 type DeliveryLog func(*sql.Selector)
 
 // OutboxEvent is the predicate function for outboxevent builders.
 type OutboxEvent func(*sql.Selector)
 
+// PlatformBilling is the predicate function for platformbilling builders.
+type PlatformBilling func(*sql.Selector)
+
 // ProviderSetting is the predicate function for providersetting builders.
 type ProviderSetting func(*sql.Selector)
 
-// TenantBranding is the predicate function for tenantbranding builders.
-type TenantBranding func(*sql.Selector)
+// Tenant is the predicate function for tenant builders.
+type Tenant func(*sql.Selector)
+
+// TenantCredit is the predicate function for tenantcredit builders.
+type TenantCredit func(*sql.Selector)

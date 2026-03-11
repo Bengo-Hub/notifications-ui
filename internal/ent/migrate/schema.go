@@ -8,6 +8,42 @@ import (
 )
 
 var (
+	// CreditTransactionsColumns holds the columns for the "credit_transactions" table.
+	CreditTransactionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"SMS", "WHATSAPP"}},
+		{Name: "action", Type: field.TypeEnum, Enums: []string{"TOPUP", "DEDUCTION", "REFUND", "ADJUSTMENT"}},
+		{Name: "amount", Type: field.TypeFloat64},
+		{Name: "new_balance", Type: field.TypeFloat64},
+		{Name: "reference_id", Type: field.TypeString, Nullable: true},
+		{Name: "description", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "metadata", Type: field.TypeJSON},
+		{Name: "created_at", Type: field.TypeTime},
+	}
+	// CreditTransactionsTable holds the schema information for the "credit_transactions" table.
+	CreditTransactionsTable = &schema.Table{
+		Name:       "credit_transactions",
+		Columns:    CreditTransactionsColumns,
+		PrimaryKey: []*schema.Column{CreditTransactionsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "credittransaction_tenant_id",
+				Unique:  false,
+				Columns: []*schema.Column{CreditTransactionsColumns[1]},
+			},
+			{
+				Name:    "credittransaction_type",
+				Unique:  false,
+				Columns: []*schema.Column{CreditTransactionsColumns[2]},
+			},
+			{
+				Name:    "credittransaction_reference_id",
+				Unique:  false,
+				Columns: []*schema.Column{CreditTransactionsColumns[6]},
+			},
+		},
+	}
 	// DeliveryLogsColumns holds the columns for the "delivery_logs" table.
 	DeliveryLogsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -89,6 +125,21 @@ var (
 			},
 		},
 	}
+	// PlatformBillingsColumns holds the columns for the "platform_billings" table.
+	PlatformBillingsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "cost_per_sms", Type: field.TypeFloat64, Default: 1},
+		{Name: "cost_per_whatsapp", Type: field.TypeFloat64, Default: 2},
+		{Name: "min_topup_amount", Type: field.TypeFloat64, Default: 500},
+		{Name: "treasury_gateway_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// PlatformBillingsTable holds the schema information for the "platform_billings" table.
+	PlatformBillingsTable = &schema.Table{
+		Name:       "platform_billings",
+		Columns:    PlatformBillingsColumns,
+		PrimaryKey: []*schema.Column{PlatformBillingsColumns[0]},
+	}
 	// ProviderSettingsColumns holds the columns for the "provider_settings" table.
 	ProviderSettingsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -102,6 +153,9 @@ var (
 		{Name: "description", Type: field.TypeString, Nullable: true, Size: 2147483647},
 		{Name: "is_encrypted", Type: field.TypeBool, Default: false},
 		{Name: "is_platform", Type: field.TypeBool, Default: false},
+		{Name: "is_platform_managed", Type: field.TypeBool, Default: false},
+		{Name: "environment", Type: field.TypeString, Default: "production"},
+		{Name: "is_secret", Type: field.TypeBool, Default: false},
 		{Name: "is_active", Type: field.TypeBool, Default: true},
 		{Name: "status", Type: field.TypeString, Nullable: true, Default: "active"},
 	}
@@ -112,47 +166,91 @@ var (
 		PrimaryKey: []*schema.Column{ProviderSettingsColumns[0]},
 		Indexes: []*schema.Index{
 			{
-				Name:    "providersetting_tenant_id_provider_type_provider_name_key",
+				Name:    "providersetting_tenant_id_environment_provider_type_provider_name_key",
 				Unique:  false,
-				Columns: []*schema.Column{ProviderSettingsColumns[1], ProviderSettingsColumns[4], ProviderSettingsColumns[5], ProviderSettingsColumns[6]},
+				Columns: []*schema.Column{ProviderSettingsColumns[1], ProviderSettingsColumns[12], ProviderSettingsColumns[4], ProviderSettingsColumns[5], ProviderSettingsColumns[6]},
 			},
 			{
-				Name:    "providersetting_tenant_id_provider_type",
+				Name:    "providersetting_tenant_id_environment_provider_type",
 				Unique:  false,
-				Columns: []*schema.Column{ProviderSettingsColumns[1], ProviderSettingsColumns[4]},
+				Columns: []*schema.Column{ProviderSettingsColumns[1], ProviderSettingsColumns[12], ProviderSettingsColumns[4]},
 			},
 		},
 	}
-	// TenantBrandingsColumns holds the columns for the "tenant_brandings" table.
-	TenantBrandingsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "tenant_id", Type: field.TypeString, Unique: true},
+	// TenantsColumns holds the columns for the "tenants" table.
+	TenantsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "name", Type: field.TypeString},
+		{Name: "slug", Type: field.TypeString, Unique: true},
+		{Name: "status", Type: field.TypeString, Default: "active"},
+		{Name: "contact_email", Type: field.TypeString, Nullable: true},
+		{Name: "contact_phone", Type: field.TypeString, Nullable: true},
 		{Name: "logo_url", Type: field.TypeString, Nullable: true},
-		{Name: "primary_color", Type: field.TypeString, Nullable: true},
-		{Name: "secondary_color", Type: field.TypeString, Nullable: true},
-		{Name: "font_family", Type: field.TypeString, Nullable: true},
-		{Name: "custom_css", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "website", Type: field.TypeString, Nullable: true},
+		{Name: "country", Type: field.TypeString, Nullable: true, Default: "KE"},
+		{Name: "timezone", Type: field.TypeString, Nullable: true, Default: "Africa/Nairobi"},
+		{Name: "brand_colors", Type: field.TypeJSON, Nullable: true},
+		{Name: "org_size", Type: field.TypeString, Nullable: true},
+		{Name: "use_case", Type: field.TypeString, Nullable: true},
+		{Name: "subscription_plan", Type: field.TypeString, Nullable: true},
+		{Name: "subscription_status", Type: field.TypeString, Nullable: true},
+		{Name: "subscription_expires_at", Type: field.TypeTime, Nullable: true},
+		{Name: "subscription_id", Type: field.TypeString, Nullable: true},
+		{Name: "tier_limits", Type: field.TypeJSON, Nullable: true},
 		{Name: "metadata", Type: field.TypeJSON, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
 	}
-	// TenantBrandingsTable holds the schema information for the "tenant_brandings" table.
-	TenantBrandingsTable = &schema.Table{
-		Name:       "tenant_brandings",
-		Columns:    TenantBrandingsColumns,
-		PrimaryKey: []*schema.Column{TenantBrandingsColumns[0]},
+	// TenantsTable holds the schema information for the "tenants" table.
+	TenantsTable = &schema.Table{
+		Name:       "tenants",
+		Columns:    TenantsColumns,
+		PrimaryKey: []*schema.Column{TenantsColumns[0]},
 		Indexes: []*schema.Index{
 			{
-				Name:    "tenantbranding_tenant_id",
+				Name:    "tenant_slug",
 				Unique:  true,
-				Columns: []*schema.Column{TenantBrandingsColumns[1]},
+				Columns: []*schema.Column{TenantsColumns[2]},
+			},
+			{
+				Name:    "tenant_status",
+				Unique:  false,
+				Columns: []*schema.Column{TenantsColumns[3]},
+			},
+		},
+	}
+	// TenantCreditsColumns holds the columns for the "tenant_credits" table.
+	TenantCreditsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"SMS", "WHATSAPP"}, Default: "SMS"},
+		{Name: "balance", Type: field.TypeFloat64, Default: 0},
+		{Name: "rate", Type: field.TypeFloat64, Default: 0},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// TenantCreditsTable holds the schema information for the "tenant_credits" table.
+	TenantCreditsTable = &schema.Table{
+		Name:       "tenant_credits",
+		Columns:    TenantCreditsColumns,
+		PrimaryKey: []*schema.Column{TenantCreditsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "tenantcredit_tenant_id_type",
+				Unique:  true,
+				Columns: []*schema.Column{TenantCreditsColumns[1], TenantCreditsColumns[2]},
 			},
 		},
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		CreditTransactionsTable,
 		DeliveryLogsTable,
 		OutboxEventsTable,
+		PlatformBillingsTable,
 		ProviderSettingsTable,
-		TenantBrandingsTable,
+		TenantsTable,
+		TenantCreditsTable,
 	}
 )
 

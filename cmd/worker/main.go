@@ -11,6 +11,9 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"fmt"
+
+	"github.com/google/uuid"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nats-io/nats.go"
@@ -25,6 +28,10 @@ import (
 	"github.com/bengobox/notifications-api/internal/platform/templates"
 	"github.com/bengobox/notifications-api/internal/providers"
 	"github.com/bengobox/notifications-api/internal/shared/logger"
+	"github.com/bengobox/notifications-api/internal/ent"
+	"github.com/bengobox/notifications-api/internal/modules/billing"
+	"github.com/bengobox/notifications-api/internal/modules/tenant"
+	"github.com/Bengo-Hub/shared-service-client"
 )
 
 const maxRetries = 3
@@ -69,12 +76,36 @@ func main() {
 
 	tpl := templates.New(cfg.Templates)
 
-	// DB for provider overrides
+	// DB for provider overrides and billing
+	client, err := ent.Open("postgres", cfg.Postgres.URL)
+	if err != nil {
+		logg.Fatal("failed to connect to ent", zap.Error(err))
+	}
+	defer client.Close()
+
+	if err := client.Schema.Create(ctx); err != nil {
+		logg.Fatal("failed to create schema", zap.Error(err))
+	}
+
+	// Initialize Treasury Client for top-up monitoring
+	treasuryCfg := serviceclient.DefaultConfig(cfg.Services.TreasuryAPI, "treasury-api", logg)
+	treasuryClient := serviceclient.New(treasuryCfg)
+
+	billingSvc := billing.NewService(client, logg, treasuryClient)
 	dbPool, err := database.NewPool(ctx, cfg.Postgres)
 	if err != nil {
 		logg.Warn("postgres not available for provider overrides", zap.Error(err))
 	}
-	pm := providers.NewManager(dbPool, cfg.Postgres, cfg.Providers, encryption.KeyFromEnv(cfg.Security.EncryptionKey))
+
+	// Sync platform owner tenant
+	tenantSyncer := tenant.NewSyncer(client, cfg.Services.AuthAPI)
+	platformID, err := tenantSyncer.SyncTenant(ctx, "codevertex")
+	if err != nil {
+		logg.Warn("failed to sync platform owner, using fallback", zap.Error(err))
+	}
+	platformIDStr := platformID.String()
+
+	pm := providers.NewManager(dbPool, cfg.Postgres, cfg.Providers, encryption.KeyFromEnv(cfg.Security.EncryptionKey), cfg.App.Env, platformIDStr)
 
 	durable := "notifications-worker"
 	_, err = js.Subscribe(subject, func(m *nats.Msg) {
@@ -101,7 +132,7 @@ func main() {
 		}
 
 		// Deliver via provider
-		deliverErr := deliver(ctx, cfg, pm, &msg, rendered, logg)
+		deliverErr := deliver(ctx, cfg, pm, billingSvc, &msg, rendered, logg)
 		if deliverErr != nil {
 			logg.Warn("delivery failed",
 				zap.String("channel", msg.Channel),
@@ -217,8 +248,9 @@ func renderMessage(ctx context.Context, cfg *config.Config, tpl *templates.Loade
 }
 
 // deliver sends the rendered message via the appropriate provider.
-func deliver(ctx context.Context, cfg *config.Config, pm *providers.Manager, msg *messaging.Message, rendered string, logg *zap.Logger) error {
+func deliver(ctx context.Context, cfg *config.Config, pm *providers.Manager, billingSvc *billing.Service, msg *messaging.Message, rendered string, logg *zap.Logger) error {
 	channel := strings.ToLower(msg.Channel)
+	tenantID, _ := uuid.Parse(msg.TenantID)
 	preferred := ""
 	if p, ok := msg.Metadata["provider"].(string); ok {
 		preferred = p
@@ -238,11 +270,37 @@ func deliver(ctx context.Context, cfg *config.Config, pm *providers.Manager, msg
 		return nil
 
 	case "sms":
+		// Deduct credits based on segments and recipient count
+		if err := billingSvc.DeductSMSCredits(ctx, tenantID, rendered, len(msg.To), "SMS Delivery"); err != nil {
+			return fmt.Errorf("billing: %w", err)
+		}
+
 		smsProv, _ := pm.GetSMSProvider(ctx, msg.TenantID, preferred)
 		if err := smsProv.SendSMS(ctx, cfg.Providers.DefaultSMSSender, msg.To, rendered); err != nil {
 			return err
 		}
 		logg.Info("sms sent", zap.String("provider", smsProv.Name()), zap.Strings("to", msg.To))
+		return nil
+
+	case "whatsapp":
+		if err := billingSvc.DeductWhatsAppCredits(ctx, tenantID, len(msg.To), "WhatsApp Delivery"); err != nil {
+			return fmt.Errorf("billing: %w", err)
+		}
+
+		waProv, err := pm.GetWhatsAppProvider(ctx, msg.TenantID, preferred)
+		if err != nil {
+			return err
+		}
+		
+		waMetadata := make(map[string]interface{})
+		for k, v := range msg.Metadata {
+			waMetadata[k] = v
+		}
+
+		if err := waProv.SendWhatsApp(ctx, cfg.Providers.DefaultSMSSender, msg.To, rendered, waMetadata); err != nil {
+			return err
+		}
+		logg.Info("whatsapp message sent", zap.String("provider", waProv.Name()), zap.Strings("to", msg.To))
 		return nil
 
 	case "push":

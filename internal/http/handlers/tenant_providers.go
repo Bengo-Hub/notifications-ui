@@ -5,33 +5,38 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 
 	"github.com/bengobox/notifications-api/internal/ent"
 	"github.com/bengobox/notifications-api/internal/ent/providersetting"
-	"github.com/bengobox/notifications-api/internal/ent/tenantbranding"
+	"github.com/bengobox/notifications-api/internal/ent/tenant"
+	httpware "github.com/Bengo-Hub/httpware"
 )
 
 // TenantProviders handles tenant-level notification provider selection and branding.
 type TenantProviders struct {
-	client *ent.Client
-	logger *zap.Logger
+	client     *ent.Client
+	logger     *zap.Logger
+	PlatformID string
 }
 
 // NewTenantProviders creates a new TenantProviders handler.
-func NewTenantProviders(client *ent.Client, logger *zap.Logger) *TenantProviders {
-	return &TenantProviders{client: client, logger: logger}
+func NewTenantProviders(client *ent.Client, logger *zap.Logger, platformID string) *TenantProviders {
+	return &TenantProviders{client: client, logger: logger, PlatformID: platformID}
 }
 
 type availableProviderResponse struct {
 	ProviderType string `json:"provider_type"`
 	ProviderName string `json:"provider_name"`
+	Environment  string `json:"environment"`
 	IsActive     bool   `json:"is_active"`
 }
 
 type selectProviderRequest struct {
 	ProviderType string `json:"provider_type"` // email, sms
 	ProviderName string `json:"provider_name"` // smtp, sendgrid, twilio, etc.
+	Environment  string `json:"environment"`   // sandbox, production
 }
 
 type brandingRequest struct {
@@ -53,11 +58,17 @@ type brandingResponse struct {
 
 // ListAvailable lists active platform providers available for tenant selection.
 func (h *TenantProviders) ListAvailable(w http.ResponseWriter, r *http.Request) {
+	env := r.URL.Query().Get("environment")
+	if env == "" {
+		env = "production"
+	}
+
 	settings, err := h.client.ProviderSetting.Query().
 		Where(
-			providersetting.TenantID(platformTenantID),
+			providersetting.TenantID(h.PlatformID),
 			providersetting.IsPlatform(true),
 			providersetting.IsActive(true),
+			providersetting.EnvironmentEQ(env),
 			providersetting.KeyEQ("_config"),
 		).
 		All(r.Context())
@@ -72,6 +83,7 @@ func (h *TenantProviders) ListAvailable(w http.ResponseWriter, r *http.Request) 
 		result = append(result, availableProviderResponse{
 			ProviderType: s.ProviderType,
 			ProviderName: s.ProviderName,
+			Environment:  s.Environment,
 			IsActive:     s.IsActive,
 		})
 	}
@@ -81,7 +93,16 @@ func (h *TenantProviders) ListAvailable(w http.ResponseWriter, r *http.Request) 
 
 // SelectProvider sets the tenant's preferred provider for a channel.
 func (h *TenantProviders) SelectProvider(w http.ResponseWriter, r *http.Request) {
-	tenantID := chi.URLParam(r, "tenantId")
+	ctx := r.Context()
+	tenantID := httpware.GetTenantID(ctx)
+
+	// Platform owners can override via query param
+	if httpware.IsPlatformOwner(ctx) {
+		if q := r.URL.Query().Get("tenantId"); q != "" {
+			tenantID = q
+		}
+	}
+
 	if tenantID == "" {
 		jsonError(w, http.StatusBadRequest, "tenant ID required")
 		return
@@ -98,15 +119,20 @@ func (h *TenantProviders) SelectProvider(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	ctx := r.Context()
+	if req.Environment == "" {
+		req.Environment = "production"
+	}
+
+	ctx = r.Context()
 
 	// Verify platform provider is active
 	count, _ := h.client.ProviderSetting.Query().
 		Where(
-			providersetting.TenantID(platformTenantID),
+			providersetting.TenantID(h.PlatformID),
 			providersetting.IsPlatform(true),
 			providersetting.ProviderType(req.ProviderType),
 			providersetting.ProviderName(req.ProviderName),
+			providersetting.EnvironmentEQ(req.Environment),
 			providersetting.IsActive(true),
 			providersetting.KeyEQ("_config"),
 		).
@@ -121,6 +147,7 @@ func (h *TenantProviders) SelectProvider(w http.ResponseWriter, r *http.Request)
 		Where(
 			providersetting.TenantID(tenantID),
 			providersetting.ProviderType(req.ProviderType),
+			providersetting.EnvironmentEQ(req.Environment),
 			providersetting.KeyEQ("_preferred"),
 		).
 		Exec(ctx)
@@ -132,6 +159,7 @@ func (h *TenantProviders) SelectProvider(w http.ResponseWriter, r *http.Request)
 		SetProvider(req.ProviderName).
 		SetProviderType(req.ProviderType).
 		SetProviderName(req.ProviderName).
+		SetEnvironment(req.Environment).
 		SetKey("_preferred").
 		SetValue(req.ProviderName).
 		SetIsPlatform(false).
@@ -153,7 +181,16 @@ func (h *TenantProviders) SelectProvider(w http.ResponseWriter, r *http.Request)
 
 // GetSelected returns the tenant's currently selected providers.
 func (h *TenantProviders) GetSelected(w http.ResponseWriter, r *http.Request) {
-	tenantID := chi.URLParam(r, "tenantId")
+	ctx := r.Context()
+	tenantID := httpware.GetTenantID(ctx)
+
+	// Platform owners can override via query param
+	if httpware.IsPlatformOwner(ctx) {
+		if q := r.URL.Query().Get("tenantId"); q != "" {
+			tenantID = q
+		}
+	}
+
 	if tenantID == "" {
 		jsonError(w, http.StatusBadRequest, "tenant ID required")
 		return
@@ -183,33 +220,49 @@ func (h *TenantProviders) GetSelected(w http.ResponseWriter, r *http.Request) {
 
 // GetBranding returns the tenant's notification branding.
 func (h *TenantProviders) GetBranding(w http.ResponseWriter, r *http.Request) {
-	tenantID := chi.URLParam(r, "tenantId")
+	ctx := r.Context()
+	tenantID := httpware.GetTenantID(ctx)
+
+	// Platform owners can override via query param
+	if httpware.IsPlatformOwner(ctx) {
+		if q := r.URL.Query().Get("tenantId"); q != "" {
+			tenantID = q
+		}
+	}
+
 	if tenantID == "" {
 		jsonError(w, http.StatusBadRequest, "tenant ID required")
 		return
 	}
 
-	branding, err := h.client.TenantBranding.Query().
-		Where(tenantbranding.TenantID(tenantID)).
-		First(r.Context())
+	t, err := h.client.Tenant.Query().
+		Where(tenant.IDEQ(parseUUID(tenantID))).
+		Only(r.Context())
 	if err != nil {
-		jsonError(w, http.StatusNotFound, "branding not configured")
+		jsonError(w, http.StatusNotFound, "tenant not found")
 		return
 	}
 
 	resp := brandingResponse{
-		TenantID:       branding.TenantID,
-		LogoURL:        branding.LogoURL,
-		PrimaryColor:   branding.PrimaryColor,
-		SecondaryColor: branding.SecondaryColor,
+		TenantID:     t.ID.String(),
+		LogoURL:      t.LogoURL,
+	}
+
+	if t.BrandColors != nil {
+		if v, ok := t.BrandColors["primary"].(string); ok {
+			resp.PrimaryColor = v
+		}
+		if v, ok := t.BrandColors["secondary"].(string); ok {
+			resp.SecondaryColor = v
+		}
 	}
 
 	// Get from_email and from_name from metadata
-	if branding.Metadata != nil {
-		if v, ok := branding.Metadata["from_email"].(string); ok {
+	if t.Metadata != nil {
+		if v, ok := t.Metadata["from_email"].(string); ok {
 			resp.FromEmail = v
 		}
-		if v, ok := branding.Metadata["from_name"].(string); ok {
+		if v, ok := t.Metadata["from_name"].(string); ok {
 			resp.FromName = v
 		}
 	}
@@ -219,7 +272,16 @@ func (h *TenantProviders) GetBranding(w http.ResponseWriter, r *http.Request) {
 
 // UpdateBranding creates or updates the tenant's notification branding.
 func (h *TenantProviders) UpdateBranding(w http.ResponseWriter, r *http.Request) {
-	tenantID := chi.URLParam(r, "tenantId")
+	ctx := r.Context()
+	tenantID := httpware.GetTenantID(ctx)
+
+	// Platform owners can override via query param
+	if httpware.IsPlatformOwner(ctx) {
+		if q := r.URL.Query().Get("tenantId"); q != "" {
+			tenantID = q
+		}
+	}
+
 	if tenantID == "" {
 		jsonError(w, http.StatusBadRequest, "tenant ID required")
 		return
@@ -231,58 +293,54 @@ func (h *TenantProviders) UpdateBranding(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	ctx := r.Context()
+	ctx = r.Context()
 
-	existing, _ := h.client.TenantBranding.Query().
-		Where(tenantbranding.TenantID(tenantID)).
-		First(ctx)
-
-	metadata := map[string]interface{}{
-		"from_email": req.FromEmail,
-		"from_name":  req.FromName,
+	t, err := h.client.Tenant.Query().
+		Where(tenant.IDEQ(parseUUID(tenantID))).
+		Only(ctx)
+	if err != nil {
+		jsonError(w, http.StatusNotFound, "tenant not found")
+		return
 	}
 
-	if existing != nil {
-		update := existing.Update().SetMetadata(metadata)
-		if req.LogoURL != "" {
-			update = update.SetLogoURL(req.LogoURL)
-		}
-		if req.PrimaryColor != "" {
-			update = update.SetPrimaryColor(req.PrimaryColor)
-		}
-		if req.SecondaryColor != "" {
-			update = update.SetSecondaryColor(req.SecondaryColor)
-		}
+	update := t.Update()
+	metadata := t.Metadata
+	if metadata == nil {
+		metadata = make(map[string]any)
+	}
+	metadata["from_email"] = req.FromEmail
+	metadata["from_name"] = req.FromName
+	update.SetMetadata(metadata)
 
-		_, err := update.Save(ctx)
-		if err != nil {
-			h.logger.Error("failed to update branding", zap.Error(err))
-			jsonError(w, http.StatusInternalServerError, "failed to update branding")
-			return
-		}
-	} else {
-		create := h.client.TenantBranding.Create().
-			SetTenantID(tenantID).
-			SetMetadata(metadata)
-		if req.LogoURL != "" {
-			create = create.SetLogoURL(req.LogoURL)
-		}
-		if req.PrimaryColor != "" {
-			create = create.SetPrimaryColor(req.PrimaryColor)
-		}
-		if req.SecondaryColor != "" {
-			create = create.SetSecondaryColor(req.SecondaryColor)
-		}
+	if req.LogoURL != "" {
+		update.SetLogoURL(req.LogoURL)
+	}
 
-		_, err := create.Save(ctx)
-		if err != nil {
-			h.logger.Error("failed to create branding", zap.Error(err))
-			jsonError(w, http.StatusInternalServerError, "failed to create branding")
-			return
-		}
+	colors := t.BrandColors
+	if colors == nil {
+		colors = make(map[string]any)
+	}
+	if req.PrimaryColor != "" {
+		colors["primary"] = req.PrimaryColor
+	}
+	if req.SecondaryColor != "" {
+		colors["secondary"] = req.SecondaryColor
+	}
+	update.SetBrandColors(colors)
+
+	_, err = update.Save(ctx)
+	if err != nil {
+		h.logger.Error("failed to update branding", zap.Error(err))
+		jsonError(w, http.StatusInternalServerError, "failed to update branding")
+		return
 	}
 
 	jsonResponse(w, http.StatusOK, map[string]string{"message": "branding updated"})
+}
+
+func parseUUID(s string) uuid.UUID {
+	u, _ := uuid.Parse(s)
+	return u
 }
 
 // RegisterTenantProviderRoutes registers tenant provider routes.

@@ -17,8 +17,9 @@ import (
 // ProviderSettingUpdate is the builder for updating ProviderSetting entities.
 type ProviderSettingUpdate struct {
 	config
-	hooks    []Hook
-	mutation *ProviderSettingMutation
+	hooks     []Hook
+	mutation  *ProviderSettingMutation
+	modifiers []func(*sql.UpdateBuilder)
 }
 
 // Where appends a list predicates to the ProviderSettingUpdate builder.
@@ -209,6 +210,48 @@ func (psu *ProviderSettingUpdate) SetNillableIsPlatform(b *bool) *ProviderSettin
 	return psu
 }
 
+// SetIsPlatformManaged sets the "is_platform_managed" field.
+func (psu *ProviderSettingUpdate) SetIsPlatformManaged(b bool) *ProviderSettingUpdate {
+	psu.mutation.SetIsPlatformManaged(b)
+	return psu
+}
+
+// SetNillableIsPlatformManaged sets the "is_platform_managed" field if the given value is not nil.
+func (psu *ProviderSettingUpdate) SetNillableIsPlatformManaged(b *bool) *ProviderSettingUpdate {
+	if b != nil {
+		psu.SetIsPlatformManaged(*b)
+	}
+	return psu
+}
+
+// SetEnvironment sets the "environment" field.
+func (psu *ProviderSettingUpdate) SetEnvironment(s string) *ProviderSettingUpdate {
+	psu.mutation.SetEnvironment(s)
+	return psu
+}
+
+// SetNillableEnvironment sets the "environment" field if the given value is not nil.
+func (psu *ProviderSettingUpdate) SetNillableEnvironment(s *string) *ProviderSettingUpdate {
+	if s != nil {
+		psu.SetEnvironment(*s)
+	}
+	return psu
+}
+
+// SetIsSecret sets the "is_secret" field.
+func (psu *ProviderSettingUpdate) SetIsSecret(b bool) *ProviderSettingUpdate {
+	psu.mutation.SetIsSecret(b)
+	return psu
+}
+
+// SetNillableIsSecret sets the "is_secret" field if the given value is not nil.
+func (psu *ProviderSettingUpdate) SetNillableIsSecret(b *bool) *ProviderSettingUpdate {
+	if b != nil {
+		psu.SetIsSecret(*b)
+	}
+	return psu
+}
+
 // SetIsActive sets the "is_active" field.
 func (psu *ProviderSettingUpdate) SetIsActive(b bool) *ProviderSettingUpdate {
 	psu.mutation.SetIsActive(b)
@@ -275,6 +318,12 @@ func (psu *ProviderSettingUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// Modify adds a statement modifier for attaching custom logic to the UPDATE statement.
+func (psu *ProviderSettingUpdate) Modify(modifiers ...func(u *sql.UpdateBuilder)) *ProviderSettingUpdate {
+	psu.modifiers = append(psu.modifiers, modifiers...)
+	return psu
+}
+
 func (psu *ProviderSettingUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	_spec := sqlgraph.NewUpdateSpec(providersetting.Table, providersetting.Columns, sqlgraph.NewFieldSpec(providersetting.FieldID, field.TypeInt))
 	if ps := psu.mutation.predicates; len(ps) > 0 {
@@ -335,6 +384,15 @@ func (psu *ProviderSettingUpdate) sqlSave(ctx context.Context) (n int, err error
 	if value, ok := psu.mutation.IsPlatform(); ok {
 		_spec.SetField(providersetting.FieldIsPlatform, field.TypeBool, value)
 	}
+	if value, ok := psu.mutation.IsPlatformManaged(); ok {
+		_spec.SetField(providersetting.FieldIsPlatformManaged, field.TypeBool, value)
+	}
+	if value, ok := psu.mutation.Environment(); ok {
+		_spec.SetField(providersetting.FieldEnvironment, field.TypeString, value)
+	}
+	if value, ok := psu.mutation.IsSecret(); ok {
+		_spec.SetField(providersetting.FieldIsSecret, field.TypeBool, value)
+	}
 	if value, ok := psu.mutation.IsActive(); ok {
 		_spec.SetField(providersetting.FieldIsActive, field.TypeBool, value)
 	}
@@ -344,6 +402,7 @@ func (psu *ProviderSettingUpdate) sqlSave(ctx context.Context) (n int, err error
 	if psu.mutation.StatusCleared() {
 		_spec.ClearField(providersetting.FieldStatus, field.TypeString)
 	}
+	_spec.AddModifiers(psu.modifiers...)
 	if n, err = sqlgraph.UpdateNodes(ctx, psu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{providersetting.Label}
@@ -359,9 +418,10 @@ func (psu *ProviderSettingUpdate) sqlSave(ctx context.Context) (n int, err error
 // ProviderSettingUpdateOne is the builder for updating a single ProviderSetting entity.
 type ProviderSettingUpdateOne struct {
 	config
-	fields   []string
-	hooks    []Hook
-	mutation *ProviderSettingMutation
+	fields    []string
+	hooks     []Hook
+	mutation  *ProviderSettingMutation
+	modifiers []func(*sql.UpdateBuilder)
 }
 
 // SetTenantID sets the "tenant_id" field.
@@ -546,6 +606,48 @@ func (psuo *ProviderSettingUpdateOne) SetNillableIsPlatform(b *bool) *ProviderSe
 	return psuo
 }
 
+// SetIsPlatformManaged sets the "is_platform_managed" field.
+func (psuo *ProviderSettingUpdateOne) SetIsPlatformManaged(b bool) *ProviderSettingUpdateOne {
+	psuo.mutation.SetIsPlatformManaged(b)
+	return psuo
+}
+
+// SetNillableIsPlatformManaged sets the "is_platform_managed" field if the given value is not nil.
+func (psuo *ProviderSettingUpdateOne) SetNillableIsPlatformManaged(b *bool) *ProviderSettingUpdateOne {
+	if b != nil {
+		psuo.SetIsPlatformManaged(*b)
+	}
+	return psuo
+}
+
+// SetEnvironment sets the "environment" field.
+func (psuo *ProviderSettingUpdateOne) SetEnvironment(s string) *ProviderSettingUpdateOne {
+	psuo.mutation.SetEnvironment(s)
+	return psuo
+}
+
+// SetNillableEnvironment sets the "environment" field if the given value is not nil.
+func (psuo *ProviderSettingUpdateOne) SetNillableEnvironment(s *string) *ProviderSettingUpdateOne {
+	if s != nil {
+		psuo.SetEnvironment(*s)
+	}
+	return psuo
+}
+
+// SetIsSecret sets the "is_secret" field.
+func (psuo *ProviderSettingUpdateOne) SetIsSecret(b bool) *ProviderSettingUpdateOne {
+	psuo.mutation.SetIsSecret(b)
+	return psuo
+}
+
+// SetNillableIsSecret sets the "is_secret" field if the given value is not nil.
+func (psuo *ProviderSettingUpdateOne) SetNillableIsSecret(b *bool) *ProviderSettingUpdateOne {
+	if b != nil {
+		psuo.SetIsSecret(*b)
+	}
+	return psuo
+}
+
 // SetIsActive sets the "is_active" field.
 func (psuo *ProviderSettingUpdateOne) SetIsActive(b bool) *ProviderSettingUpdateOne {
 	psuo.mutation.SetIsActive(b)
@@ -625,6 +727,12 @@ func (psuo *ProviderSettingUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// Modify adds a statement modifier for attaching custom logic to the UPDATE statement.
+func (psuo *ProviderSettingUpdateOne) Modify(modifiers ...func(u *sql.UpdateBuilder)) *ProviderSettingUpdateOne {
+	psuo.modifiers = append(psuo.modifiers, modifiers...)
+	return psuo
+}
+
 func (psuo *ProviderSettingUpdateOne) sqlSave(ctx context.Context) (_node *ProviderSetting, err error) {
 	_spec := sqlgraph.NewUpdateSpec(providersetting.Table, providersetting.Columns, sqlgraph.NewFieldSpec(providersetting.FieldID, field.TypeInt))
 	id, ok := psuo.mutation.ID()
@@ -702,6 +810,15 @@ func (psuo *ProviderSettingUpdateOne) sqlSave(ctx context.Context) (_node *Provi
 	if value, ok := psuo.mutation.IsPlatform(); ok {
 		_spec.SetField(providersetting.FieldIsPlatform, field.TypeBool, value)
 	}
+	if value, ok := psuo.mutation.IsPlatformManaged(); ok {
+		_spec.SetField(providersetting.FieldIsPlatformManaged, field.TypeBool, value)
+	}
+	if value, ok := psuo.mutation.Environment(); ok {
+		_spec.SetField(providersetting.FieldEnvironment, field.TypeString, value)
+	}
+	if value, ok := psuo.mutation.IsSecret(); ok {
+		_spec.SetField(providersetting.FieldIsSecret, field.TypeBool, value)
+	}
 	if value, ok := psuo.mutation.IsActive(); ok {
 		_spec.SetField(providersetting.FieldIsActive, field.TypeBool, value)
 	}
@@ -711,6 +828,7 @@ func (psuo *ProviderSettingUpdateOne) sqlSave(ctx context.Context) (_node *Provi
 	if psuo.mutation.StatusCleared() {
 		_spec.ClearField(providersetting.FieldStatus, field.TypeString)
 	}
+	_spec.AddModifiers(psuo.modifiers...)
 	_node = &ProviderSetting{config: psuo.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues

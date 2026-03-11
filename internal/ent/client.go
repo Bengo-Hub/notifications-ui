@@ -15,10 +15,13 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
+	"github.com/bengobox/notifications-api/internal/ent/credittransaction"
 	"github.com/bengobox/notifications-api/internal/ent/deliverylog"
 	"github.com/bengobox/notifications-api/internal/ent/outboxevent"
+	"github.com/bengobox/notifications-api/internal/ent/platformbilling"
 	"github.com/bengobox/notifications-api/internal/ent/providersetting"
-	"github.com/bengobox/notifications-api/internal/ent/tenantbranding"
+	"github.com/bengobox/notifications-api/internal/ent/tenant"
+	"github.com/bengobox/notifications-api/internal/ent/tenantcredit"
 )
 
 // Client is the client that holds all ent builders.
@@ -26,14 +29,20 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// CreditTransaction is the client for interacting with the CreditTransaction builders.
+	CreditTransaction *CreditTransactionClient
 	// DeliveryLog is the client for interacting with the DeliveryLog builders.
 	DeliveryLog *DeliveryLogClient
 	// OutboxEvent is the client for interacting with the OutboxEvent builders.
 	OutboxEvent *OutboxEventClient
+	// PlatformBilling is the client for interacting with the PlatformBilling builders.
+	PlatformBilling *PlatformBillingClient
 	// ProviderSetting is the client for interacting with the ProviderSetting builders.
 	ProviderSetting *ProviderSettingClient
-	// TenantBranding is the client for interacting with the TenantBranding builders.
-	TenantBranding *TenantBrandingClient
+	// Tenant is the client for interacting with the Tenant builders.
+	Tenant *TenantClient
+	// TenantCredit is the client for interacting with the TenantCredit builders.
+	TenantCredit *TenantCreditClient
 }
 
 // NewClient creates a new client configured with the given options.
@@ -45,10 +54,13 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.CreditTransaction = NewCreditTransactionClient(c.config)
 	c.DeliveryLog = NewDeliveryLogClient(c.config)
 	c.OutboxEvent = NewOutboxEventClient(c.config)
+	c.PlatformBilling = NewPlatformBillingClient(c.config)
 	c.ProviderSetting = NewProviderSettingClient(c.config)
-	c.TenantBranding = NewTenantBrandingClient(c.config)
+	c.Tenant = NewTenantClient(c.config)
+	c.TenantCredit = NewTenantCreditClient(c.config)
 }
 
 type (
@@ -139,12 +151,15 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:             ctx,
-		config:          cfg,
-		DeliveryLog:     NewDeliveryLogClient(cfg),
-		OutboxEvent:     NewOutboxEventClient(cfg),
-		ProviderSetting: NewProviderSettingClient(cfg),
-		TenantBranding:  NewTenantBrandingClient(cfg),
+		ctx:               ctx,
+		config:            cfg,
+		CreditTransaction: NewCreditTransactionClient(cfg),
+		DeliveryLog:       NewDeliveryLogClient(cfg),
+		OutboxEvent:       NewOutboxEventClient(cfg),
+		PlatformBilling:   NewPlatformBillingClient(cfg),
+		ProviderSetting:   NewProviderSettingClient(cfg),
+		Tenant:            NewTenantClient(cfg),
+		TenantCredit:      NewTenantCreditClient(cfg),
 	}, nil
 }
 
@@ -162,19 +177,22 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:             ctx,
-		config:          cfg,
-		DeliveryLog:     NewDeliveryLogClient(cfg),
-		OutboxEvent:     NewOutboxEventClient(cfg),
-		ProviderSetting: NewProviderSettingClient(cfg),
-		TenantBranding:  NewTenantBrandingClient(cfg),
+		ctx:               ctx,
+		config:            cfg,
+		CreditTransaction: NewCreditTransactionClient(cfg),
+		DeliveryLog:       NewDeliveryLogClient(cfg),
+		OutboxEvent:       NewOutboxEventClient(cfg),
+		PlatformBilling:   NewPlatformBillingClient(cfg),
+		ProviderSetting:   NewProviderSettingClient(cfg),
+		Tenant:            NewTenantClient(cfg),
+		TenantCredit:      NewTenantCreditClient(cfg),
 	}, nil
 }
 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		DeliveryLog.
+//		CreditTransaction.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -196,34 +214,177 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
-	c.DeliveryLog.Use(hooks...)
-	c.OutboxEvent.Use(hooks...)
-	c.ProviderSetting.Use(hooks...)
-	c.TenantBranding.Use(hooks...)
+	for _, n := range []interface{ Use(...Hook) }{
+		c.CreditTransaction, c.DeliveryLog, c.OutboxEvent, c.PlatformBilling,
+		c.ProviderSetting, c.Tenant, c.TenantCredit,
+	} {
+		n.Use(hooks...)
+	}
 }
 
 // Intercept adds the query interceptors to all the entity clients.
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
-	c.DeliveryLog.Intercept(interceptors...)
-	c.OutboxEvent.Intercept(interceptors...)
-	c.ProviderSetting.Intercept(interceptors...)
-	c.TenantBranding.Intercept(interceptors...)
+	for _, n := range []interface{ Intercept(...Interceptor) }{
+		c.CreditTransaction, c.DeliveryLog, c.OutboxEvent, c.PlatformBilling,
+		c.ProviderSetting, c.Tenant, c.TenantCredit,
+	} {
+		n.Intercept(interceptors...)
+	}
 }
 
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
+	case *CreditTransactionMutation:
+		return c.CreditTransaction.mutate(ctx, m)
 	case *DeliveryLogMutation:
 		return c.DeliveryLog.mutate(ctx, m)
 	case *OutboxEventMutation:
 		return c.OutboxEvent.mutate(ctx, m)
+	case *PlatformBillingMutation:
+		return c.PlatformBilling.mutate(ctx, m)
 	case *ProviderSettingMutation:
 		return c.ProviderSetting.mutate(ctx, m)
-	case *TenantBrandingMutation:
-		return c.TenantBranding.mutate(ctx, m)
+	case *TenantMutation:
+		return c.Tenant.mutate(ctx, m)
+	case *TenantCreditMutation:
+		return c.TenantCredit.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
+	}
+}
+
+// CreditTransactionClient is a client for the CreditTransaction schema.
+type CreditTransactionClient struct {
+	config
+}
+
+// NewCreditTransactionClient returns a client for the CreditTransaction from the given config.
+func NewCreditTransactionClient(c config) *CreditTransactionClient {
+	return &CreditTransactionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `credittransaction.Hooks(f(g(h())))`.
+func (c *CreditTransactionClient) Use(hooks ...Hook) {
+	c.hooks.CreditTransaction = append(c.hooks.CreditTransaction, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `credittransaction.Intercept(f(g(h())))`.
+func (c *CreditTransactionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.CreditTransaction = append(c.inters.CreditTransaction, interceptors...)
+}
+
+// Create returns a builder for creating a CreditTransaction entity.
+func (c *CreditTransactionClient) Create() *CreditTransactionCreate {
+	mutation := newCreditTransactionMutation(c.config, OpCreate)
+	return &CreditTransactionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of CreditTransaction entities.
+func (c *CreditTransactionClient) CreateBulk(builders ...*CreditTransactionCreate) *CreditTransactionCreateBulk {
+	return &CreditTransactionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *CreditTransactionClient) MapCreateBulk(slice any, setFunc func(*CreditTransactionCreate, int)) *CreditTransactionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &CreditTransactionCreateBulk{err: fmt.Errorf("calling to CreditTransactionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*CreditTransactionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &CreditTransactionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for CreditTransaction.
+func (c *CreditTransactionClient) Update() *CreditTransactionUpdate {
+	mutation := newCreditTransactionMutation(c.config, OpUpdate)
+	return &CreditTransactionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *CreditTransactionClient) UpdateOne(ct *CreditTransaction) *CreditTransactionUpdateOne {
+	mutation := newCreditTransactionMutation(c.config, OpUpdateOne, withCreditTransaction(ct))
+	return &CreditTransactionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *CreditTransactionClient) UpdateOneID(id uuid.UUID) *CreditTransactionUpdateOne {
+	mutation := newCreditTransactionMutation(c.config, OpUpdateOne, withCreditTransactionID(id))
+	return &CreditTransactionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for CreditTransaction.
+func (c *CreditTransactionClient) Delete() *CreditTransactionDelete {
+	mutation := newCreditTransactionMutation(c.config, OpDelete)
+	return &CreditTransactionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *CreditTransactionClient) DeleteOne(ct *CreditTransaction) *CreditTransactionDeleteOne {
+	return c.DeleteOneID(ct.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *CreditTransactionClient) DeleteOneID(id uuid.UUID) *CreditTransactionDeleteOne {
+	builder := c.Delete().Where(credittransaction.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &CreditTransactionDeleteOne{builder}
+}
+
+// Query returns a query builder for CreditTransaction.
+func (c *CreditTransactionClient) Query() *CreditTransactionQuery {
+	return &CreditTransactionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeCreditTransaction},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a CreditTransaction entity by its id.
+func (c *CreditTransactionClient) Get(ctx context.Context, id uuid.UUID) (*CreditTransaction, error) {
+	return c.Query().Where(credittransaction.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *CreditTransactionClient) GetX(ctx context.Context, id uuid.UUID) *CreditTransaction {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *CreditTransactionClient) Hooks() []Hook {
+	return c.hooks.CreditTransaction
+}
+
+// Interceptors returns the client interceptors.
+func (c *CreditTransactionClient) Interceptors() []Interceptor {
+	return c.inters.CreditTransaction
+}
+
+func (c *CreditTransactionClient) mutate(ctx context.Context, m *CreditTransactionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&CreditTransactionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&CreditTransactionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&CreditTransactionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&CreditTransactionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown CreditTransaction mutation op: %q", m.Op())
 	}
 }
 
@@ -493,6 +654,139 @@ func (c *OutboxEventClient) mutate(ctx context.Context, m *OutboxEventMutation) 
 	}
 }
 
+// PlatformBillingClient is a client for the PlatformBilling schema.
+type PlatformBillingClient struct {
+	config
+}
+
+// NewPlatformBillingClient returns a client for the PlatformBilling from the given config.
+func NewPlatformBillingClient(c config) *PlatformBillingClient {
+	return &PlatformBillingClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `platformbilling.Hooks(f(g(h())))`.
+func (c *PlatformBillingClient) Use(hooks ...Hook) {
+	c.hooks.PlatformBilling = append(c.hooks.PlatformBilling, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `platformbilling.Intercept(f(g(h())))`.
+func (c *PlatformBillingClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PlatformBilling = append(c.inters.PlatformBilling, interceptors...)
+}
+
+// Create returns a builder for creating a PlatformBilling entity.
+func (c *PlatformBillingClient) Create() *PlatformBillingCreate {
+	mutation := newPlatformBillingMutation(c.config, OpCreate)
+	return &PlatformBillingCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PlatformBilling entities.
+func (c *PlatformBillingClient) CreateBulk(builders ...*PlatformBillingCreate) *PlatformBillingCreateBulk {
+	return &PlatformBillingCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PlatformBillingClient) MapCreateBulk(slice any, setFunc func(*PlatformBillingCreate, int)) *PlatformBillingCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PlatformBillingCreateBulk{err: fmt.Errorf("calling to PlatformBillingClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PlatformBillingCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PlatformBillingCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PlatformBilling.
+func (c *PlatformBillingClient) Update() *PlatformBillingUpdate {
+	mutation := newPlatformBillingMutation(c.config, OpUpdate)
+	return &PlatformBillingUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PlatformBillingClient) UpdateOne(pb *PlatformBilling) *PlatformBillingUpdateOne {
+	mutation := newPlatformBillingMutation(c.config, OpUpdateOne, withPlatformBilling(pb))
+	return &PlatformBillingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PlatformBillingClient) UpdateOneID(id uuid.UUID) *PlatformBillingUpdateOne {
+	mutation := newPlatformBillingMutation(c.config, OpUpdateOne, withPlatformBillingID(id))
+	return &PlatformBillingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PlatformBilling.
+func (c *PlatformBillingClient) Delete() *PlatformBillingDelete {
+	mutation := newPlatformBillingMutation(c.config, OpDelete)
+	return &PlatformBillingDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PlatformBillingClient) DeleteOne(pb *PlatformBilling) *PlatformBillingDeleteOne {
+	return c.DeleteOneID(pb.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PlatformBillingClient) DeleteOneID(id uuid.UUID) *PlatformBillingDeleteOne {
+	builder := c.Delete().Where(platformbilling.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PlatformBillingDeleteOne{builder}
+}
+
+// Query returns a query builder for PlatformBilling.
+func (c *PlatformBillingClient) Query() *PlatformBillingQuery {
+	return &PlatformBillingQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePlatformBilling},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PlatformBilling entity by its id.
+func (c *PlatformBillingClient) Get(ctx context.Context, id uuid.UUID) (*PlatformBilling, error) {
+	return c.Query().Where(platformbilling.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PlatformBillingClient) GetX(ctx context.Context, id uuid.UUID) *PlatformBilling {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *PlatformBillingClient) Hooks() []Hook {
+	return c.hooks.PlatformBilling
+}
+
+// Interceptors returns the client interceptors.
+func (c *PlatformBillingClient) Interceptors() []Interceptor {
+	return c.inters.PlatformBilling
+}
+
+func (c *PlatformBillingClient) mutate(ctx context.Context, m *PlatformBillingMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PlatformBillingCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PlatformBillingUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PlatformBillingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PlatformBillingDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PlatformBilling mutation op: %q", m.Op())
+	}
+}
+
 // ProviderSettingClient is a client for the ProviderSetting schema.
 type ProviderSettingClient struct {
 	config
@@ -626,107 +920,107 @@ func (c *ProviderSettingClient) mutate(ctx context.Context, m *ProviderSettingMu
 	}
 }
 
-// TenantBrandingClient is a client for the TenantBranding schema.
-type TenantBrandingClient struct {
+// TenantClient is a client for the Tenant schema.
+type TenantClient struct {
 	config
 }
 
-// NewTenantBrandingClient returns a client for the TenantBranding from the given config.
-func NewTenantBrandingClient(c config) *TenantBrandingClient {
-	return &TenantBrandingClient{config: c}
+// NewTenantClient returns a client for the Tenant from the given config.
+func NewTenantClient(c config) *TenantClient {
+	return &TenantClient{config: c}
 }
 
 // Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `tenantbranding.Hooks(f(g(h())))`.
-func (c *TenantBrandingClient) Use(hooks ...Hook) {
-	c.hooks.TenantBranding = append(c.hooks.TenantBranding, hooks...)
+// A call to `Use(f, g, h)` equals to `tenant.Hooks(f(g(h())))`.
+func (c *TenantClient) Use(hooks ...Hook) {
+	c.hooks.Tenant = append(c.hooks.Tenant, hooks...)
 }
 
 // Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `tenantbranding.Intercept(f(g(h())))`.
-func (c *TenantBrandingClient) Intercept(interceptors ...Interceptor) {
-	c.inters.TenantBranding = append(c.inters.TenantBranding, interceptors...)
+// A call to `Intercept(f, g, h)` equals to `tenant.Intercept(f(g(h())))`.
+func (c *TenantClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Tenant = append(c.inters.Tenant, interceptors...)
 }
 
-// Create returns a builder for creating a TenantBranding entity.
-func (c *TenantBrandingClient) Create() *TenantBrandingCreate {
-	mutation := newTenantBrandingMutation(c.config, OpCreate)
-	return &TenantBrandingCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+// Create returns a builder for creating a Tenant entity.
+func (c *TenantClient) Create() *TenantCreate {
+	mutation := newTenantMutation(c.config, OpCreate)
+	return &TenantCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
-// CreateBulk returns a builder for creating a bulk of TenantBranding entities.
-func (c *TenantBrandingClient) CreateBulk(builders ...*TenantBrandingCreate) *TenantBrandingCreateBulk {
-	return &TenantBrandingCreateBulk{config: c.config, builders: builders}
+// CreateBulk returns a builder for creating a bulk of Tenant entities.
+func (c *TenantClient) CreateBulk(builders ...*TenantCreate) *TenantCreateBulk {
+	return &TenantCreateBulk{config: c.config, builders: builders}
 }
 
 // MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
 // a builder and applies setFunc on it.
-func (c *TenantBrandingClient) MapCreateBulk(slice any, setFunc func(*TenantBrandingCreate, int)) *TenantBrandingCreateBulk {
+func (c *TenantClient) MapCreateBulk(slice any, setFunc func(*TenantCreate, int)) *TenantCreateBulk {
 	rv := reflect.ValueOf(slice)
 	if rv.Kind() != reflect.Slice {
-		return &TenantBrandingCreateBulk{err: fmt.Errorf("calling to TenantBrandingClient.MapCreateBulk with wrong type %T, need slice", slice)}
+		return &TenantCreateBulk{err: fmt.Errorf("calling to TenantClient.MapCreateBulk with wrong type %T, need slice", slice)}
 	}
-	builders := make([]*TenantBrandingCreate, rv.Len())
+	builders := make([]*TenantCreate, rv.Len())
 	for i := 0; i < rv.Len(); i++ {
 		builders[i] = c.Create()
 		setFunc(builders[i], i)
 	}
-	return &TenantBrandingCreateBulk{config: c.config, builders: builders}
+	return &TenantCreateBulk{config: c.config, builders: builders}
 }
 
-// Update returns an update builder for TenantBranding.
-func (c *TenantBrandingClient) Update() *TenantBrandingUpdate {
-	mutation := newTenantBrandingMutation(c.config, OpUpdate)
-	return &TenantBrandingUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+// Update returns an update builder for Tenant.
+func (c *TenantClient) Update() *TenantUpdate {
+	mutation := newTenantMutation(c.config, OpUpdate)
+	return &TenantUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
 // UpdateOne returns an update builder for the given entity.
-func (c *TenantBrandingClient) UpdateOne(tb *TenantBranding) *TenantBrandingUpdateOne {
-	mutation := newTenantBrandingMutation(c.config, OpUpdateOne, withTenantBranding(tb))
-	return &TenantBrandingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+func (c *TenantClient) UpdateOne(t *Tenant) *TenantUpdateOne {
+	mutation := newTenantMutation(c.config, OpUpdateOne, withTenant(t))
+	return &TenantUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
 // UpdateOneID returns an update builder for the given id.
-func (c *TenantBrandingClient) UpdateOneID(id int) *TenantBrandingUpdateOne {
-	mutation := newTenantBrandingMutation(c.config, OpUpdateOne, withTenantBrandingID(id))
-	return &TenantBrandingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+func (c *TenantClient) UpdateOneID(id uuid.UUID) *TenantUpdateOne {
+	mutation := newTenantMutation(c.config, OpUpdateOne, withTenantID(id))
+	return &TenantUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
-// Delete returns a delete builder for TenantBranding.
-func (c *TenantBrandingClient) Delete() *TenantBrandingDelete {
-	mutation := newTenantBrandingMutation(c.config, OpDelete)
-	return &TenantBrandingDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+// Delete returns a delete builder for Tenant.
+func (c *TenantClient) Delete() *TenantDelete {
+	mutation := newTenantMutation(c.config, OpDelete)
+	return &TenantDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
 // DeleteOne returns a builder for deleting the given entity.
-func (c *TenantBrandingClient) DeleteOne(tb *TenantBranding) *TenantBrandingDeleteOne {
-	return c.DeleteOneID(tb.ID)
+func (c *TenantClient) DeleteOne(t *Tenant) *TenantDeleteOne {
+	return c.DeleteOneID(t.ID)
 }
 
 // DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *TenantBrandingClient) DeleteOneID(id int) *TenantBrandingDeleteOne {
-	builder := c.Delete().Where(tenantbranding.ID(id))
+func (c *TenantClient) DeleteOneID(id uuid.UUID) *TenantDeleteOne {
+	builder := c.Delete().Where(tenant.ID(id))
 	builder.mutation.id = &id
 	builder.mutation.op = OpDeleteOne
-	return &TenantBrandingDeleteOne{builder}
+	return &TenantDeleteOne{builder}
 }
 
-// Query returns a query builder for TenantBranding.
-func (c *TenantBrandingClient) Query() *TenantBrandingQuery {
-	return &TenantBrandingQuery{
+// Query returns a query builder for Tenant.
+func (c *TenantClient) Query() *TenantQuery {
+	return &TenantQuery{
 		config: c.config,
-		ctx:    &QueryContext{Type: TypeTenantBranding},
+		ctx:    &QueryContext{Type: TypeTenant},
 		inters: c.Interceptors(),
 	}
 }
 
-// Get returns a TenantBranding entity by its id.
-func (c *TenantBrandingClient) Get(ctx context.Context, id int) (*TenantBranding, error) {
-	return c.Query().Where(tenantbranding.ID(id)).Only(ctx)
+// Get returns a Tenant entity by its id.
+func (c *TenantClient) Get(ctx context.Context, id uuid.UUID) (*Tenant, error) {
+	return c.Query().Where(tenant.ID(id)).Only(ctx)
 }
 
 // GetX is like Get, but panics if an error occurs.
-func (c *TenantBrandingClient) GetX(ctx context.Context, id int) *TenantBranding {
+func (c *TenantClient) GetX(ctx context.Context, id uuid.UUID) *Tenant {
 	obj, err := c.Get(ctx, id)
 	if err != nil {
 		panic(err)
@@ -735,36 +1029,171 @@ func (c *TenantBrandingClient) GetX(ctx context.Context, id int) *TenantBranding
 }
 
 // Hooks returns the client hooks.
-func (c *TenantBrandingClient) Hooks() []Hook {
-	return c.hooks.TenantBranding
+func (c *TenantClient) Hooks() []Hook {
+	return c.hooks.Tenant
 }
 
 // Interceptors returns the client interceptors.
-func (c *TenantBrandingClient) Interceptors() []Interceptor {
-	return c.inters.TenantBranding
+func (c *TenantClient) Interceptors() []Interceptor {
+	return c.inters.Tenant
 }
 
-func (c *TenantBrandingClient) mutate(ctx context.Context, m *TenantBrandingMutation) (Value, error) {
+func (c *TenantClient) mutate(ctx context.Context, m *TenantMutation) (Value, error) {
 	switch m.Op() {
 	case OpCreate:
-		return (&TenantBrandingCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+		return (&TenantCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
 	case OpUpdate:
-		return (&TenantBrandingUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+		return (&TenantUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
 	case OpUpdateOne:
-		return (&TenantBrandingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+		return (&TenantUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
 	case OpDelete, OpDeleteOne:
-		return (&TenantBrandingDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+		return (&TenantDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
-		return nil, fmt.Errorf("ent: unknown TenantBranding mutation op: %q", m.Op())
+		return nil, fmt.Errorf("ent: unknown Tenant mutation op: %q", m.Op())
+	}
+}
+
+// TenantCreditClient is a client for the TenantCredit schema.
+type TenantCreditClient struct {
+	config
+}
+
+// NewTenantCreditClient returns a client for the TenantCredit from the given config.
+func NewTenantCreditClient(c config) *TenantCreditClient {
+	return &TenantCreditClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `tenantcredit.Hooks(f(g(h())))`.
+func (c *TenantCreditClient) Use(hooks ...Hook) {
+	c.hooks.TenantCredit = append(c.hooks.TenantCredit, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `tenantcredit.Intercept(f(g(h())))`.
+func (c *TenantCreditClient) Intercept(interceptors ...Interceptor) {
+	c.inters.TenantCredit = append(c.inters.TenantCredit, interceptors...)
+}
+
+// Create returns a builder for creating a TenantCredit entity.
+func (c *TenantCreditClient) Create() *TenantCreditCreate {
+	mutation := newTenantCreditMutation(c.config, OpCreate)
+	return &TenantCreditCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of TenantCredit entities.
+func (c *TenantCreditClient) CreateBulk(builders ...*TenantCreditCreate) *TenantCreditCreateBulk {
+	return &TenantCreditCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *TenantCreditClient) MapCreateBulk(slice any, setFunc func(*TenantCreditCreate, int)) *TenantCreditCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &TenantCreditCreateBulk{err: fmt.Errorf("calling to TenantCreditClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*TenantCreditCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &TenantCreditCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for TenantCredit.
+func (c *TenantCreditClient) Update() *TenantCreditUpdate {
+	mutation := newTenantCreditMutation(c.config, OpUpdate)
+	return &TenantCreditUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *TenantCreditClient) UpdateOne(tc *TenantCredit) *TenantCreditUpdateOne {
+	mutation := newTenantCreditMutation(c.config, OpUpdateOne, withTenantCredit(tc))
+	return &TenantCreditUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *TenantCreditClient) UpdateOneID(id uuid.UUID) *TenantCreditUpdateOne {
+	mutation := newTenantCreditMutation(c.config, OpUpdateOne, withTenantCreditID(id))
+	return &TenantCreditUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for TenantCredit.
+func (c *TenantCreditClient) Delete() *TenantCreditDelete {
+	mutation := newTenantCreditMutation(c.config, OpDelete)
+	return &TenantCreditDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *TenantCreditClient) DeleteOne(tc *TenantCredit) *TenantCreditDeleteOne {
+	return c.DeleteOneID(tc.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *TenantCreditClient) DeleteOneID(id uuid.UUID) *TenantCreditDeleteOne {
+	builder := c.Delete().Where(tenantcredit.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &TenantCreditDeleteOne{builder}
+}
+
+// Query returns a query builder for TenantCredit.
+func (c *TenantCreditClient) Query() *TenantCreditQuery {
+	return &TenantCreditQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeTenantCredit},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a TenantCredit entity by its id.
+func (c *TenantCreditClient) Get(ctx context.Context, id uuid.UUID) (*TenantCredit, error) {
+	return c.Query().Where(tenantcredit.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *TenantCreditClient) GetX(ctx context.Context, id uuid.UUID) *TenantCredit {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *TenantCreditClient) Hooks() []Hook {
+	return c.hooks.TenantCredit
+}
+
+// Interceptors returns the client interceptors.
+func (c *TenantCreditClient) Interceptors() []Interceptor {
+	return c.inters.TenantCredit
+}
+
+func (c *TenantCreditClient) mutate(ctx context.Context, m *TenantCreditMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&TenantCreditCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&TenantCreditUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&TenantCreditUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&TenantCreditDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown TenantCredit mutation op: %q", m.Op())
 	}
 }
 
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		DeliveryLog, OutboxEvent, ProviderSetting, TenantBranding []ent.Hook
+		CreditTransaction, DeliveryLog, OutboxEvent, PlatformBilling, ProviderSetting,
+		Tenant, TenantCredit []ent.Hook
 	}
 	inters struct {
-		DeliveryLog, OutboxEvent, ProviderSetting, TenantBranding []ent.Interceptor
+		CreditTransaction, DeliveryLog, OutboxEvent, PlatformBilling, ProviderSetting,
+		Tenant, TenantCredit []ent.Interceptor
 	}
 )

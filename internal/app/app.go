@@ -25,13 +25,16 @@ import (
 	"github.com/bengobox/notifications-api/internal/ent"
 	handlers "github.com/bengobox/notifications-api/internal/http/handlers"
 	router "github.com/bengobox/notifications-api/internal/http/router"
+	"github.com/bengobox/notifications-api/internal/modules/billing"
 	"github.com/bengobox/notifications-api/internal/modules/outbox"
+	"github.com/bengobox/notifications-api/internal/modules/tenant"
 	"github.com/bengobox/notifications-api/internal/platform/cache"
 	"github.com/bengobox/notifications-api/internal/platform/database"
 	"github.com/bengobox/notifications-api/internal/platform/events"
 	"github.com/bengobox/notifications-api/internal/platform/templates"
 	"github.com/bengobox/notifications-api/internal/providers"
 	"github.com/bengobox/notifications-api/internal/shared/logger"
+	serviceclient "github.com/Bengo-Hub/shared-service-client"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -45,6 +48,7 @@ type App struct {
 	events          *nats.Conn
 	templates       *templates.Loader
 	outboxPublisher *eventslib.Publisher
+	treasuryClient  *serviceclient.Client
 }
 
 func New(ctx context.Context) (*App, error) {
@@ -82,13 +86,29 @@ func New(ctx context.Context) (*App, error) {
 		log.Warn("ent migration failed", zap.Error(err))
 	}
 
+	// Initialize Treasury client
+	treasuryCfg := serviceclient.DefaultConfig(cfg.Services.TreasuryAPI, "treasury-api", log.Named("treasury.client"))
+	treasuryClient := serviceclient.New(treasuryCfg)
+
+	// Sync platform owner tenant
+	tenantSyncer := tenant.NewSyncer(entClient, cfg.Services.AuthAPI)
+	platformID, err := tenantSyncer.SyncTenant(ctx, "codevertex")
+	if err != nil {
+		log.Warn("failed to sync platform owner, using fallback", zap.Error(err))
+	}
+	platformIDStr := platformID.String()
+
 	healthHandler := handlers.NewHealthHandler(log, dbPool, redisClient, natsConn)
 	notificationHandler := handlers.NewNotificationHandler(log, natsConn, redisClient, cfg.Events, entClient)
 	templateHandler := handlers.NewTemplateHandler(templateLoader, notificationHandler)
-	providerManager := providers.NewManager(dbPool, cfg.Postgres, cfg.Providers, encryption.KeyFromEnv(cfg.Security.EncryptionKey))
+	providerManager := providers.NewManager(dbPool, cfg.Postgres, cfg.Providers, encryption.KeyFromEnv(cfg.Security.EncryptionKey), cfg.App.Env, platformIDStr)
 	platformProviders := handlers.NewPlatformProviders(entClient, log, encryption.KeyFromEnv(cfg.Security.EncryptionKey), providerManager)
-	tenantProviders := handlers.NewTenantProviders(entClient, log)
+	tenantProviders := handlers.NewTenantProviders(entClient, log, platformIDStr)
 	analyticsHandler := handlers.NewAnalyticsHandler(entClient, log)
+
+	billingService := billing.NewService(entClient, log, treasuryClient)
+	billingHandler := handlers.NewBillingHandler(log, billingService)
+	platformBilling := handlers.NewPlatformBilling(entClient, log)
 
 	// Initialize auth-service JWT validator
 	var authMiddleware *authclient.AuthMiddleware
@@ -158,7 +178,7 @@ func New(ctx context.Context) (*App, error) {
 		}
 	}
 
-	httpRouter := router.New(log, healthHandler, notificationHandler, templateHandler, platformProviders, tenantProviders, analyticsHandler, cfg.Security.APIKey, authMiddleware, cfg.HTTP.AllowedOrigins)
+	httpRouter := router.New(log, healthHandler, notificationHandler, templateHandler, platformProviders, tenantProviders, analyticsHandler, billingHandler, platformBilling, cfg.Security.APIKey, authMiddleware, cfg.HTTP.AllowedOrigins)
 
 	httpServer := &http.Server{
 		Addr:              fmt.Sprintf("%s:%d", cfg.HTTP.Host, cfg.HTTP.Port),
@@ -179,6 +199,7 @@ func New(ctx context.Context) (*App, error) {
 		events:          natsConn,
 		templates:       templateLoader,
 		outboxPublisher: outboxPublisher,
+		treasuryClient:  treasuryClient,
 	}, nil
 }
 

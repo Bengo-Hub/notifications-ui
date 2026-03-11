@@ -102,6 +102,21 @@ func IsPlatform(v bool) predicate.ProviderSetting {
 	return predicate.ProviderSetting(sql.FieldEQ(FieldIsPlatform, v))
 }
 
+// IsPlatformManaged applies equality check predicate on the "is_platform_managed" field. It's identical to IsPlatformManagedEQ.
+func IsPlatformManaged(v bool) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldEQ(FieldIsPlatformManaged, v))
+}
+
+// Environment applies equality check predicate on the "environment" field. It's identical to EnvironmentEQ.
+func Environment(v string) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldEQ(FieldEnvironment, v))
+}
+
+// IsSecret applies equality check predicate on the "is_secret" field. It's identical to IsSecretEQ.
+func IsSecret(v bool) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldEQ(FieldIsSecret, v))
+}
+
 // IsActive applies equality check predicate on the "is_active" field. It's identical to IsActiveEQ.
 func IsActive(v bool) predicate.ProviderSetting {
 	return predicate.ProviderSetting(sql.FieldEQ(FieldIsActive, v))
@@ -720,6 +735,91 @@ func IsPlatformEQ(v bool) predicate.ProviderSetting {
 // IsPlatformNEQ applies the NEQ predicate on the "is_platform" field.
 func IsPlatformNEQ(v bool) predicate.ProviderSetting {
 	return predicate.ProviderSetting(sql.FieldNEQ(FieldIsPlatform, v))
+}
+
+// IsPlatformManagedEQ applies the EQ predicate on the "is_platform_managed" field.
+func IsPlatformManagedEQ(v bool) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldEQ(FieldIsPlatformManaged, v))
+}
+
+// IsPlatformManagedNEQ applies the NEQ predicate on the "is_platform_managed" field.
+func IsPlatformManagedNEQ(v bool) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldNEQ(FieldIsPlatformManaged, v))
+}
+
+// EnvironmentEQ applies the EQ predicate on the "environment" field.
+func EnvironmentEQ(v string) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldEQ(FieldEnvironment, v))
+}
+
+// EnvironmentNEQ applies the NEQ predicate on the "environment" field.
+func EnvironmentNEQ(v string) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldNEQ(FieldEnvironment, v))
+}
+
+// EnvironmentIn applies the In predicate on the "environment" field.
+func EnvironmentIn(vs ...string) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldIn(FieldEnvironment, vs...))
+}
+
+// EnvironmentNotIn applies the NotIn predicate on the "environment" field.
+func EnvironmentNotIn(vs ...string) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldNotIn(FieldEnvironment, vs...))
+}
+
+// EnvironmentGT applies the GT predicate on the "environment" field.
+func EnvironmentGT(v string) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldGT(FieldEnvironment, v))
+}
+
+// EnvironmentGTE applies the GTE predicate on the "environment" field.
+func EnvironmentGTE(v string) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldGTE(FieldEnvironment, v))
+}
+
+// EnvironmentLT applies the LT predicate on the "environment" field.
+func EnvironmentLT(v string) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldLT(FieldEnvironment, v))
+}
+
+// EnvironmentLTE applies the LTE predicate on the "environment" field.
+func EnvironmentLTE(v string) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldLTE(FieldEnvironment, v))
+}
+
+// EnvironmentContains applies the Contains predicate on the "environment" field.
+func EnvironmentContains(v string) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldContains(FieldEnvironment, v))
+}
+
+// EnvironmentHasPrefix applies the HasPrefix predicate on the "environment" field.
+func EnvironmentHasPrefix(v string) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldHasPrefix(FieldEnvironment, v))
+}
+
+// EnvironmentHasSuffix applies the HasSuffix predicate on the "environment" field.
+func EnvironmentHasSuffix(v string) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldHasSuffix(FieldEnvironment, v))
+}
+
+// EnvironmentEqualFold applies the EqualFold predicate on the "environment" field.
+func EnvironmentEqualFold(v string) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldEqualFold(FieldEnvironment, v))
+}
+
+// EnvironmentContainsFold applies the ContainsFold predicate on the "environment" field.
+func EnvironmentContainsFold(v string) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldContainsFold(FieldEnvironment, v))
+}
+
+// IsSecretEQ applies the EQ predicate on the "is_secret" field.
+func IsSecretEQ(v bool) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldEQ(FieldIsSecret, v))
+}
+
+// IsSecretNEQ applies the NEQ predicate on the "is_secret" field.
+func IsSecretNEQ(v bool) predicate.ProviderSetting {
+	return predicate.ProviderSetting(sql.FieldNEQ(FieldIsSecret, v))
 }
 
 // IsActiveEQ applies the EQ predicate on the "is_active" field.

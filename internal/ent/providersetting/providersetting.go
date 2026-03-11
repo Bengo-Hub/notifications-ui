@@ -31,6 +31,12 @@ const (
 	FieldIsEncrypted = "is_encrypted"
 	// FieldIsPlatform holds the string denoting the is_platform field in the database.
 	FieldIsPlatform = "is_platform"
+	// FieldIsPlatformManaged holds the string denoting the is_platform_managed field in the database.
+	FieldIsPlatformManaged = "is_platform_managed"
+	// FieldEnvironment holds the string denoting the environment field in the database.
+	FieldEnvironment = "environment"
+	// FieldIsSecret holds the string denoting the is_secret field in the database.
+	FieldIsSecret = "is_secret"
 	// FieldIsActive holds the string denoting the is_active field in the database.
 	FieldIsActive = "is_active"
 	// FieldStatus holds the string denoting the status field in the database.
@@ -52,6 +58,9 @@ var Columns = []string{
 	FieldDescription,
 	FieldIsEncrypted,
 	FieldIsPlatform,
+	FieldIsPlatformManaged,
+	FieldEnvironment,
+	FieldIsSecret,
 	FieldIsActive,
 	FieldStatus,
 }
@@ -71,6 +80,12 @@ var (
 	DefaultIsEncrypted bool
 	// DefaultIsPlatform holds the default value on creation for the "is_platform" field.
 	DefaultIsPlatform bool
+	// DefaultIsPlatformManaged holds the default value on creation for the "is_platform_managed" field.
+	DefaultIsPlatformManaged bool
+	// DefaultEnvironment holds the default value on creation for the "environment" field.
+	DefaultEnvironment string
+	// DefaultIsSecret holds the default value on creation for the "is_secret" field.
+	DefaultIsSecret bool
 	// DefaultIsActive holds the default value on creation for the "is_active" field.
 	DefaultIsActive bool
 	// DefaultStatus holds the default value on creation for the "status" field.
@@ -133,6 +148,21 @@ func ByIsEncrypted(opts ...sql.OrderTermOption) OrderOption {
 // ByIsPlatform orders the results by the is_platform field.
 func ByIsPlatform(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIsPlatform, opts...).ToFunc()
+}
+
+// ByIsPlatformManaged orders the results by the is_platform_managed field.
+func ByIsPlatformManaged(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIsPlatformManaged, opts...).ToFunc()
+}
+
+// ByEnvironment orders the results by the environment field.
+func ByEnvironment(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEnvironment, opts...).ToFunc()
+}
+
+// ByIsSecret orders the results by the is_secret field.
+func ByIsSecret(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIsSecret, opts...).ToFunc()
 }
 
 // ByIsActive orders the results by the is_active field.

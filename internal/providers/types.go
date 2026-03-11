@@ -13,3 +13,9 @@ type SMSProvider interface {
 	SendSMS(ctx context.Context, from string, to []string, body string) error
 	Name() string
 }
+
+// WhatsAppProvider sends WhatsApp messages.
+type WhatsAppProvider interface {
+	SendWhatsApp(ctx context.Context, from string, to []string, body string, metadata map[string]interface{}) error
+	Name() string
+}

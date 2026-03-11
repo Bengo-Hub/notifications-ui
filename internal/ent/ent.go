@@ -12,10 +12,13 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/bengobox/notifications-api/internal/ent/credittransaction"
 	"github.com/bengobox/notifications-api/internal/ent/deliverylog"
 	"github.com/bengobox/notifications-api/internal/ent/outboxevent"
+	"github.com/bengobox/notifications-api/internal/ent/platformbilling"
 	"github.com/bengobox/notifications-api/internal/ent/providersetting"
-	"github.com/bengobox/notifications-api/internal/ent/tenantbranding"
+	"github.com/bengobox/notifications-api/internal/ent/tenant"
+	"github.com/bengobox/notifications-api/internal/ent/tenantcredit"
 )
 
 // ent aliases to avoid import conflicts in user's code.
@@ -76,10 +79,13 @@ var (
 func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			deliverylog.Table:     deliverylog.ValidColumn,
-			outboxevent.Table:     outboxevent.ValidColumn,
-			providersetting.Table: providersetting.ValidColumn,
-			tenantbranding.Table:  tenantbranding.ValidColumn,
+			credittransaction.Table: credittransaction.ValidColumn,
+			deliverylog.Table:       deliverylog.ValidColumn,
+			outboxevent.Table:       outboxevent.ValidColumn,
+			platformbilling.Table:   platformbilling.ValidColumn,
+			providersetting.Table:   providersetting.ValidColumn,
+			tenant.Table:            tenant.ValidColumn,
+			tenantcredit.Table:      tenantcredit.ValidColumn,
 		})
 	})
 	return columnCheck(table, column)

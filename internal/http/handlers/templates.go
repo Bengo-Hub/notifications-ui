@@ -7,6 +7,7 @@ import (
 
 	"github.com/bengobox/notifications-api/internal/platform/templates"
 	"github.com/go-chi/chi/v5"
+	httpware "github.com/Bengo-Hub/httpware"
 )
 
 // TemplateHandler exposes endpoints for listing and previewing templates.
@@ -122,7 +123,16 @@ type templateTestSendRequest struct {
 // @Security ApiKeyAuth
 // @Router /{tenantId}/templates/{id}/test [post]
 func (h *TemplateHandler) TestSend(w http.ResponseWriter, r *http.Request) {
-	tenantID := chi.URLParam(r, "tenantId")
+	ctx := r.Context()
+	tenantID := httpware.GetTenantID(ctx)
+	
+	// Platform owners can override via query param
+	if httpware.IsPlatformOwner(ctx) {
+		if q := r.URL.Query().Get("tenantId"); q != "" {
+			tenantID = q
+		}
+	}
+
 	if tenantID == "" {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)

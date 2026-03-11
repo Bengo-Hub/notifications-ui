@@ -17,8 +17,9 @@ import (
 // DeliveryLogUpdate is the builder for updating DeliveryLog entities.
 type DeliveryLogUpdate struct {
 	config
-	hooks    []Hook
-	mutation *DeliveryLogMutation
+	hooks     []Hook
+	mutation  *DeliveryLogMutation
+	modifiers []func(*sql.UpdateBuilder)
 }
 
 // Where appends a list predicates to the DeliveryLogUpdate builder.
@@ -154,6 +155,12 @@ func (dlu *DeliveryLogUpdate) check() error {
 	return nil
 }
 
+// Modify adds a statement modifier for attaching custom logic to the UPDATE statement.
+func (dlu *DeliveryLogUpdate) Modify(modifiers ...func(u *sql.UpdateBuilder)) *DeliveryLogUpdate {
+	dlu.modifiers = append(dlu.modifiers, modifiers...)
+	return dlu
+}
+
 func (dlu *DeliveryLogUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if err := dlu.check(); err != nil {
 		return n, err
@@ -181,6 +188,7 @@ func (dlu *DeliveryLogUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := dlu.mutation.Status(); ok {
 		_spec.SetField(deliverylog.FieldStatus, field.TypeString, value)
 	}
+	_spec.AddModifiers(dlu.modifiers...)
 	if n, err = sqlgraph.UpdateNodes(ctx, dlu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{deliverylog.Label}
@@ -196,9 +204,10 @@ func (dlu *DeliveryLogUpdate) sqlSave(ctx context.Context) (n int, err error) {
 // DeliveryLogUpdateOne is the builder for updating a single DeliveryLog entity.
 type DeliveryLogUpdateOne struct {
 	config
-	fields   []string
-	hooks    []Hook
-	mutation *DeliveryLogMutation
+	fields    []string
+	hooks     []Hook
+	mutation  *DeliveryLogMutation
+	modifiers []func(*sql.UpdateBuilder)
 }
 
 // SetTenantID sets the "tenant_id" field.
@@ -341,6 +350,12 @@ func (dluo *DeliveryLogUpdateOne) check() error {
 	return nil
 }
 
+// Modify adds a statement modifier for attaching custom logic to the UPDATE statement.
+func (dluo *DeliveryLogUpdateOne) Modify(modifiers ...func(u *sql.UpdateBuilder)) *DeliveryLogUpdateOne {
+	dluo.modifiers = append(dluo.modifiers, modifiers...)
+	return dluo
+}
+
 func (dluo *DeliveryLogUpdateOne) sqlSave(ctx context.Context) (_node *DeliveryLog, err error) {
 	if err := dluo.check(); err != nil {
 		return _node, err
@@ -385,6 +400,7 @@ func (dluo *DeliveryLogUpdateOne) sqlSave(ctx context.Context) (_node *DeliveryL
 	if value, ok := dluo.mutation.Status(); ok {
 		_spec.SetField(deliverylog.FieldStatus, field.TypeString, value)
 	}
+	_spec.AddModifiers(dluo.modifiers...)
 	_node = &DeliveryLog{config: dluo.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues

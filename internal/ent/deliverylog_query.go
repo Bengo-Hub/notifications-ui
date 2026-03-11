@@ -22,6 +22,7 @@ type DeliveryLogQuery struct {
 	order      []deliverylog.OrderOption
 	inters     []Interceptor
 	predicates []predicate.DeliveryLog
+	modifiers  []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -343,6 +344,9 @@ func (dlq *DeliveryLogQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 		nodes = append(nodes, node)
 		return node.assignValues(columns, values)
 	}
+	if len(dlq.modifiers) > 0 {
+		_spec.Modifiers = dlq.modifiers
+	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
@@ -357,6 +361,9 @@ func (dlq *DeliveryLogQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 
 func (dlq *DeliveryLogQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := dlq.querySpec()
+	if len(dlq.modifiers) > 0 {
+		_spec.Modifiers = dlq.modifiers
+	}
 	_spec.Node.Columns = dlq.ctx.Fields
 	if len(dlq.ctx.Fields) > 0 {
 		_spec.Unique = dlq.ctx.Unique != nil && *dlq.ctx.Unique
@@ -419,6 +426,9 @@ func (dlq *DeliveryLogQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	if dlq.ctx.Unique != nil && *dlq.ctx.Unique {
 		selector.Distinct()
 	}
+	for _, m := range dlq.modifiers {
+		m(selector)
+	}
 	for _, p := range dlq.predicates {
 		p(selector)
 	}
@@ -434,6 +444,12 @@ func (dlq *DeliveryLogQuery) sqlQuery(ctx context.Context) *sql.Selector {
 		selector.Limit(*limit)
 	}
 	return selector
+}
+
+// Modify adds a query modifier for attaching custom logic to queries.
+func (dlq *DeliveryLogQuery) Modify(modifiers ...func(s *sql.Selector)) *DeliveryLogSelect {
+	dlq.modifiers = append(dlq.modifiers, modifiers...)
+	return dlq.Select()
 }
 
 // DeliveryLogGroupBy is the group-by builder for DeliveryLog entities.
@@ -524,4 +540,10 @@ func (dls *DeliveryLogSelect) sqlScan(ctx context.Context, root *DeliveryLogQuer
 	}
 	defer rows.Close()
 	return sql.ScanSlice(rows, v)
+}
+
+// Modify adds a query modifier for attaching custom logic to queries.
+func (dls *DeliveryLogSelect) Modify(modifiers ...func(s *sql.Selector)) *DeliveryLogSelect {
+	dls.modifiers = append(dls.modifiers, modifiers...)
+	return dls
 }

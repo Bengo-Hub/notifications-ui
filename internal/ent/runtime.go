@@ -5,10 +5,14 @@ package ent
 import (
 	"time"
 
+	"github.com/bengobox/notifications-api/internal/ent/credittransaction"
 	"github.com/bengobox/notifications-api/internal/ent/deliverylog"
 	"github.com/bengobox/notifications-api/internal/ent/outboxevent"
+	"github.com/bengobox/notifications-api/internal/ent/platformbilling"
 	"github.com/bengobox/notifications-api/internal/ent/providersetting"
 	"github.com/bengobox/notifications-api/internal/ent/schema"
+	"github.com/bengobox/notifications-api/internal/ent/tenant"
+	"github.com/bengobox/notifications-api/internal/ent/tenantcredit"
 	"github.com/google/uuid"
 )
 
@@ -16,6 +20,20 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	credittransactionFields := schema.CreditTransaction{}.Fields()
+	_ = credittransactionFields
+	// credittransactionDescMetadata is the schema descriptor for metadata field.
+	credittransactionDescMetadata := credittransactionFields[8].Descriptor()
+	// credittransaction.DefaultMetadata holds the default value on creation for the metadata field.
+	credittransaction.DefaultMetadata = credittransactionDescMetadata.Default.(map[string]interface{})
+	// credittransactionDescCreatedAt is the schema descriptor for created_at field.
+	credittransactionDescCreatedAt := credittransactionFields[9].Descriptor()
+	// credittransaction.DefaultCreatedAt holds the default value on creation for the created_at field.
+	credittransaction.DefaultCreatedAt = credittransactionDescCreatedAt.Default.(func() time.Time)
+	// credittransactionDescID is the schema descriptor for id field.
+	credittransactionDescID := credittransactionFields[0].Descriptor()
+	// credittransaction.DefaultID holds the default value on creation for the id field.
+	credittransaction.DefaultID = credittransactionDescID.Default.(func() uuid.UUID)
 	deliverylogFields := schema.DeliveryLog{}.Fields()
 	_ = deliverylogFields
 	// deliverylogDescTenantID is the schema descriptor for tenant_id field.
@@ -72,6 +90,30 @@ func init() {
 	outboxeventDescID := outboxeventFields[0].Descriptor()
 	// outboxevent.DefaultID holds the default value on creation for the id field.
 	outboxevent.DefaultID = outboxeventDescID.Default.(func() uuid.UUID)
+	platformbillingFields := schema.PlatformBilling{}.Fields()
+	_ = platformbillingFields
+	// platformbillingDescCostPerSms is the schema descriptor for cost_per_sms field.
+	platformbillingDescCostPerSms := platformbillingFields[1].Descriptor()
+	// platformbilling.DefaultCostPerSms holds the default value on creation for the cost_per_sms field.
+	platformbilling.DefaultCostPerSms = platformbillingDescCostPerSms.Default.(float64)
+	// platformbillingDescCostPerWhatsapp is the schema descriptor for cost_per_whatsapp field.
+	platformbillingDescCostPerWhatsapp := platformbillingFields[2].Descriptor()
+	// platformbilling.DefaultCostPerWhatsapp holds the default value on creation for the cost_per_whatsapp field.
+	platformbilling.DefaultCostPerWhatsapp = platformbillingDescCostPerWhatsapp.Default.(float64)
+	// platformbillingDescMinTopupAmount is the schema descriptor for min_topup_amount field.
+	platformbillingDescMinTopupAmount := platformbillingFields[3].Descriptor()
+	// platformbilling.DefaultMinTopupAmount holds the default value on creation for the min_topup_amount field.
+	platformbilling.DefaultMinTopupAmount = platformbillingDescMinTopupAmount.Default.(float64)
+	// platformbillingDescUpdatedAt is the schema descriptor for updated_at field.
+	platformbillingDescUpdatedAt := platformbillingFields[5].Descriptor()
+	// platformbilling.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	platformbilling.DefaultUpdatedAt = platformbillingDescUpdatedAt.Default.(func() time.Time)
+	// platformbilling.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	platformbilling.UpdateDefaultUpdatedAt = platformbillingDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// platformbillingDescID is the schema descriptor for id field.
+	platformbillingDescID := platformbillingFields[0].Descriptor()
+	// platformbilling.DefaultID holds the default value on creation for the id field.
+	platformbilling.DefaultID = platformbillingDescID.Default.(func() uuid.UUID)
 	providersettingFields := schema.ProviderSetting{}.Fields()
 	_ = providersettingFields
 	// providersettingDescIsEncrypted is the schema descriptor for is_encrypted field.
@@ -82,12 +124,88 @@ func init() {
 	providersettingDescIsPlatform := providersettingFields[9].Descriptor()
 	// providersetting.DefaultIsPlatform holds the default value on creation for the is_platform field.
 	providersetting.DefaultIsPlatform = providersettingDescIsPlatform.Default.(bool)
+	// providersettingDescIsPlatformManaged is the schema descriptor for is_platform_managed field.
+	providersettingDescIsPlatformManaged := providersettingFields[10].Descriptor()
+	// providersetting.DefaultIsPlatformManaged holds the default value on creation for the is_platform_managed field.
+	providersetting.DefaultIsPlatformManaged = providersettingDescIsPlatformManaged.Default.(bool)
+	// providersettingDescEnvironment is the schema descriptor for environment field.
+	providersettingDescEnvironment := providersettingFields[11].Descriptor()
+	// providersetting.DefaultEnvironment holds the default value on creation for the environment field.
+	providersetting.DefaultEnvironment = providersettingDescEnvironment.Default.(string)
+	// providersettingDescIsSecret is the schema descriptor for is_secret field.
+	providersettingDescIsSecret := providersettingFields[12].Descriptor()
+	// providersetting.DefaultIsSecret holds the default value on creation for the is_secret field.
+	providersetting.DefaultIsSecret = providersettingDescIsSecret.Default.(bool)
 	// providersettingDescIsActive is the schema descriptor for is_active field.
-	providersettingDescIsActive := providersettingFields[10].Descriptor()
+	providersettingDescIsActive := providersettingFields[13].Descriptor()
 	// providersetting.DefaultIsActive holds the default value on creation for the is_active field.
 	providersetting.DefaultIsActive = providersettingDescIsActive.Default.(bool)
 	// providersettingDescStatus is the schema descriptor for status field.
-	providersettingDescStatus := providersettingFields[11].Descriptor()
+	providersettingDescStatus := providersettingFields[14].Descriptor()
 	// providersetting.DefaultStatus holds the default value on creation for the status field.
 	providersetting.DefaultStatus = providersettingDescStatus.Default.(string)
+	tenantFields := schema.Tenant{}.Fields()
+	_ = tenantFields
+	// tenantDescName is the schema descriptor for name field.
+	tenantDescName := tenantFields[1].Descriptor()
+	// tenant.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	tenant.NameValidator = tenantDescName.Validators[0].(func(string) error)
+	// tenantDescSlug is the schema descriptor for slug field.
+	tenantDescSlug := tenantFields[2].Descriptor()
+	// tenant.SlugValidator is a validator for the "slug" field. It is called by the builders before save.
+	tenant.SlugValidator = tenantDescSlug.Validators[0].(func(string) error)
+	// tenantDescStatus is the schema descriptor for status field.
+	tenantDescStatus := tenantFields[3].Descriptor()
+	// tenant.DefaultStatus holds the default value on creation for the status field.
+	tenant.DefaultStatus = tenantDescStatus.Default.(string)
+	// tenantDescCountry is the schema descriptor for country field.
+	tenantDescCountry := tenantFields[8].Descriptor()
+	// tenant.DefaultCountry holds the default value on creation for the country field.
+	tenant.DefaultCountry = tenantDescCountry.Default.(string)
+	// tenantDescTimezone is the schema descriptor for timezone field.
+	tenantDescTimezone := tenantFields[9].Descriptor()
+	// tenant.DefaultTimezone holds the default value on creation for the timezone field.
+	tenant.DefaultTimezone = tenantDescTimezone.Default.(string)
+	// tenantDescMetadata is the schema descriptor for metadata field.
+	tenantDescMetadata := tenantFields[18].Descriptor()
+	// tenant.DefaultMetadata holds the default value on creation for the metadata field.
+	tenant.DefaultMetadata = tenantDescMetadata.Default.(map[string]interface{})
+	// tenantDescCreatedAt is the schema descriptor for created_at field.
+	tenantDescCreatedAt := tenantFields[19].Descriptor()
+	// tenant.DefaultCreatedAt holds the default value on creation for the created_at field.
+	tenant.DefaultCreatedAt = tenantDescCreatedAt.Default.(func() time.Time)
+	// tenantDescUpdatedAt is the schema descriptor for updated_at field.
+	tenantDescUpdatedAt := tenantFields[20].Descriptor()
+	// tenant.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	tenant.DefaultUpdatedAt = tenantDescUpdatedAt.Default.(func() time.Time)
+	// tenant.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	tenant.UpdateDefaultUpdatedAt = tenantDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// tenantDescID is the schema descriptor for id field.
+	tenantDescID := tenantFields[0].Descriptor()
+	// tenant.DefaultID holds the default value on creation for the id field.
+	tenant.DefaultID = tenantDescID.Default.(func() uuid.UUID)
+	tenantcreditFields := schema.TenantCredit{}.Fields()
+	_ = tenantcreditFields
+	// tenantcreditDescBalance is the schema descriptor for balance field.
+	tenantcreditDescBalance := tenantcreditFields[3].Descriptor()
+	// tenantcredit.DefaultBalance holds the default value on creation for the balance field.
+	tenantcredit.DefaultBalance = tenantcreditDescBalance.Default.(float64)
+	// tenantcreditDescRate is the schema descriptor for rate field.
+	tenantcreditDescRate := tenantcreditFields[4].Descriptor()
+	// tenantcredit.DefaultRate holds the default value on creation for the rate field.
+	tenantcredit.DefaultRate = tenantcreditDescRate.Default.(float64)
+	// tenantcreditDescCreatedAt is the schema descriptor for created_at field.
+	tenantcreditDescCreatedAt := tenantcreditFields[5].Descriptor()
+	// tenantcredit.DefaultCreatedAt holds the default value on creation for the created_at field.
+	tenantcredit.DefaultCreatedAt = tenantcreditDescCreatedAt.Default.(func() time.Time)
+	// tenantcreditDescUpdatedAt is the schema descriptor for updated_at field.
+	tenantcreditDescUpdatedAt := tenantcreditFields[6].Descriptor()
+	// tenantcredit.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	tenantcredit.DefaultUpdatedAt = tenantcreditDescUpdatedAt.Default.(func() time.Time)
+	// tenantcredit.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	tenantcredit.UpdateDefaultUpdatedAt = tenantcreditDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// tenantcreditDescID is the schema descriptor for id field.
+	tenantcreditDescID := tenantcreditFields[0].Descriptor()
+	// tenantcredit.DefaultID holds the default value on creation for the id field.
+	tenantcredit.DefaultID = tenantcreditDescID.Default.(func() uuid.UUID)
 }

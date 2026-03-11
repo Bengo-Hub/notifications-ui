@@ -9,7 +9,8 @@ import (
 	"github.com/bengobox/notifications-api/internal/config"
 	"github.com/bengobox/notifications-api/internal/database"
 	"github.com/bengobox/notifications-api/internal/ent/providersetting"
-	"github.com/bengobox/notifications-api/internal/ent/tenantbranding"
+	tenantmodule "github.com/bengobox/notifications-api/internal/modules/tenant"
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 )
 
@@ -31,45 +32,20 @@ func main() {
 		log.Fatalf("migrate: %v", err)
 	}
 
-	// Default tenants (must match auth-api slugs: codevertex, mss, urban-loft, kura, ultichange).
-	// Codevertex = platform owner; others = Masterspace, Urban Loft, KURA, UltiChange.
-	tenants := []struct {
-		ID         string
-		Name       string
-		Logo       string
-		Color      string
-		BaseDomain string
-	}{
-		{"codevertex", "CodeVertex", "https://codevertexitsolutions.com/logo.png", "#0F766E", "codevertexitsolutions.com"},
-		{"mss", "Masterspace Solutions", "https://masterspace.co.ke/logo.png", "#2563eb", "masterspace.co.ke"},
-		{"urban-loft", "Urban Loft Cafe", "https://theurbanloftcafe.com/logo.png", "#f97316", "theurbanloftcafe.com"},
-		{"kura", "Kenya Urban Roads Authority", "https://kura.go.ke/logo.png", "#059669", "kura.go.ke"},
-		{"ultichange", "UltiChange", "https://ultichange.org/logo.png", "#4f46e5", "ultichange.org"},
-	}
+	// Sync/Seed Tenants from Auth-API slugs
+	tenantSyncer := tenantmodule.NewSyncer(client, cfg.Services.AuthAPI)
+	
+	tenants := []string{"codevertex", "mss", "urban-loft", "kura", "ultichange"}
+	tenantIDs := make(map[string]uuid.UUID)
 
-	for _, t := range tenants {
-		// Seed/Update Branding
-		existingBranding, _ := client.TenantBranding.Query().Where(tenantbranding.TenantIDEQ(t.ID)).First(ctx)
-		if existingBranding == nil {
-			_, err = client.TenantBranding.Create().
-				SetTenantID(t.ID).
-				SetLogoURL(t.Logo).
-				SetPrimaryColor(t.Color).
-				SetSecondaryColor("#1f2937").
-				SetMetadata(map[string]interface{}{
-					"from_email":  fmt.Sprintf("notifications@%s", t.BaseDomain),
-					"from_name":   t.Name,
-					"base_domain": t.BaseDomain,
-				}).Save(ctx)
-			if err == nil {
-				fmt.Printf("✓ Created branding for: %s\n", t.ID)
-			}
-		} else {
-			_, _ = existingBranding.Update().
-				SetLogoURL(t.Logo).
-				SetPrimaryColor(t.Color).
-				Save(ctx)
+	for _, slug := range tenants {
+		id, err := tenantSyncer.SyncTenant(ctx, slug)
+		if err != nil {
+			fmt.Printf("! Failed to sync tenant %s: %v\n", slug, err)
+			continue
 		}
+		tenantIDs[slug] = id
+		fmt.Printf("✓ Synced tenant: %s (%s)\n", slug, id)
 
 		// Seed/Update Default Provider Selectors (preferred provider)
 		defaults := []struct{ Type, Name string }{
@@ -80,14 +56,14 @@ func main() {
 		for _, d := range defaults {
 			existing, _ := client.ProviderSetting.Query().
 				Where(
-					providersetting.TenantIDEQ(t.ID),
+					providersetting.TenantID(id.String()),
 					providersetting.ProviderTypeEQ(d.Type),
 					providersetting.KeyEQ("_preferred"),
 				).First(ctx)
 
 			if existing == nil {
 				_, err = client.ProviderSetting.Create().
-					SetTenantID(t.ID).
+					SetTenantID(id.String()).
 					SetChannel(d.Type).
 					SetProvider(d.Name).
 					SetProviderType(d.Type).
@@ -99,14 +75,16 @@ func main() {
 					SetStatus("active").
 					Save(ctx)
 				if err == nil {
-					fmt.Printf("✓ Set preferred %s for: %s (%s)\n", d.Type, t.ID, d.Name)
+					fmt.Printf("  ✓ Set preferred %s for: %s (%s)\n", d.Type, slug, d.Name)
 				}
 			}
 		}
 	}
 
-	// Seed platform-level provider availability (tenant_id="platform")
-	platformTenantID := "platform"
+	platformTenantID := tenantIDs["codevertex"].String()
+	if platformTenantID == "" || platformTenantID == "00000000-0000-0000-0000-000000000000" {
+		platformTenantID = "00000000-0000-0000-0000-000000000000" // Fallback if sync failed
+	}
 	platformProviders := []struct {
 		Type string
 		Name string
@@ -118,6 +96,7 @@ func main() {
 		{"sms", "vonage"},
 		{"sms", "plivo"},
 		{"push", "fcm"},
+		{"whatsapp", "apiwap"},
 	}
 
 	for _, pp := range platformProviders {
@@ -138,6 +117,9 @@ func main() {
 			isActive = false
 		}
 		if pp.Name == "twilio" && os.Getenv("TWILIO_ACCOUNT_SID") == "" {
+			isActive = false
+		}
+		if pp.Name == "apiwap" && os.Getenv("APIWAP_API_KEY") == "" {
 			isActive = false
 		}
 

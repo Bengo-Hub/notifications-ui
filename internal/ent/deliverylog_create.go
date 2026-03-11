@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/bengobox/notifications-api/internal/ent/deliverylog"
@@ -19,6 +21,7 @@ type DeliveryLogCreate struct {
 	config
 	mutation *DeliveryLogMutation
 	hooks    []Hook
+	conflict []sql.ConflictOption
 }
 
 // SetTenantID sets the "tenant_id" field.
@@ -207,6 +210,7 @@ func (dlc *DeliveryLogCreate) createSpec() (*DeliveryLog, *sqlgraph.CreateSpec) 
 		_node = &DeliveryLog{config: dlc.config}
 		_spec = sqlgraph.NewCreateSpec(deliverylog.Table, sqlgraph.NewFieldSpec(deliverylog.FieldID, field.TypeUUID))
 	)
+	_spec.OnConflict = dlc.conflict
 	if id, ok := dlc.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = &id
@@ -238,11 +242,280 @@ func (dlc *DeliveryLogCreate) createSpec() (*DeliveryLog, *sqlgraph.CreateSpec) 
 	return _node, _spec
 }
 
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.DeliveryLog.Create().
+//		SetTenantID(v).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.DeliveryLogUpsert) {
+//			SetTenantID(v+v).
+//		}).
+//		Exec(ctx)
+func (dlc *DeliveryLogCreate) OnConflict(opts ...sql.ConflictOption) *DeliveryLogUpsertOne {
+	dlc.conflict = opts
+	return &DeliveryLogUpsertOne{
+		create: dlc,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.DeliveryLog.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+func (dlc *DeliveryLogCreate) OnConflictColumns(columns ...string) *DeliveryLogUpsertOne {
+	dlc.conflict = append(dlc.conflict, sql.ConflictColumns(columns...))
+	return &DeliveryLogUpsertOne{
+		create: dlc,
+	}
+}
+
+type (
+	// DeliveryLogUpsertOne is the builder for "upsert"-ing
+	//  one DeliveryLog node.
+	DeliveryLogUpsertOne struct {
+		create *DeliveryLogCreate
+	}
+
+	// DeliveryLogUpsert is the "OnConflict" setter.
+	DeliveryLogUpsert struct {
+		*sql.UpdateSet
+	}
+)
+
+// SetTenantID sets the "tenant_id" field.
+func (u *DeliveryLogUpsert) SetTenantID(v string) *DeliveryLogUpsert {
+	u.Set(deliverylog.FieldTenantID, v)
+	return u
+}
+
+// UpdateTenantID sets the "tenant_id" field to the value that was provided on create.
+func (u *DeliveryLogUpsert) UpdateTenantID() *DeliveryLogUpsert {
+	u.SetExcluded(deliverylog.FieldTenantID)
+	return u
+}
+
+// SetTemplateID sets the "template_id" field.
+func (u *DeliveryLogUpsert) SetTemplateID(v string) *DeliveryLogUpsert {
+	u.Set(deliverylog.FieldTemplateID, v)
+	return u
+}
+
+// UpdateTemplateID sets the "template_id" field to the value that was provided on create.
+func (u *DeliveryLogUpsert) UpdateTemplateID() *DeliveryLogUpsert {
+	u.SetExcluded(deliverylog.FieldTemplateID)
+	return u
+}
+
+// SetChannel sets the "channel" field.
+func (u *DeliveryLogUpsert) SetChannel(v string) *DeliveryLogUpsert {
+	u.Set(deliverylog.FieldChannel, v)
+	return u
+}
+
+// UpdateChannel sets the "channel" field to the value that was provided on create.
+func (u *DeliveryLogUpsert) UpdateChannel() *DeliveryLogUpsert {
+	u.SetExcluded(deliverylog.FieldChannel)
+	return u
+}
+
+// SetRecipient sets the "recipient" field.
+func (u *DeliveryLogUpsert) SetRecipient(v string) *DeliveryLogUpsert {
+	u.Set(deliverylog.FieldRecipient, v)
+	return u
+}
+
+// UpdateRecipient sets the "recipient" field to the value that was provided on create.
+func (u *DeliveryLogUpsert) UpdateRecipient() *DeliveryLogUpsert {
+	u.SetExcluded(deliverylog.FieldRecipient)
+	return u
+}
+
+// SetStatus sets the "status" field.
+func (u *DeliveryLogUpsert) SetStatus(v string) *DeliveryLogUpsert {
+	u.Set(deliverylog.FieldStatus, v)
+	return u
+}
+
+// UpdateStatus sets the "status" field to the value that was provided on create.
+func (u *DeliveryLogUpsert) UpdateStatus() *DeliveryLogUpsert {
+	u.SetExcluded(deliverylog.FieldStatus)
+	return u
+}
+
+// UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
+// Using this option is equivalent to using:
+//
+//	client.DeliveryLog.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(deliverylog.FieldID)
+//			}),
+//		).
+//		Exec(ctx)
+func (u *DeliveryLogUpsertOne) UpdateNewValues() *DeliveryLogUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		if _, exists := u.create.mutation.ID(); exists {
+			s.SetIgnore(deliverylog.FieldID)
+		}
+		if _, exists := u.create.mutation.CreatedAt(); exists {
+			s.SetIgnore(deliverylog.FieldCreatedAt)
+		}
+	}))
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.DeliveryLog.Create().
+//	    OnConflict(sql.ResolveWithIgnore()).
+//	    Exec(ctx)
+func (u *DeliveryLogUpsertOne) Ignore() *DeliveryLogUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *DeliveryLogUpsertOne) DoNothing() *DeliveryLogUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the DeliveryLogCreate.OnConflict
+// documentation for more info.
+func (u *DeliveryLogUpsertOne) Update(set func(*DeliveryLogUpsert)) *DeliveryLogUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&DeliveryLogUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetTenantID sets the "tenant_id" field.
+func (u *DeliveryLogUpsertOne) SetTenantID(v string) *DeliveryLogUpsertOne {
+	return u.Update(func(s *DeliveryLogUpsert) {
+		s.SetTenantID(v)
+	})
+}
+
+// UpdateTenantID sets the "tenant_id" field to the value that was provided on create.
+func (u *DeliveryLogUpsertOne) UpdateTenantID() *DeliveryLogUpsertOne {
+	return u.Update(func(s *DeliveryLogUpsert) {
+		s.UpdateTenantID()
+	})
+}
+
+// SetTemplateID sets the "template_id" field.
+func (u *DeliveryLogUpsertOne) SetTemplateID(v string) *DeliveryLogUpsertOne {
+	return u.Update(func(s *DeliveryLogUpsert) {
+		s.SetTemplateID(v)
+	})
+}
+
+// UpdateTemplateID sets the "template_id" field to the value that was provided on create.
+func (u *DeliveryLogUpsertOne) UpdateTemplateID() *DeliveryLogUpsertOne {
+	return u.Update(func(s *DeliveryLogUpsert) {
+		s.UpdateTemplateID()
+	})
+}
+
+// SetChannel sets the "channel" field.
+func (u *DeliveryLogUpsertOne) SetChannel(v string) *DeliveryLogUpsertOne {
+	return u.Update(func(s *DeliveryLogUpsert) {
+		s.SetChannel(v)
+	})
+}
+
+// UpdateChannel sets the "channel" field to the value that was provided on create.
+func (u *DeliveryLogUpsertOne) UpdateChannel() *DeliveryLogUpsertOne {
+	return u.Update(func(s *DeliveryLogUpsert) {
+		s.UpdateChannel()
+	})
+}
+
+// SetRecipient sets the "recipient" field.
+func (u *DeliveryLogUpsertOne) SetRecipient(v string) *DeliveryLogUpsertOne {
+	return u.Update(func(s *DeliveryLogUpsert) {
+		s.SetRecipient(v)
+	})
+}
+
+// UpdateRecipient sets the "recipient" field to the value that was provided on create.
+func (u *DeliveryLogUpsertOne) UpdateRecipient() *DeliveryLogUpsertOne {
+	return u.Update(func(s *DeliveryLogUpsert) {
+		s.UpdateRecipient()
+	})
+}
+
+// SetStatus sets the "status" field.
+func (u *DeliveryLogUpsertOne) SetStatus(v string) *DeliveryLogUpsertOne {
+	return u.Update(func(s *DeliveryLogUpsert) {
+		s.SetStatus(v)
+	})
+}
+
+// UpdateStatus sets the "status" field to the value that was provided on create.
+func (u *DeliveryLogUpsertOne) UpdateStatus() *DeliveryLogUpsertOne {
+	return u.Update(func(s *DeliveryLogUpsert) {
+		s.UpdateStatus()
+	})
+}
+
+// Exec executes the query.
+func (u *DeliveryLogUpsertOne) Exec(ctx context.Context) error {
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for DeliveryLogCreate.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *DeliveryLogUpsertOne) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// Exec executes the UPSERT query and returns the inserted/updated ID.
+func (u *DeliveryLogUpsertOne) ID(ctx context.Context) (id uuid.UUID, err error) {
+	if u.create.driver.Dialect() == dialect.MySQL {
+		// In case of "ON CONFLICT", there is no way to get back non-numeric ID
+		// fields from the database since MySQL does not support the RETURNING clause.
+		return id, errors.New("ent: DeliveryLogUpsertOne.ID is not supported by MySQL driver. Use DeliveryLogUpsertOne.Exec instead")
+	}
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return id, err
+	}
+	return node.ID, nil
+}
+
+// IDX is like ID, but panics if an error occurs.
+func (u *DeliveryLogUpsertOne) IDX(ctx context.Context) uuid.UUID {
+	id, err := u.ID(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return id
+}
+
 // DeliveryLogCreateBulk is the builder for creating many DeliveryLog entities in bulk.
 type DeliveryLogCreateBulk struct {
 	config
 	err      error
 	builders []*DeliveryLogCreate
+	conflict []sql.ConflictOption
 }
 
 // Save creates the DeliveryLog entities in the database.
@@ -272,6 +545,7 @@ func (dlcb *DeliveryLogCreateBulk) Save(ctx context.Context) ([]*DeliveryLog, er
 					_, err = mutators[i+1].Mutate(root, dlcb.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
+					spec.OnConflict = dlcb.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
 					if err = sqlgraph.BatchCreate(ctx, dlcb.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
@@ -318,6 +592,193 @@ func (dlcb *DeliveryLogCreateBulk) Exec(ctx context.Context) error {
 // ExecX is like Exec, but panics if an error occurs.
 func (dlcb *DeliveryLogCreateBulk) ExecX(ctx context.Context) {
 	if err := dlcb.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.DeliveryLog.CreateBulk(builders...).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.DeliveryLogUpsert) {
+//			SetTenantID(v+v).
+//		}).
+//		Exec(ctx)
+func (dlcb *DeliveryLogCreateBulk) OnConflict(opts ...sql.ConflictOption) *DeliveryLogUpsertBulk {
+	dlcb.conflict = opts
+	return &DeliveryLogUpsertBulk{
+		create: dlcb,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.DeliveryLog.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+func (dlcb *DeliveryLogCreateBulk) OnConflictColumns(columns ...string) *DeliveryLogUpsertBulk {
+	dlcb.conflict = append(dlcb.conflict, sql.ConflictColumns(columns...))
+	return &DeliveryLogUpsertBulk{
+		create: dlcb,
+	}
+}
+
+// DeliveryLogUpsertBulk is the builder for "upsert"-ing
+// a bulk of DeliveryLog nodes.
+type DeliveryLogUpsertBulk struct {
+	create *DeliveryLogCreateBulk
+}
+
+// UpdateNewValues updates the mutable fields using the new values that
+// were set on create. Using this option is equivalent to using:
+//
+//	client.DeliveryLog.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(deliverylog.FieldID)
+//			}),
+//		).
+//		Exec(ctx)
+func (u *DeliveryLogUpsertBulk) UpdateNewValues() *DeliveryLogUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		for _, b := range u.create.builders {
+			if _, exists := b.mutation.ID(); exists {
+				s.SetIgnore(deliverylog.FieldID)
+			}
+			if _, exists := b.mutation.CreatedAt(); exists {
+				s.SetIgnore(deliverylog.FieldCreatedAt)
+			}
+		}
+	}))
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.DeliveryLog.Create().
+//		OnConflict(sql.ResolveWithIgnore()).
+//		Exec(ctx)
+func (u *DeliveryLogUpsertBulk) Ignore() *DeliveryLogUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *DeliveryLogUpsertBulk) DoNothing() *DeliveryLogUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the DeliveryLogCreateBulk.OnConflict
+// documentation for more info.
+func (u *DeliveryLogUpsertBulk) Update(set func(*DeliveryLogUpsert)) *DeliveryLogUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&DeliveryLogUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetTenantID sets the "tenant_id" field.
+func (u *DeliveryLogUpsertBulk) SetTenantID(v string) *DeliveryLogUpsertBulk {
+	return u.Update(func(s *DeliveryLogUpsert) {
+		s.SetTenantID(v)
+	})
+}
+
+// UpdateTenantID sets the "tenant_id" field to the value that was provided on create.
+func (u *DeliveryLogUpsertBulk) UpdateTenantID() *DeliveryLogUpsertBulk {
+	return u.Update(func(s *DeliveryLogUpsert) {
+		s.UpdateTenantID()
+	})
+}
+
+// SetTemplateID sets the "template_id" field.
+func (u *DeliveryLogUpsertBulk) SetTemplateID(v string) *DeliveryLogUpsertBulk {
+	return u.Update(func(s *DeliveryLogUpsert) {
+		s.SetTemplateID(v)
+	})
+}
+
+// UpdateTemplateID sets the "template_id" field to the value that was provided on create.
+func (u *DeliveryLogUpsertBulk) UpdateTemplateID() *DeliveryLogUpsertBulk {
+	return u.Update(func(s *DeliveryLogUpsert) {
+		s.UpdateTemplateID()
+	})
+}
+
+// SetChannel sets the "channel" field.
+func (u *DeliveryLogUpsertBulk) SetChannel(v string) *DeliveryLogUpsertBulk {
+	return u.Update(func(s *DeliveryLogUpsert) {
+		s.SetChannel(v)
+	})
+}
+
+// UpdateChannel sets the "channel" field to the value that was provided on create.
+func (u *DeliveryLogUpsertBulk) UpdateChannel() *DeliveryLogUpsertBulk {
+	return u.Update(func(s *DeliveryLogUpsert) {
+		s.UpdateChannel()
+	})
+}
+
+// SetRecipient sets the "recipient" field.
+func (u *DeliveryLogUpsertBulk) SetRecipient(v string) *DeliveryLogUpsertBulk {
+	return u.Update(func(s *DeliveryLogUpsert) {
+		s.SetRecipient(v)
+	})
+}
+
+// UpdateRecipient sets the "recipient" field to the value that was provided on create.
+func (u *DeliveryLogUpsertBulk) UpdateRecipient() *DeliveryLogUpsertBulk {
+	return u.Update(func(s *DeliveryLogUpsert) {
+		s.UpdateRecipient()
+	})
+}
+
+// SetStatus sets the "status" field.
+func (u *DeliveryLogUpsertBulk) SetStatus(v string) *DeliveryLogUpsertBulk {
+	return u.Update(func(s *DeliveryLogUpsert) {
+		s.SetStatus(v)
+	})
+}
+
+// UpdateStatus sets the "status" field to the value that was provided on create.
+func (u *DeliveryLogUpsertBulk) UpdateStatus() *DeliveryLogUpsertBulk {
+	return u.Update(func(s *DeliveryLogUpsert) {
+		s.UpdateStatus()
+	})
+}
+
+// Exec executes the query.
+func (u *DeliveryLogUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
+	for i, b := range u.create.builders {
+		if len(b.conflict) != 0 {
+			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the DeliveryLogCreateBulk instead", i)
+		}
+	}
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for DeliveryLogCreateBulk.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *DeliveryLogUpsertBulk) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

@@ -37,15 +37,19 @@ type providerResponse struct {
 	ID           int    `json:"id"`
 	ProviderType string `json:"provider_type"` // email, sms, push
 	ProviderName string `json:"provider_name"` // smtp, sendgrid, twilio, etc.
+	Environment  string `json:"environment"`   // sandbox, production
 	IsActive     bool   `json:"is_active"`
 	Status       string `json:"status"`
 }
 
 type configureProviderRequest struct {
-	ProviderType string            `json:"provider_type"` // email, sms, push
-	ProviderName string            `json:"provider_name"` // smtp, sendgrid, twilio, etc.
-	Settings     map[string]string `json:"settings"`
-	IsPrimary    bool              `json:"is_primary,omitempty"`
+	ProviderType        string            `json:"provider_type"` // email, sms, push
+	ProviderName        string            `json:"provider_name"` // smtp, sendgrid, twilio, etc.
+	Environment         string            `json:"environment"`   // sandbox, production
+	Settings            map[string]string `json:"settings"`
+	PlatformManagedKeys []string          `json:"platform_managed_keys,omitempty"`
+	SecretKeys          []string          `json:"secret_keys,omitempty"`
+	IsPrimary           bool              `json:"is_primary,omitempty"`
 }
 
 type updateProviderRequest struct {
@@ -61,6 +65,7 @@ func (h *PlatformProviders) ListProviders(w http.ResponseWriter, r *http.Request
 			providersetting.IsPlatform(true),
 			providersetting.KeyEQ("_config"),
 		).
+		Order(ent.Asc(providersetting.FieldEnvironment)).
 		All(r.Context())
 	if err != nil {
 		h.logger.Error("failed to list platform providers", zap.Error(err))
@@ -74,6 +79,7 @@ func (h *PlatformProviders) ListProviders(w http.ResponseWriter, r *http.Request
 			ID:           s.ID,
 			ProviderType: s.ProviderType,
 			ProviderName: s.ProviderName,
+			Environment:  s.Environment,
 			IsActive:     s.IsActive,
 			Status:       s.Status,
 		})
@@ -95,13 +101,17 @@ func (h *PlatformProviders) ConfigureProvider(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	ctx := r.Context()
+	if req.Environment == "" {
+		req.Environment = "production"
+	}
 
-	// Delete existing settings for this provider (if any)
+	ctx := r.Context()
+	// Delete existing settings for this provider + environment
 	_, _ = h.client.ProviderSetting.Delete().
 		Where(
 			providersetting.TenantID(platformTenantID),
 			providersetting.IsPlatform(true),
+			providersetting.EnvironmentEQ(req.Environment),
 			providersetting.ProviderType(req.ProviderType),
 			providersetting.ProviderName(req.ProviderName),
 		).
@@ -114,6 +124,7 @@ func (h *PlatformProviders) ConfigureProvider(w http.ResponseWriter, r *http.Req
 		SetProvider(req.ProviderName).
 		SetProviderType(req.ProviderType).
 		SetProviderName(req.ProviderName).
+		SetEnvironment(req.Environment).
 		SetKey("_config").
 		SetValue("configured").
 		SetIsPlatform(true).
@@ -126,11 +137,22 @@ func (h *PlatformProviders) ConfigureProvider(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// Helper maps for key flags
+	isManaged := make(map[string]bool)
+	for _, k := range req.PlatformManagedKeys {
+		isManaged[k] = true
+	}
+	isSecret := make(map[string]bool)
+	for _, k := range req.SecretKeys {
+		isSecret[k] = true
+	}
+
 	// Create individual setting rows; encrypt secret keys when encryption key is set
 	for k, v := range req.Settings {
 		value := v
 		isEncrypted := false
-		if encryption.IsSecret(k) && len(h.encryptionKey) == 32 && v != "" {
+		secret := isSecret[k] || encryption.IsSecret(k)
+		if secret && len(h.encryptionKey) == 32 && v != "" {
 			if enc, err := encryption.Encrypt(v, h.encryptionKey); err == nil {
 				value = enc
 				isEncrypted = true
@@ -142,10 +164,13 @@ func (h *PlatformProviders) ConfigureProvider(w http.ResponseWriter, r *http.Req
 			SetProvider(req.ProviderName).
 			SetProviderType(req.ProviderType).
 			SetProviderName(req.ProviderName).
+			SetEnvironment(req.Environment).
 			SetKey(k).
 			SetValue(value).
 			SetIsEncrypted(isEncrypted).
 			SetIsPlatform(true).
+			SetIsPlatformManaged(isManaged[k]).
+			SetIsSecret(secret).
 			SetIsActive(true).
 			SetStatus("active").
 			Save(ctx)
