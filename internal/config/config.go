@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -117,6 +118,10 @@ func Load() (*Config, error) {
 	var cfg Config
 	if err := envconfig.Process(namespace, &cfg); err != nil {
 		return nil, fmt.Errorf("config: %w", err)
+	}
+	// Standardized key: when POSTGRES_URL is set (e.g. from K8s secret), use it for DB connection
+	if u := os.Getenv("POSTGRES_URL"); u != "" {
+		cfg.Postgres.URL = u
 	}
 
 	return &cfg, nil

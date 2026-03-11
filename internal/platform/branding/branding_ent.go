@@ -13,7 +13,9 @@ import (
 // LoadBrandingEnt loads tenant branding using Ent.
 func LoadBrandingEnt(ctx context.Context, dbCfg config.PostgresConfig, tenantID string) (Info, error) {
 	dsn := dbCfg.URL
-	if env := os.Getenv("NOTIFICATIONS_POSTGRES_URL"); env != "" {
+	if env := os.Getenv("POSTGRES_URL"); env != "" {
+		dsn = env
+	} else if env := os.Getenv("NOTIFICATIONS_POSTGRES_URL"); env != "" {
 		dsn = env
 	}
 	if dsn == "" {

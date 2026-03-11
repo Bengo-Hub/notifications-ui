@@ -12,7 +12,10 @@ import (
 )
 
 func main() {
-	dbURL := os.Getenv("NOTIFICATIONS_POSTGRES_URL")
+	dbURL := os.Getenv("POSTGRES_URL")
+	if dbURL == "" {
+		dbURL = os.Getenv("NOTIFICATIONS_POSTGRES_URL")
+	}
 	if dbURL == "" {
 		dbURL = "postgres://postgres:postgres@localhost:5432/notifications?sslmode=disable"
 	}
