@@ -7,8 +7,8 @@ const STALE_MS = 5 * 60 * 1000;
 
 export const settingsKeys = {
   platformProviders: () => ['settings', 'platform', 'providers'] as const,
-  tenantProviders: (orgSlug: string) => ['settings', orgSlug, 'providers'] as const,
-  branding: (orgSlug: string) => ['settings', orgSlug, 'branding'] as const,
+  tenantProviders: () => ['settings', 'current', 'providers'] as const,
+  branding: () => ['settings', 'current', 'branding'] as const,
 };
 
 export function usePlatformProviders() {
@@ -22,24 +22,22 @@ export function usePlatformProviders() {
   });
 }
 
-export function useTenantProviders(orgSlug: string) {
+export function useTenantProviders() {
   return useQuery({
-    queryKey: settingsKeys.tenantProviders(orgSlug),
+    queryKey: settingsKeys.tenantProviders(),
     queryFn: async () => {
-      const res = await settingsApi.listProviders(orgSlug);
+      const res = await settingsApi.listProviders();
       const list = (res as { providers?: ProviderSetting[] })?.providers ?? (Array.isArray(res) ? res : []);
       return Array.isArray(list) ? list : [];
     },
-    enabled: !!orgSlug,
     staleTime: STALE_MS,
   });
 }
 
-export function useBranding(orgSlug: string) {
+export function useBranding() {
   return useQuery({
-    queryKey: settingsKeys.branding(orgSlug),
-    queryFn: () => settingsApi.getBranding(orgSlug),
-    enabled: !!orgSlug,
+    queryKey: settingsKeys.branding(),
+    queryFn: () => settingsApi.getBranding(),
     staleTime: STALE_MS,
   });
 }

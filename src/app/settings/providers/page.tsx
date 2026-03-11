@@ -4,11 +4,9 @@ import { Badge, Button, Card, CardContent } from '@/components/ui/base';
 import { useTenantProviders } from '@/hooks/use-settings';
 import { cn } from '@/lib/utils';
 import { AlertCircle, ExternalLink, Globe, Lock, Mail, MessageSquare, Save, Smartphone } from 'lucide-react';
-import { useParams } from 'next/navigation';
 
 export default function ProvidersPage() {
-    const { orgSlug } = useParams() as { orgSlug: string };
-    const { data: providers = [], isLoading: loading, isError, refetch } = useTenantProviders(orgSlug);
+    const { data: providers = [], isLoading: loading, isError, refetch } = useTenantProviders();
 
     const channels = [
         { id: 'email', name: 'Email', icon: Mail, description: 'SMTP, SendGrid, or AWS SES', color: 'blue' },
@@ -107,7 +105,7 @@ export default function ProvidersPage() {
                                                 </div>
                                                 <div className="max-w-xs">
                                                     <h4 className="font-bold">Setup {channel.name}</h4>
-                                                    <p className="text-xs text-muted-foreground mt-1">Connect a provider to enable {channel.name.toLowerCase()} notifications for {orgSlug}.</p>
+                                                    <p className="text-xs text-muted-foreground mt-1">Connect a provider to enable {channel.name.toLowerCase()} notifications.</p>
                                                 </div>
                                                 <Button size="sm" className="px-8 shadow-lg shadow-primary/20">Configure Now</Button>
                                             </div>

@@ -6,28 +6,26 @@ import { useQuery } from '@tanstack/react-query';
 const STALE_MS = 2 * 60 * 1000;
 
 export const analyticsKeys = {
-  deliveryStats: (orgSlug: string, range?: string) => ['analytics', 'delivery', orgSlug, range ?? '24h'] as const,
-  activityLogs: (orgSlug: string, limit?: number, filters?: ActivityLogFilters) =>
-    ['analytics', 'logs', orgSlug, limit ?? 20, filters] as const,
+  deliveryStats: (range?: string) => ['analytics', 'delivery', 'current', range ?? '24h'] as const,
+  activityLogs: (limit?: number, filters?: ActivityLogFilters) =>
+    ['analytics', 'logs', 'current', limit ?? 20, filters] as const,
 };
 
-export function useDeliveryStats(orgSlug: string, range = '24h') {
+export function useDeliveryStats(range = '24h') {
   return useQuery({
-    queryKey: analyticsKeys.deliveryStats(orgSlug, range),
-    queryFn: () => analyticsApi.getDeliveryStats(orgSlug, range),
-    enabled: !!orgSlug,
+    queryKey: analyticsKeys.deliveryStats(range),
+    queryFn: () => analyticsApi.getDeliveryStats(range),
     staleTime: STALE_MS,
   });
 }
 
-export function useActivityLogs(orgSlug: string, limit = 20, filters?: ActivityLogFilters) {
+export function useActivityLogs(limit = 20, filters?: ActivityLogFilters) {
   return useQuery({
-    queryKey: analyticsKeys.activityLogs(orgSlug, limit, filters),
+    queryKey: analyticsKeys.activityLogs(limit, filters),
     queryFn: async () => {
-      const res = await analyticsApi.getActivityLogs(orgSlug, limit, filters);
+      const res = await analyticsApi.getActivityLogs(limit, filters);
       return (Array.isArray(res) ? res : (res as { logs?: ActivityLog[] })?.logs ?? []) as ActivityLog[];
     },
-    enabled: !!orgSlug,
     staleTime: STALE_MS,
   });
 }

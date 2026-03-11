@@ -3,7 +3,7 @@
 import { useMe } from '@/hooks/useMe';
 import { canAccessPlatform } from '@/lib/auth/roles';
 import { useAuthStore } from '@/store/auth';
-import { useParams, usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { ReactNode, useEffect } from 'react';
 
 /**
@@ -15,36 +15,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { status, initialize } = useAuthStore();
     const { user, isLoading: meLoading, isError: meError } = useMe();
     const pathname = usePathname();
-    const params = useParams();
     const router = useRouter();
-    const orgSlug = params?.orgSlug as string;
-
-    useEffect(() => {
-        initialize();
-    }, [initialize]);
 
     // Unauthenticated: redirect to SSO
     useEffect(() => {
-        if (status === 'idle' && !pathname?.includes('/auth')) {
-            if (orgSlug) {
-                useAuthStore.getState().redirectToSSO(orgSlug, window.location.href);
+        const checkAuth = async () => {
+            if (status === 'idle') {
+                await initialize();
             }
-        }
-    }, [status, pathname, orgSlug]);
+            if (useAuthStore.getState().status === 'unauthenticated' && !pathname?.includes('/auth')) {
+                useAuthStore.getState().redirectToSSO(window.location.href);
+            }
+        };
+        checkAuth();
+    }, [status, pathname, initialize]);
 
     // 401 on /me: redirect to login (SSO)
     useEffect(() => {
-        if (meError && orgSlug && !pathname?.includes('/auth')) {
-            useAuthStore.getState().redirectToSSO(orgSlug, window.location.href);
+        if (meError && !pathname?.includes('/auth')) {
+            useAuthStore.getState().redirectToSSO(window.location.href);
         }
-    }, [meError, orgSlug, pathname]);
+    }, [meError, pathname]);
 
     // Authenticated but accessing /platform without permission -> 403 unauthorized
     useEffect(() => {
         if (status === 'authenticated' && user && pathname?.startsWith('/platform') && !canAccessPlatform(user)) {
-            router.replace(orgSlug ? `/${orgSlug}/unauthorized` : '/unauthorized');
+            router.replace('/unauthorized');
         }
-    }, [status, user, pathname, orgSlug, router]);
+    }, [status, user, pathname, router]);
 
     const loading = status === 'loading' || (status === 'authenticated' && meLoading);
     if (loading && !pathname?.includes('/auth')) {

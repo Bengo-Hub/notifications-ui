@@ -11,7 +11,7 @@ const withPWA = withPWAInit({
 });
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  output: process.env.SKIP_STANDALONE === "true" ? undefined : "standalone",
   images: {
     remotePatterns: [
       {

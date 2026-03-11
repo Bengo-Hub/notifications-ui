@@ -3,20 +3,20 @@
 import { cn } from '@/lib/utils';
 import { ReactNode } from 'react';
 
-export function Card({ children, className }: { children: ReactNode; className?: string }) {
+export function Card({ children, className, ...props }: { children: ReactNode; className?: string; [key: string]: any }) {
     return (
-        <div className={cn("rounded-2xl border border-border bg-card shadow-sm overflow-hidden", className)}>
+        <div className={cn("rounded-2xl border border-border bg-card shadow-sm overflow-hidden", className)} {...props}>
             {children}
         </div>
     );
 }
 
-export function CardHeader({ children, className }: { children: ReactNode; className?: string }) {
-    return <div className={cn("px-6 py-4 border-b border-border bg-accent/5", className)}>{children}</div>;
+export function CardHeader({ children, className, ...props }: { children: ReactNode; className?: string; [key: string]: any }) {
+    return <div className={cn("px-6 py-4 border-b border-border bg-accent/5", className)} {...props}>{children}</div>;
 }
 
-export function CardContent({ children, className }: { children: ReactNode; className?: string }) {
-    return <div className={cn("p-6", className)}>{children}</div>;
+export function CardContent({ children, className, ...props }: { children: ReactNode; className?: string; [key: string]: any }) {
+    return <div className={cn("p-6", className)} {...props}>{children}</div>;
 }
 
 export function Button({
@@ -52,17 +52,21 @@ export function Button({
     );
 }
 
-export function Badge({ children, className, variant = 'default' }: { children: ReactNode; className?: string; variant?: 'default' | 'success' | 'warning' | 'error' | 'outline' }) {
+export function Badge({ children, className, variant = 'default', ...props }: { children: ReactNode; className?: string; variant?: 'default' | 'success' | 'warning' | 'error' | 'outline' | 'secondary'; [key: string]: any }) {
     const variants = {
         default: 'bg-primary/10 text-primary border-primary/20',
         success: 'bg-green-500/10 text-green-500 border-green-500/20',
         warning: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
         error: 'bg-red-500/10 text-red-500 border-red-500/20',
         outline: 'bg-transparent text-muted-foreground border-border',
+        secondary: 'bg-secondary/10 text-secondary-foreground border-secondary/20',
     };
 
     return (
-        <span className={cn("px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border tracking-wider", variants[variant], className)}>
+        <span
+            className={cn("px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border tracking-wider", variants[variant], className)}
+            {...props}
+        >
             {children}
         </span>
     );

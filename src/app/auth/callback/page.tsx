@@ -7,28 +7,26 @@ import { Suspense, useEffect, useRef } from 'react';
 function AuthCallbackContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const params = useParams();
-    const orgSlug = params?.orgSlug as string;
     const code = searchParams?.get('code');
     const error = searchParams?.get('error');
     const { handleSSOCallback, status, error: authError } = useAuthStore();
     const hasStarted = useRef(false);
 
     useEffect(() => {
-        if (code && orgSlug && !hasStarted.current) {
+        if (code && !hasStarted.current) {
             hasStarted.current = true;
-            const callbackUrl = `${window.location.origin}/${orgSlug}/auth/callback`;
-            handleSSOCallback(orgSlug, code, callbackUrl);
+            const callbackUrl = `${window.location.origin}/auth/callback`;
+            handleSSOCallback(code, callbackUrl);
         }
-    }, [code, orgSlug, handleSSOCallback]);
+    }, [code, handleSSOCallback]);
 
     useEffect(() => {
         if (status === 'authenticated') {
-            const returnTo = sessionStorage.getItem('sso_return_to') || `/${orgSlug}/dashboard`;
+            const returnTo = sessionStorage.getItem('sso_return_to') || '/dashboard';
             sessionStorage.removeItem('sso_return_to');
             router.replace(returnTo);
         }
-    }, [status, orgSlug, router]);
+    }, [status, router]);
 
     if (error || authError) {
         return (
@@ -37,7 +35,7 @@ function AuthCallbackContent() {
                     <h1 className="text-xl font-bold text-destructive mb-2">Authentication Failed</h1>
                     <p className="text-muted-foreground">{error || authError}</p>
                     <button
-                        onClick={() => router.replace(`/${orgSlug}/auth`)}
+                        onClick={() => router.replace('/auth')}
                         className="mt-6 px-4 py-2 bg-primary text-primary-foreground rounded-lg"
                     >
                         Try Again

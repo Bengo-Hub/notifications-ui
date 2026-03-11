@@ -9,11 +9,14 @@ import { ArrowLeft, Code, Eye, Info, Mail, MessageSquare, Plus, Save, Send, Smar
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { useAuthStore } from '@/store/auth';
 
 export default function TemplateEditorPage() {
-    const { orgSlug, id } = useParams() as { orgSlug: string; id: string };
+    const { id } = useParams() as { id: string };
     const router = useRouter();
     const queryClient = useQueryClient();
+    const { user } = useAuthStore();
+    const tenantSlug = user?.tenant_slug;
     const isNew = id === 'new';
 
     const [template, setTemplate] = useState<Partial<NotificationTemplate>>({
@@ -21,34 +24,32 @@ export default function TemplateEditorPage() {
         type: 'email',
         subject: '',
         content: '',
-        organizationId: orgSlug,
     });
     const [loading, setLoading] = useState(!isNew);
     const [saving, setSaving] = useState(false);
     const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit');
 
     useEffect(() => {
-        if (!isNew && orgSlug) {
+        if (!isNew && tenantSlug) {
             loadTemplate();
         }
-    }, [id, orgSlug]);
+    }, [id, tenantSlug]);
 
     const loadTemplate = async () => {
         try {
             setLoading(true);
             const channel = template.type || 'email';
-            const data = await templatesApi.get(orgSlug, id, channel);
+            const data = await templatesApi.get(id, channel);
             setTemplate({
                 id: data.id,
                 name: data.id,
                 type: data.channel as 'email' | 'sms' | 'push',
                 content: data.content ?? '',
-                organizationId: orgSlug,
             });
         } catch (error) {
             console.error('Failed to load template:', error);
             toast.error('Failed to load template');
-            setTemplate((prev) => ({ ...prev, id, name: id, organizationId: orgSlug }));
+            setTemplate((prev: Partial<NotificationTemplate>) => ({ ...prev, id, name: id }));
         } finally {
             setLoading(false);
         }
@@ -62,13 +63,13 @@ export default function TemplateEditorPage() {
                 return;
             }
             const channel = template.type ?? 'email';
-            await templatesApi.update(orgSlug, id, channel, {
+            await templatesApi.update(id, channel, {
                 content: template.content ?? '',
                 subject: template.subject,
             });
             toast.success('Template updated successfully');
-            queryClient.invalidateQueries({ queryKey: templateKeys.all(orgSlug) });
-            router.push(`/${orgSlug}/templates`);
+            queryClient.invalidateQueries({ queryKey: templateKeys.all() });
+            router.push(`/templates`);
         } catch (error) {
             console.error('Failed to save template:', error);
             toast.error('Failed to save template');
@@ -84,12 +85,12 @@ export default function TemplateEditorPage() {
         const to = testRecipient.trim() || (channel === 'email' ? 'test@example.com' : '+254700000000');
         try {
             setTestSending(true);
-            await templatesApi.testSend(orgSlug, id, channel, [to], {
+            await templatesApi.testSend(id, channel, [to], {
                 name: 'Test User',
                 org_name: 'Test Org',
             });
             toast.success('Test notification queued for delivery');
-            queryClient.invalidateQueries({ queryKey: templateKeys.all(orgSlug) });
+            queryClient.invalidateQueries({ queryKey: templateKeys.all() });
         } catch (error) {
             console.error('Test send failed:', error);
             toast.error('Test send failed');
@@ -139,7 +140,7 @@ export default function TemplateEditorPage() {
                                     type="text"
                                     placeholder={template.type === 'email' ? 'test@example.com' : 'Recipient'}
                                     value={testRecipient}
-                                    onChange={(e) => setTestRecipient(e.target.value)}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTestRecipient(e.target.value)}
                                     className="w-48 bg-accent/20 border border-border rounded-lg py-1.5 px-3 text-sm"
                                 />
                                 <Button onClick={handleTestSend} disabled={testSending} variant="outline" className="gap-2">
@@ -211,7 +212,7 @@ export default function TemplateEditorPage() {
                                 </div>
                                 <textarea
                                     value={template.content}
-                                    onChange={(e) => setTemplate({ ...template, content: e.target.value })}
+                                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setTemplate({ ...template, content: e.target.value })}
                                     rows={15}
                                     placeholder="Type your template content here..."
                                     className="w-full bg-accent/10 border-border rounded-lg p-4 font-mono text-sm focus:ring-1 focus:ring-primary outline-none transition-all resize-none min-h-[400px]"

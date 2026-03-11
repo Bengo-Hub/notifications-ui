@@ -4,12 +4,10 @@ import { Badge, Button, Card, CardContent, CardHeader } from '@/components/ui/ba
 import { useTemplates } from '@/hooks/use-templates';
 import { cn } from '@/lib/utils';
 import { Edit2, Mail, MessageSquare, MoreVertical, Plus, Search, Smartphone, Trash2, Zap } from 'lucide-react';
-import { useParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 
 export default function TemplatesPage() {
-    const { orgSlug } = useParams() as { orgSlug: string };
-    const { data: templates = [], isLoading: loading, isError, refetch } = useTemplates(orgSlug);
+    const { data: templates = [], isLoading: loading, isError, refetch } = useTemplates();
     const [searchQuery, setSearchQuery] = useState('');
 
     const filteredTemplates = useMemo(() => templates.filter(t =>

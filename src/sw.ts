@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 
 export default null;
-declare var self: ServiceWorkerGlobalScope;
+declare let self: ServiceWorkerGlobalScope;
 
 // Custom Service Worker for Push Notifications
 self.addEventListener('push', (event: PushEvent) => {
@@ -15,7 +15,6 @@ self.addEventListener('push', (event: PushEvent) => {
             badge: '/logo.svg',
             data: {
                 url: data.url || '/',
-                orgSlug: data.orgSlug
             },
             tag: data.tag || 'general-notification'
         };

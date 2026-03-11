@@ -12,7 +12,9 @@ export interface MeProfile {
   fullName?: string;
   roles: string[];
   permissions?: string[];
-  organizationId?: string;
+  tenant_id?: string;
+  tenant_slug?: string;
+  is_platform_owner?: boolean;
 }
 
 export function useMe() {
@@ -30,7 +32,7 @@ export function useMe() {
     enabled: !!accessToken,
     staleTime: ME_STALE_TIME_MS,
     gcTime: ME_STALE_TIME_MS * 2,
-    retry: (failureCount, error: unknown) => {
+    retry: (failureCount: number, error: unknown) => {
       const status = (error as { response?: { status?: number } })?.response?.status;
       if (status === 401 || status === 403) return false;
       return failureCount < 2;

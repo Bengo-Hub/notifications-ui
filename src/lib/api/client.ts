@@ -23,6 +23,24 @@ class ApiClient {
         if (this.accessToken) {
             config.headers.Authorization = `Bearer ${this.accessToken}`;
         }
+        
+        // Tenant Identification Headers
+        const tenantId = localStorage.getItem('tenant_id');
+        const tenantSlug = localStorage.getItem('tenant_slug');
+        const isPlatformOwner = localStorage.getItem('is_platform_owner') === 'true';
+
+        // Only inject headers for non-platform API calls
+        const isPlatformApi = config.url?.startsWith('/api/v1/platform');
+        
+        if (!isPlatformApi) {
+            if (tenantId) {
+                config.headers['X-Tenant-ID'] = tenantId;
+            }
+            if (tenantSlug) {
+                config.headers['X-Tenant-Slug'] = tenantSlug;
+            }
+        }
+
         return config;
     };
 

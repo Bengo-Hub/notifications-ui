@@ -5,11 +5,9 @@ import { useActivityLogs, useDeliveryStats } from '@/hooks/use-analytics';
 import type { ActivityLog } from '@/lib/api/analytics';
 import { cn } from '@/lib/utils';
 import { Activity, AlertCircle, ArrowDownRight, ArrowUpRight, BarChart3, CheckCircle2, Clock, Filter, Mail, MessageSquare, Smartphone, Zap } from 'lucide-react';
-import { useParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 
 export default function MonitoringPage() {
-    const { orgSlug } = useParams() as { orgSlug: string };
     const [range, setRange] = useState<'24h' | '7d'>('24h');
     const [channelFilter, setChannelFilter] = useState<string>('');
     const [statusFilter, setStatusFilter] = useState<string>('');
@@ -20,8 +18,8 @@ export default function MonitoringPage() {
         status: statusFilter || undefined,
     }), [channelFilter, statusFilter]);
 
-    const { data: stats, isLoading: statsLoading, isError: statsError, refetch: refetchStats } = useDeliveryStats(orgSlug, range);
-    const { data: logs = [], isLoading: logsLoading, isError: logsError, refetch: refetchLogs } = useActivityLogs(orgSlug, 50, filters);
+    const { data: stats, isLoading: statsLoading, isError: statsError, refetch: refetchStats } = useDeliveryStats(range);
+    const { data: logs = [], isLoading: logsLoading, isError: logsError, refetch: refetchLogs } = useActivityLogs(50, filters);
 
     const loading = statsLoading || logsLoading;
     const hasError = statsError || logsError;
@@ -252,7 +250,7 @@ export default function MonitoringPage() {
 
                     {selectedLog && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setSelectedLog(null)}>
-                            <Card className="max-w-md w-full mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+                            <Card className="max-w-md w-full mx-4 shadow-xl" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                                 <CardHeader className="flex flex-row items-center justify-between">
                                     <h3 className="font-bold">Delivery details</h3>
                                     <Button variant="ghost" size="sm" onClick={() => setSelectedLog(null)}>Close</Button>

@@ -1,8 +1,7 @@
 'use client';
 
 import { settingsApi } from '@/lib/api/settings';
-import { useParams } from 'next/navigation';
-import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 
 interface BrandingContextType {
     logoUrl: string;
@@ -13,7 +12,6 @@ interface BrandingContextType {
 const BrandingContext = createContext<BrandingContextType | undefined>(undefined);
 
 export function BrandingProvider({ children }: { children: ReactNode }) {
-    const { orgSlug } = useParams() as { orgSlug: string };
     const [branding, setBranding] = useState<BrandingContextType>({
         logoUrl: '/logo.png',
         primaryColor: '#0ea5e9',
@@ -21,14 +19,12 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
     });
 
     useEffect(() => {
-        if (orgSlug) {
-            loadBranding();
-        }
-    }, [orgSlug]);
+        loadBranding();
+    }, []);
 
     const loadBranding = async () => {
         try {
-            const data = await settingsApi.getBranding(orgSlug);
+            const data = await settingsApi.getBranding();
             if (data) {
                 setBranding({
                     logoUrl: data.logo_url || '/logo.png',

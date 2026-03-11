@@ -1,54 +1,41 @@
-import { PWARegistration } from "@/components/pwa-registration";
-import { ThemeProvider } from "@/components/theme-provider";
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import { Toaster } from "sonner";
-import "./globals.css";
+'use client';
 
-const geistSans = Geist({
-  subsets: ["latin"],
-});
+import { Header } from '@/components/header';
+import { Sidebar } from '@/components/sidebar';
+import { AuthProvider } from '@/providers/auth-provider';
+import { BrandingProvider } from '@/providers/branding-provider';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactNode, useState } from 'react';
 
-const geistMono = Geist_Mono({
-  subsets: ["latin"],
-});
+export default function OrgLayout({ children }: { children: ReactNode }) {
+    const [queryClient] = useState(
+        () =>
+            new QueryClient({
+                defaultOptions: {
+                    queries: {
+                        staleTime: 5 * 60 * 1000,
+                        retry: 1,
+                    },
+                },
+            })
+    );
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
-export const metadata: Metadata = {
-  title: "TruLoad Notifications",
-  description: "Premium notification management for TruLoad ecosystem",
-  manifest: "/manifest.json",
-  icons: {
-    icon: "/logo.svg",
-    apple: "/logo.svg",
-  },
-  themeColor: "#0ea5e9",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "TruLoad Notifications",
-  },
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.className} ${geistMono.className} antialiased`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-          <PWARegistration />
-          <Toaster richColors position="top-right" />
-        </ThemeProvider>
-      </body>
-    </html>
-  );
+    return (
+        <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+            <BrandingProvider>
+                <div className="flex h-screen overflow-hidden bg-background">
+                    <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+                    <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+                        <Header onMenuClick={() => setSidebarOpen((v) => !v)} />
+                        <main className="flex-1 overflow-y-auto bg-accent/5">
+                            {children}
+                        </main>
+                    </div>
+                </div>
+            </BrandingProvider>
+        </AuthProvider>
+        </QueryClientProvider>
+    );
 }

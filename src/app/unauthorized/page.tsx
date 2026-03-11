@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { ShieldX } from 'lucide-react';
 
 export default function UnauthorizedPage() {
@@ -11,8 +12,11 @@ export default function UnauthorizedPage() {
       <p className="text-muted-foreground text-center max-w-md mb-6">
         You don&apos;t have permission to view this page. Contact your administrator if you believe this is an error.
       </p>
-      <Link href="/" className="text-primary hover:underline font-medium">
-        Return home
+      <Link
+        href="/"
+        className="text-primary hover:underline font-medium"
+      >
+        Return to home
       </Link>
     </div>
   );

@@ -43,15 +43,15 @@ export const settingsApi = {
     deactivatePlatformProvider: (id: string) =>
         apiClient.delete(`/api/v1/platform/providers/${id}`),
 
-    listProviders: (orgSlug: string) =>
-        apiClient.get<{ providers: unknown[] }>(`/api/v1/${orgSlug}/providers/available`),
+    listProviders: () =>
+        apiClient.get<{ providers: unknown[] }>('/api/v1/providers/available'),
+    
+    updateProvider: (setting: Partial<ProviderSetting>) =>
+        apiClient.post('/api/v1/providers/select', setting),
 
-    updateProvider: (orgSlug: string, setting: Partial<ProviderSetting>) =>
-        apiClient.put(`/api/v1/${orgSlug}/providers/selected`, setting),
+    getBranding: () =>
+        apiClient.get<TenantBranding>('/api/v1/branding'),
 
-    getBranding: (orgSlug: string) =>
-        apiClient.get<TenantBranding>(`/api/v1/${orgSlug}/branding`),
-
-    updateBranding: (orgSlug: string, branding: Partial<TenantBranding>) =>
-        apiClient.put(`/api/v1/${orgSlug}/branding`, branding),
+    updateBranding: (branding: Partial<TenantBranding>) =>
+        apiClient.put('/api/v1/branding', branding),
 };

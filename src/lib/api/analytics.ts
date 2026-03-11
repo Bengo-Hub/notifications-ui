@@ -33,14 +33,15 @@ export interface ActivityLogFilters {
 }
 
 export const analyticsApi = {
-    getDeliveryStats: (orgSlug: string, range: string = '24h') =>
-        apiClient.get<DeliveryStats>(`/api/v1/analytics/delivery/${orgSlug}?range=${range}`),
+    getDeliveryStats: (range: string = '24h') =>
+        apiClient.get<DeliveryStats>(`/api/v1/analytics/delivery?range=${range}`),
 
-    getActivityLogs: (orgSlug: string, limit: number = 20, filters?: ActivityLogFilters) => {
+    getActivityLogs: (limit: number = 20, filters?: ActivityLogFilters) => {
         const params = new URLSearchParams({ limit: String(limit) });
         if (filters?.offset != null) params.set('offset', String(filters.offset));
         if (filters?.channel) params.set('channel', filters.channel);
         if (filters?.status) params.set('status', filters.status);
-        return apiClient.get<ActivityLog[]>(`/api/v1/analytics/logs/${orgSlug}?${params.toString()}`);
+        const baseUrl = '/api/v1/analytics/logs';
+        return apiClient.get<ActivityLog[]>(`${baseUrl}?${params.toString()}`);
     },
 };

@@ -8,7 +8,6 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 export default function BrandingPage() {
-    const { orgSlug } = useParams() as { orgSlug: string };
     const [branding, setBranding] = useState<Partial<TenantBranding>>({
         primary_color: '#0ea5e9',
         secondary_color: '#64748b',
@@ -19,12 +18,12 @@ export default function BrandingPage() {
 
     useEffect(() => {
         loadBranding();
-    }, [orgSlug]);
+    }, []);
 
     const loadBranding = async () => {
         try {
             setLoading(true);
-            const data = await settingsApi.getBranding(orgSlug);
+            const data = await settingsApi.getBranding();
             setBranding(data || branding);
         } catch (error) {
             console.error('Failed to load branding:', error);
@@ -36,7 +35,7 @@ export default function BrandingPage() {
     const handleSave = async () => {
         try {
             setSaving(true);
-            await settingsApi.updateBranding(orgSlug, branding);
+            await settingsApi.updateBranding(branding);
             toast.success('Branding updated successfully');
         } catch (error) {
             console.error('Failed to save branding:', error);

@@ -6,10 +6,9 @@ import { Activity, Mail, MessageSquare, Smartphone } from 'lucide-react';
 import { useParams } from 'next/navigation';
 
 export default function DashboardPage() {
-    const { orgSlug } = useParams() as { orgSlug: string };
-    const { data: stats, isLoading: statsLoading, isError: statsError, refetch: refetchStats } = useDeliveryStats(orgSlug);
-    const { data: templates = [], isLoading: templatesLoading, isError: templatesError, refetch: refetchTemplates } = useTemplates(orgSlug);
-    const { data: activityLogs = [], isLoading: logsLoading, isError: logsError, refetch: refetchLogs } = useActivityLogs(orgSlug, 10);
+    const { data: stats, isLoading: statsLoading, isError: statsError, refetch: refetchStats } = useDeliveryStats();
+    const { data: templates = [], isLoading: templatesLoading, isError: templatesError, refetch: refetchTemplates } = useTemplates();
+    const { data: activityLogs = [], isLoading: logsLoading, isError: logsError, refetch: refetchLogs } = useActivityLogs(10);
 
     const loading = statsLoading || templatesLoading || logsLoading;
     const hasError = statsError || templatesError || logsError;

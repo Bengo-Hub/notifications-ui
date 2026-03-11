@@ -1,19 +1,19 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { Cloud, Palette, ShieldCheck } from 'lucide-react';
+import { Cloud, Palette, ShieldCheck, CreditCard } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, usePathname } from 'next/navigation';
 import { ReactNode } from 'react';
 
 export default function SettingsLayout({ children }: { children: ReactNode }) {
     const pathname = usePathname();
-    const { orgSlug } = useParams() as { orgSlug: string };
 
     const tabs = [
-        { name: 'Providers', href: `/${orgSlug}/settings/providers`, icon: Cloud },
-        { name: 'Branding', href: `/${orgSlug}/settings/branding`, icon: Palette },
-        { name: 'Security', href: `/${orgSlug}/settings/security`, icon: ShieldCheck },
+        { name: 'Providers', href: '/settings/providers', icon: Cloud },
+        { name: 'Branding', href: '/settings/branding', icon: Palette },
+        { name: 'Security', href: '/settings/security', icon: ShieldCheck },
+        { name: 'Billing', href: '/billing/credits', icon: CreditCard },
     ];
 
     return (

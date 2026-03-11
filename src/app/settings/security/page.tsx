@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 export default function SecuritySettingsPage() {
-    const [webhookSecret] = useState<string | null>(null); // TODO: load from GET /api/v1/{orgSlug}/settings/security when backend exposes it
+    const [webhookSecret] = useState<string | null>(null); // TODO: load from GET /api/v1/settings/security when backend exposes it
 
     const handleCopyWebhookSecret = async () => {
         const value = webhookSecret ?? 'Not configured';

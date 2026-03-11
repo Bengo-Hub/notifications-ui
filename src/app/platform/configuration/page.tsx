@@ -47,8 +47,8 @@ export default function PlatformConfigurationPage() {
                     </h3>
                     <ul className="text-sm text-muted-foreground space-y-1">
                         <li>• Platform: GET/POST /api/v1/platform/providers, POST /api/v1/platform/providers/:id/test</li>
-                        <li>• Tenant: /api/v1/[tenantId]/templates, /api/v1/[tenantId]/providers/available, /api/v1/[tenantId]/branding</li>
-                        <li>• Analytics: GET /api/v1/analytics/delivery/[tenantId]</li>
+                        <li>• Tenant: /api/v1/templates, /api/v1/providers/available, /api/v1/branding</li>
+                        <li>• Analytics: GET /api/v1/analytics/delivery-stats</li>
                     </ul>
                 </CardContent>
             </Card>

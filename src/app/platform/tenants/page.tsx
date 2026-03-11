@@ -12,7 +12,10 @@ export default function PlatformTenantsPage() {
     const goToTenant = () => {
         const s = slug.trim().toLowerCase().replace(/\s+/g, '-');
         if (!s) return;
-        router.push(`/${s}/dashboard`);
+        // In header-based tenancy, we'd typically update a context/localStorage
+        // For now, we'll redirect to dashboard which will use the current headers
+        localStorage.setItem('tenant_slug', s);
+        router.push('/dashboard');
     };
 
     return (
@@ -44,14 +47,14 @@ export default function PlatformTenantsPage() {
                         </Button>
                     </div>
                     <p className="text-xs text-muted-foreground mt-2">
-                        Tenant-specific routes: /[orgSlug]/dashboard, /[orgSlug]/templates, /[orgSlug]/settings/providers, /[orgSlug]/settings/branding
+                        Tenant-specific routes: /dashboard, /templates, /settings/providers, /settings/branding
                     </p>
                 </CardContent>
             </Card>
 
             <Card className="bg-muted/30">
                 <CardContent className="p-4 text-sm text-muted-foreground">
-                    Backend tenant routes: /api/v1/[tenantId]/templates, /api/v1/[tenantId]/providers/available, /api/v1/[tenantId]/branding. Platform config is unscoped.
+                    Backend tenant routes: /api/v1/templates, /api/v1/providers/available, /api/v1/branding. Platform config is unscoped. Headers X-Tenant-ID/Slug required.
                 </CardContent>
             </Card>
         </div>

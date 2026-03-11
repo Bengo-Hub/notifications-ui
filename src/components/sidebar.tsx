@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import {
     Activity,
     Bell,
+    CreditCard,
     LayoutDashboard,
     Mail,
     Server,
@@ -13,7 +14,7 @@ import {
     X
 } from 'lucide-react';
 import Link from 'next/link';
-import { useParams, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 
 interface SidebarProps {
     open?: boolean;
@@ -22,35 +23,40 @@ interface SidebarProps {
 
 export function Sidebar({ open = true, onClose }: SidebarProps) {
     const pathname = usePathname();
-    const params = useParams();
-    const orgSlug = params?.orgSlug as string;
     const { user } = useMe();
-    const isPlatformOwner = orgSlug === 'codevertex';
+    const isPlatformOwner = user?.is_platform_owner || user?.tenant_slug === 'codevertex';
+    const tenantSlug = user?.tenant_slug || '';
 
     const routes = [
         {
             label: 'Dashboard',
             icon: LayoutDashboard,
-            href: `/${orgSlug}/dashboard`,
-            active: pathname === `/${orgSlug}/dashboard`,
+            href: '/dashboard',
+            active: pathname === '/dashboard',
         },
         {
             label: 'Templates',
             icon: Mail,
-            href: `/${orgSlug}/templates`,
-            active: pathname.startsWith(`/${orgSlug}/templates`),
+            href: '/templates',
+            active: pathname.startsWith('/templates'),
         },
         {
             label: 'Monitoring',
             icon: Activity,
-            href: `/${orgSlug}/monitoring`,
-            active: pathname.startsWith(`/${orgSlug}/monitoring`),
+            href: '/monitoring',
+            active: pathname.startsWith('/monitoring'),
+        },
+        {
+            label: 'Billing',
+            icon: CreditCard,
+            href: '/billing/credits',
+            active: pathname.startsWith('/billing'),
         },
         {
             label: 'Settings',
             icon: Settings,
-            href: `/${orgSlug}/settings/providers`,
-            active: pathname.startsWith(`/${orgSlug}/settings`),
+            href: '/settings/providers',
+            active: pathname.startsWith('/settings'),
         },
         ...(isPlatformOwner
             ? [{
@@ -81,7 +87,7 @@ export function Sidebar({ open = true, onClose }: SidebarProps) {
             >
                 <div className="px-3 py-2 flex-1">
                     <div className="flex items-center justify-between pl-3 mb-14">
-                    <Link href={`/${orgSlug}/dashboard`} className="flex items-center" onClick={onClose}>
+                    <Link href="/dashboard" className="flex items-center" onClick={onClose}>
                     <div className="relative w-8 h-8 mr-3 bg-primary rounded-lg flex items-center justify-center">
                         <Bell className="text-primary-foreground h-5 w-5" />
                     </div>
@@ -119,9 +125,9 @@ export function Sidebar({ open = true, onClose }: SidebarProps) {
                 </div>
                 <div className="flex items-center px-3 py-2 gap-3 text-sm font-medium">
                     <div className="w-6 h-6 rounded bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary capitalize">
-                        {orgSlug?.[0]}
+                        {tenantSlug?.[0] || 'T'}
                     </div>
-                    <span className="capitalize">{orgSlug?.replace('-', ' ')}</span>
+                    <span className="capitalize">{tenantSlug?.replace('-', ' ') || 'Tenant'}</span>
                 </div>
             </div>
         </div>
