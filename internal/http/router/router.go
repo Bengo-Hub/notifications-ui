@@ -13,9 +13,10 @@ import (
 	httpware "github.com/Bengo-Hub/httpware"
 	authclient "github.com/Bengo-Hub/shared-auth-client"
 	handlers "github.com/bengobox/notifications-api/internal/http/handlers"
+	"github.com/bengobox/notifications-api/internal/modules/tenant"
 )
 
-func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handlers.NotificationHandler, templates *handlers.TemplateHandler, platformProviders *handlers.PlatformProviders, tenantProviders *handlers.TenantProviders, analytics *handlers.AnalyticsHandler, billing *handlers.BillingHandler, platformBilling *handlers.PlatformBilling, apiKey string, authMiddleware *authclient.AuthMiddleware, allowedOrigins []string) http.Handler {
+func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handlers.NotificationHandler, templates *handlers.TemplateHandler, platformProviders *handlers.PlatformProviders, tenantProviders *handlers.TenantProviders, analytics *handlers.AnalyticsHandler, billing *handlers.BillingHandler, platformBilling *handlers.PlatformBilling, apiKey string, authMiddleware *authclient.AuthMiddleware, allowedOrigins []string, tenantSyncer *tenant.Syncer) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RealIP)
@@ -99,6 +100,21 @@ func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handler
 					URLParamFunc: chi.URLParam,
 					Required:     false, // Make optional to allow platform owners to bypass
 				}))
+
+				// JIT tenant sync: ensure tenant exists in local DB when slug is in context (avoids "tenant not found" after SSO)
+				if tenantSyncer != nil {
+					tenant.Use(func(next http.Handler) http.Handler {
+						return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+							slug := httpware.GetTenantSlug(r.Context())
+							if slug != "" {
+								if _, err := tenantSyncer.SyncTenant(r.Context(), slug); err != nil {
+									log.Warn("tenant sync failed during request", zap.String("tenant_slug", slug), zap.Error(err))
+								}
+							}
+							next.ServeHTTP(w, r)
+						})
+					})
+				}
 
 				tenant.Route("/notifications", func(notif chi.Router) {
 					notif.Post("/messages", notifications.Enqueue)
