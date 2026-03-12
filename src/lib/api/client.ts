@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 
+// Must point to notifications API host (not the UI host). NEXT_PUBLIC_* are inlined at build time.
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://notificationsapi.codevertexitsolutions.com';
 
 class ApiClient {
