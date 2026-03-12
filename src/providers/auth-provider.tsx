@@ -44,7 +44,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }, [status, user, pathname, router]);
 
-    const loading = status === 'loading' || (status === 'authenticated' && meLoading);
+    // Show loading until we know auth state so dashboard never flashes before SSO redirect
+    const loading =
+        status === 'loading' ||
+        status === 'idle' ||
+        (status === 'authenticated' && meLoading);
     if (loading && !pathname?.includes('/auth')) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background">
