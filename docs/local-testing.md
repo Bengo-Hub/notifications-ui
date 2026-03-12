@@ -12,10 +12,10 @@ Copy and edit env:
 cp config/app.env.example .env
 ```
 
-Set at minimum:
-- `NOTIFICATIONS_POSTGRES_URL=postgres://postgres:postgres@localhost:5432/notifications?sslmode=disable`
-- `NOTIFICATIONS_REDIS_ADDR=localhost:6381`
-- `NOTIFICATIONS_NATS_URL=nats://localhost:4222`
+Set at minimum (standard keys; same as other Go backends):
+- `POSTGRES_URL=postgres://postgres:postgres@localhost:5432/notifications?sslmode=disable`
+- `REDIS_ADDR=localhost:6381`
+- `EVENTS_NATS_URL=nats://localhost:4222`
 
 Optional provider keys for live delivery:
 - `NOTIFICATIONS_SENDGRID_API_KEY=...`
