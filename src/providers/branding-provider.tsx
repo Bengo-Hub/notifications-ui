@@ -11,34 +11,34 @@ interface BrandingContextType {
 
 const BrandingContext = createContext<BrandingContextType | undefined>(undefined);
 
+interface BrandingContextType {
+    logoUrl: string;
+    primaryColor: string;
+    secondaryColor: string;
+    getServiceTitle: (appName: string) => string;
+}
+
+const BrandingContext = createContext<BrandingContextType | undefined>(undefined);
+
+const CODEVERTEX_BRAND = {
+    logoUrl: '/images/logo/codevertex.png',
+    primaryColor: '#5B1C4D',
+    secondaryColor: '#ea8022',
+};
+
 export function BrandingProvider({ children }: { children: ReactNode }) {
     const [branding, setBranding] = useState<BrandingContextType>({
-        logoUrl: '/logo.png',
-        primaryColor: '#0ea5e9',
-        secondaryColor: '#6366f1',
+        ...CODEVERTEX_BRAND,
+        getServiceTitle: (appName: string) => `Codevertex ${appName}`,
     });
 
     useEffect(() => {
-        loadBranding();
+        // Enforce core branding
+        document.documentElement.style.setProperty('--primary', CODEVERTEX_BRAND.primaryColor);
+        document.documentElement.style.setProperty('--tenant-primary', CODEVERTEX_BRAND.primaryColor);
+        document.documentElement.style.setProperty('--tenant-secondary', CODEVERTEX_BRAND.secondaryColor);
+        document.documentElement.style.setProperty('--tenant-logo-url', `url(${CODEVERTEX_BRAND.logoUrl})`);
     }, []);
-
-    const loadBranding = async () => {
-        try {
-            const data = await settingsApi.getBranding();
-            if (data) {
-                setBranding({
-                    logoUrl: data.logo_url || '/logo.png',
-                    primaryColor: data.primary_color || '#0ea5e9',
-                    secondaryColor: data.secondary_color || '#6366f1',
-                });
-
-                // Apply primary color to CSS variable for Tailwind
-                document.documentElement.style.setProperty('--primary', data.primary_color || '#0ea5e9');
-            }
-        } catch (error) {
-            console.error('Failed to load branding:', error);
-        }
-    };
 
     return (
         <BrandingContext.Provider value={branding}>

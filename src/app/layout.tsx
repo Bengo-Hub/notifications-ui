@@ -1,6 +1,7 @@
 'use client';
 
 import '@/app/globals.css';
+import { Footer } from '@/components/footer';
 import { Header } from '@/components/header';
 import { Sidebar } from '@/components/sidebar';
 import { AuthProvider } from '@/providers/auth-provider';
@@ -31,7 +32,10 @@ export default function OrgLayout({ children }: { children: ReactNode }) {
                     <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
                         <Header onMenuClick={() => setSidebarOpen((v) => !v)} />
                         <main className="flex-1 overflow-y-auto bg-accent/5">
-                            {children}
+                            <div className="min-h-full flex flex-col">
+                                <div className="flex-1">{children}</div>
+                                <Footer />
+                            </div>
                         </main>
                     </div>
                 </div>
