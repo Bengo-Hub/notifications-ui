@@ -7,14 +7,6 @@ interface BrandingContextType {
     logoUrl: string;
     primaryColor: string;
     secondaryColor: string;
-}
-
-const BrandingContext = createContext<BrandingContextType | undefined>(undefined);
-
-interface BrandingContextType {
-    logoUrl: string;
-    primaryColor: string;
-    secondaryColor: string;
     getServiceTitle: (appName: string) => string;
 }
 

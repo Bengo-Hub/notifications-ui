@@ -73,64 +73,64 @@ export function Sidebar({ open = true, onClose }: SidebarProps) {
             {/* Mobile overlay when sidebar is open */}
             {open && (
                 <div
-                    className="fixed inset-0 z-40 bg-black/50 md:hidden"
+                    className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
                     aria-hidden
                     onClick={onClose}
                 />
             )}
-            <div
+            <aside
                 className={cn(
-                    "space-y-4 py-4 flex flex-col h-full bg-card border-r border-border w-[240px] min-w-[240px] z-50 transition-transform duration-200 ease-in-out",
-                    "fixed inset-y-0 left-0 md:relative md:left-auto md:translate-x-0",
+                    "fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col transition-transform duration-300 md:sticky md:top-0 md:h-screen md:z-auto md:translate-x-0 md:min-w-[280px]",
                     open ? "translate-x-0" : "-translate-x-full md:translate-x-0"
                 )}
             >
-                <div className="px-3 py-2 flex-1">
-                    <div className="flex items-center justify-between pl-3 mb-14">
-                    <Link href="/dashboard" className="flex items-center" onClick={onClose}>
-                    <div className="relative w-8 h-8 mr-3 bg-primary rounded-lg flex items-center justify-center">
-                        <Bell className="text-primary-foreground h-5 w-5" />
-                    </div>
-                    <h1 className="text-xl font-bold tracking-tight">
-                        TruLoad Notif
-                    </h1>
-                </Link>
-                    <button type="button" onClick={onClose} className="md:hidden p-2 rounded-lg hover:bg-accent" aria-label="Close menu">
-                        <X className="h-5 w-5" />
-                    </button>
-                    </div>
-                <div className="space-y-1">
-                    {routes.map((route) => (
-                        <Link
-                            key={route.href}
-                            href={route.href}
-                            onClick={onClose}
-                            className={cn(
-                                "text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:bg-accent/50 rounded-lg transition",
-                                route.active ? "bg-accent text-foreground" : "text-muted-foreground"
-                            )}
-                        >
-                            <div className="flex items-center flex-1">
-                                <route.icon className={cn("h-5 w-5 mr-3", route.active ? "text-primary" : "text-muted-foreground")} />
-                                {route.label}
-                            </div>
+                <div className="space-y-4 py-6 flex flex-col h-full bg-brand-dark text-white border-r border-white/10 w-full overflow-hidden">
+                    <div className="px-6 py-4 flex flex-col h-full overflow-y-auto custom-scrollbar">
+                        <Link href="/dashboard" className="flex items-center justify-center mb-10 transition-all hover:scale-105 duration-500" onClick={onClose}>
+                            <img src="/logo.svg" alt="Codevertex" className="h-12 w-auto object-contain drop-shadow-2xl" />
                         </Link>
-                    ))}
-                </div>
-            </div>
 
-            <div className="px-3 py-2 border-t border-border">
-                <div className="p-3 text-xs text-muted-foreground uppercase tracking-widest font-semibold">
-                    Organization
-                </div>
-                <div className="flex items-center px-3 py-2 gap-3 text-sm font-medium">
-                    <div className="w-6 h-6 rounded bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary capitalize">
-                        {tenantSlug?.[0] || 'T'}
+                        <div className="space-y-1 mt-4">
+                            <div className="px-6 pb-2">
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
+                                    Notification Node
+                                </p>
+                            </div>
+                            {routes.map((route) => {
+                                const Icon = route.icon;
+                                return (
+                                    <Link
+                                        key={route.href}
+                                        href={route.href}
+                                        onClick={onClose}
+                                        className={cn(
+                                            "group flex items-center gap-4 px-6 py-4 rounded-2xl transition-all duration-300",
+                                            route.active 
+                                                ? "bg-primary text-white shadow-xl shadow-primary/20 scale-[1.02]" 
+                                                : "text-white/50 hover:bg-white/5 hover:text-white"
+                                        )}
+                                    >
+                                        <Icon className={cn("h-5 w-5 transition-transform duration-300 group-hover:scale-110", route.active ? "text-white" : "group-hover:text-white")} />
+                                        <span className="font-bold text-xs uppercase tracking-widest">{route.label}</span>
+                                    </Link>
+                                );
+                            })}
+                        </div>
                     </div>
-                    <span className="capitalize">{tenantSlug?.replace('-', ' ') || 'Tenant'}</span>
+
+                    <div className="p-6 border-t border-white/10 mt-auto">
+                        <div className="flex items-center gap-4 px-5 py-4 rounded-2xl bg-white/5 text-white/70">
+                            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-xs font-black text-primary uppercase shadow-inner">
+                                CV
+                            </div>
+                            <div className="flex flex-col min-w-0 flex-1">
+                                <span className="font-black text-[10px] uppercase tracking-widest truncate">Codevertex</span>
+                                <span className="text-[9px] font-bold opacity-50 uppercase tracking-tighter">Event Router</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
+            </aside>
         </>
     );
 }
