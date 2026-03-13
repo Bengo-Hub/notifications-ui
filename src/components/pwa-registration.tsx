@@ -26,7 +26,8 @@ export function PWARegistration() {
     const [showInstall, setShowInstall] = useState(false);
 
     useEffect(() => {
-        // 1. Handle PWA Installation – show at most once per day
+        if (typeof window !== 'undefined' && (window.matchMedia('(display-mode: standalone)').matches || ('standalone' in navigator && (navigator as { standalone?: boolean }).standalone === true))) return;
+
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             setDeferredPrompt(e);

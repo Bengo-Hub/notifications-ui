@@ -6,15 +6,24 @@ import Link from 'next/link';
 import { useRef, useState } from 'react';
 import { ThemeToggle } from './theme-toggle';
 
+function displayName(user: { fullName?: string; name?: string; email?: string } | null): string {
+  if (!user) return 'Account';
+  return user.fullName ?? user.name ?? user.email?.split('@')[0] ?? 'Account';
+}
+
 interface HeaderProps {
     onMenuClick?: () => void;
 }
 
 export function Header({ onMenuClick }: HeaderProps) {
     const user = useAuthStore((state) => state.user);
+    const status = useAuthStore((state) => state.status);
     const logout = useAuthStore((state) => state.logout);
     const [profileOpen, setProfileOpen] = useState(false);
     const profileRef = useRef<HTMLDivElement>(null);
+    const isAuthenticated = !!user && status === 'authenticated';
+    const name = displayName(user);
+    const role = user?.roles?.[0];
 
     return (
         <header className="h-16 border-b border-border bg-card/50 backdrop-blur-xl sticky top-0 z-50 flex items-center justify-between px-6">
@@ -42,6 +51,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                 <div className="h-8 w-[1px] bg-border mx-1"></div>
 
                 <div className="relative flex items-center gap-3 pl-2" ref={profileRef}>
+                    {isAuthenticated ? (
                     <button
                         type="button"
                         onClick={() => setProfileOpen((v) => !v)}
@@ -51,15 +61,16 @@ export function Header({ onMenuClick }: HeaderProps) {
                         aria-label="Open profile menu"
                     >
                         <div className="text-right hidden sm:block">
-                            <p className="text-sm font-semibold leading-none">{user?.fullName || 'Super Admin'}</p>
-                            <p className="text-xs text-muted-foreground mt-1 capitalize">{user?.roles?.[0] || 'Administrator'}</p>
+                            <p className="text-sm font-semibold leading-none">{name}</p>
+                            {role ? <p className="text-xs text-muted-foreground mt-1 capitalize">{role}</p> : null}
                         </div>
                         <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold border border-border shadow-sm">
-                            {user?.fullName?.[0] || <User className="h-5 w-5" />}
+                            {name[0]?.toUpperCase() ?? <User className="h-5 w-5" />}
                         </div>
                         <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${profileOpen ? 'rotate-180' : ''}`} />
                     </button>
-                    {profileOpen && (
+                    ) : null}
+                    {isAuthenticated && profileOpen && (
                         <>
                             <div className="fixed inset-0 z-40" aria-hidden="true" onClick={() => setProfileOpen(false)} />
                             <div className="absolute right-0 top-full mt-2 z-50 min-w-[180px] py-1 rounded-lg border border-border bg-card shadow-lg">
