@@ -55,6 +55,8 @@ func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handler
 			// Apply auth middleware if configured, otherwise allow API key
 			if authMiddleware != nil {
 				protected.Use(authMiddleware.RequireAuth)
+				// Layer 2: Subscription enforcement — reject expired/cancelled tenants
+				protected.Use(authclient.RequireActiveSubscription())
 			} else if apiKey != "" {
 				protected.Use(func(next http.Handler) http.Handler {
 					return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
