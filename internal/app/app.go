@@ -109,6 +109,7 @@ func New(ctx context.Context) (*App, error) {
 	billingService := billing.NewService(entClient, log, treasuryClient)
 	billingHandler := handlers.NewBillingHandler(log, billingService)
 	platformBilling := handlers.NewPlatformBilling(entClient, log)
+	settingsHandler := handlers.NewSettingsHandler(log, encryption.KeyFromEnv(cfg.Security.EncryptionKey))
 
 	// Initialize auth-service JWT validator
 	var authMiddleware *authclient.AuthMiddleware
@@ -178,7 +179,7 @@ func New(ctx context.Context) (*App, error) {
 		}
 	}
 
-	httpRouter := router.New(log, healthHandler, notificationHandler, templateHandler, platformProviders, tenantProviders, analyticsHandler, billingHandler, platformBilling, cfg.Security.APIKey, authMiddleware, cfg.HTTP.AllowedOrigins, tenantSyncer)
+	httpRouter := router.New(log, healthHandler, notificationHandler, templateHandler, platformProviders, tenantProviders, analyticsHandler, billingHandler, platformBilling, settingsHandler, cfg.Security.APIKey, authMiddleware, cfg.HTTP.AllowedOrigins, tenantSyncer)
 
 	httpServer := &http.Server{
 		Addr:              fmt.Sprintf("%s:%d", cfg.HTTP.Host, cfg.HTTP.Port),

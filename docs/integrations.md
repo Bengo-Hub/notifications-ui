@@ -138,7 +138,7 @@ The Notifications Service is a centralized communications platform for all Bengo
 - `payment_success` → `payment_receipt` template
 - `payment_failed` → `payment_failed_notification` template
 
-### Cafe Backend
+### Ordering-Backend
 
 **Integration Type**: Events (NATS) + REST API
 

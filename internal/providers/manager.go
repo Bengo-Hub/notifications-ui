@@ -11,6 +11,7 @@ import (
 	"github.com/bengobox/notifications-api/internal/config"
 	pcfg "github.com/bengobox/notifications-api/internal/providers/config"
 	"github.com/bengobox/notifications-api/internal/providers/email"
+	"github.com/bengobox/notifications-api/internal/providers/push"
 	"github.com/bengobox/notifications-api/internal/providers/sms"
 	"github.com/bengobox/notifications-api/internal/providers/whatsapp"
 )
@@ -140,6 +141,15 @@ func (m *Manager) GetSMSProvider(ctx context.Context, tenantID string, preferred
 		}
 	}
 	return &twilioAdapter{accountSID: m.cfg.TwilioAccountSID, authToken: m.cfg.TwilioAuthToken, from: m.cfg.DefaultSMSSender}, nil
+}
+
+// GetPushProvider returns the configured FCM push provider.
+func (m *Manager) GetPushProvider(ctx context.Context) (PushProvider, error) {
+	sa := m.cfg.FCMServiceAccount
+	if sa == "" {
+		return nil, fmt.Errorf("push: FCM_SERVICE_ACCOUNT not configured")
+	}
+	return push.NewFCM(push.FCMConfig{ServiceAccount: sa}), nil
 }
 
 // TestConnection loads platform config for the given channel/provider, builds the provider, and sends a test message to the given recipient.

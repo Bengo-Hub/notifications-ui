@@ -304,8 +304,22 @@ func deliver(ctx context.Context, cfg *config.Config, pm *providers.Manager, bil
 		return nil
 
 	case "push":
-		// TODO: FCM/APNS integrations. For now, log delivery.
-		logg.Info("push message rendered", zap.String("template", msg.TemplateID), zap.Strings("to", msg.To))
+		pushProv, err := pm.GetPushProvider(ctx)
+		if err != nil {
+			logg.Warn("push provider unavailable", zap.Error(err))
+			return nil // non-fatal: FCM may not be configured in all envs
+		}
+		title, _ := msg.Metadata["push_title"].(string)
+		pushData := make(map[string]string)
+		for k, v := range msg.Data {
+			if s, ok := v.(string); ok {
+				pushData[k] = s
+			}
+		}
+		if err := pushProv.SendPush(ctx, msg.To, title, rendered, pushData); err != nil {
+			return err
+		}
+		logg.Info("push notification sent", zap.String("provider", pushProv.Name()), zap.Strings("to", msg.To))
 		return nil
 
 	default:

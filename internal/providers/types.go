@@ -19,3 +19,9 @@ type WhatsAppProvider interface {
 	SendWhatsApp(ctx context.Context, from string, to []string, body string, metadata map[string]interface{}) error
 	Name() string
 }
+
+// PushProvider sends push notifications (FCM/APNS).
+type PushProvider interface {
+	SendPush(ctx context.Context, tokens []string, title, body string, data map[string]string) error
+	Name() string
+}

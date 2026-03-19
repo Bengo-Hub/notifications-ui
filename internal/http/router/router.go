@@ -16,7 +16,7 @@ import (
 	"github.com/bengobox/notifications-api/internal/modules/tenant"
 )
 
-func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handlers.NotificationHandler, templates *handlers.TemplateHandler, platformProviders *handlers.PlatformProviders, tenantProviders *handlers.TenantProviders, analytics *handlers.AnalyticsHandler, billing *handlers.BillingHandler, platformBilling *handlers.PlatformBilling, apiKey string, authMiddleware *authclient.AuthMiddleware, allowedOrigins []string, tenantSyncer *tenant.Syncer) http.Handler {
+func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handlers.NotificationHandler, templates *handlers.TemplateHandler, platformProviders *handlers.PlatformProviders, tenantProviders *handlers.TenantProviders, analytics *handlers.AnalyticsHandler, billing *handlers.BillingHandler, platformBilling *handlers.PlatformBilling, settings *handlers.SettingsHandler, apiKey string, authMiddleware *authclient.AuthMiddleware, allowedOrigins []string, tenantSyncer *tenant.Syncer) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RealIP)
@@ -135,6 +135,11 @@ func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handler
 					b.Get("/balance", billing.GetBalance)
 					b.Post("/topup", billing.TopUp)
 					b.Post("/initiate", billing.Initiate)
+				})
+
+				// Settings routes
+				tenant.Route("/settings", func(s chi.Router) {
+					s.Get("/security", settings.GetSecuritySettings)
 				})
 			})
 		})
