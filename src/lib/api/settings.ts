@@ -54,4 +54,7 @@ export const settingsApi = {
 
     updateBranding: (branding: Partial<TenantBranding>) =>
         apiClient.put('/api/v1/branding', branding),
+
+    getSecuritySettings: () =>
+        apiClient.get<{ webhook_secret: string }>('/api/v1/settings/security'),
 };

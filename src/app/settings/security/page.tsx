@@ -2,11 +2,18 @@
 
 import { Badge, Button, Card, CardContent, CardHeader } from '@/components/ui/base';
 import { AlertTriangle, Copy, ShieldAlert, ShieldCheck } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { settingsApi } from '@/lib/api/settings';
 
 export default function SecuritySettingsPage() {
-    const [webhookSecret] = useState<string | null>(null); // TODO: load from GET /api/v1/settings/security when backend exposes it
+    const [webhookSecret, setWebhookSecret] = useState<string | null>(null);
+
+    useEffect(() => {
+        settingsApi.getSecuritySettings()
+            .then(data => setWebhookSecret(data.webhook_secret))
+            .catch(() => { /* silent — not configured */ });
+    }, []);
 
     const handleCopyWebhookSecret = async () => {
         const value = webhookSecret ?? 'Not configured';
