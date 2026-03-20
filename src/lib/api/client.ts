@@ -25,15 +25,14 @@ class ApiClient {
             config.headers.Authorization = `Bearer ${this.accessToken}`;
         }
         
-        // Tenant Identification Headers
-        const tenantId = localStorage.getItem('tenant_id');
-        const tenantSlug = localStorage.getItem('tenant_slug');
+        // Tenant Identification Headers — only for tenant-scoped users.
+        // Platform owners have access to all tenants and must NOT send
+        // tenant headers; the backend resolves scope from JWT claims.
         const isPlatformOwner = localStorage.getItem('is_platform_owner') === 'true';
 
-        // Only inject headers for non-platform API calls
-        const isPlatformApi = config.url?.startsWith('/api/v1/platform');
-        
-        if (!isPlatformApi) {
+        if (!isPlatformOwner) {
+            const tenantId = localStorage.getItem('tenant_id');
+            const tenantSlug = localStorage.getItem('tenant_slug');
             if (tenantId) {
                 config.headers['X-Tenant-ID'] = tenantId;
             }
