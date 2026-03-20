@@ -27,8 +27,8 @@ func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handler
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   allowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Authorization", "Content-Type", "X-Tenant-ID", "X-Tenant-Slug", "X-Request-ID", "X-API-Key", "Idempotency-Key"},
-		ExposedHeaders:   []string{"Link", "X-Request-ID"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "Origin", "X-Request-ID", "X-Tenant-ID", "X-Tenant-Slug", "X-API-Key", "Idempotency-Key"},
+		ExposedHeaders:   []string{"Link", "X-Request-ID", "X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset", "Retry-After"},
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
