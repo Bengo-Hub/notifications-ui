@@ -42,6 +42,7 @@ interface AuthState {
     logout: () => Promise<void>;
     fetchUser: () => Promise<void>;
     setUser: (user: UserProfile | null) => void;
+    syncTenantToStorage: (user: UserProfile | null) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
