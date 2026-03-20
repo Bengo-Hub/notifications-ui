@@ -13,18 +13,22 @@ import (
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 
+	authclient "github.com/Bengo-Hub/shared-auth-client"
+	httpware "github.com/Bengo-Hub/httpware"
+
 	"github.com/bengobox/notifications-api/internal/config"
 	"github.com/bengobox/notifications-api/internal/ent"
 	"github.com/bengobox/notifications-api/internal/messaging"
-	httpware "github.com/Bengo-Hub/httpware"
+	appmw "github.com/bengobox/notifications-api/internal/shared/middleware"
 )
 
 type NotificationHandler struct {
-	log       *zap.Logger
-	nats      *nats.Conn
-	cache     *redis.Client
-	eventsCfg config.EventsConfig
-	entClient *ent.Client
+	log         *zap.Logger
+	nats        *nats.Conn
+	cache       *redis.Client
+	eventsCfg   config.EventsConfig
+	entClient   *ent.Client
+	rateLimiter *appmw.RateLimiter
 }
 
 type CreateMessageRequest struct {
@@ -37,12 +41,33 @@ type CreateMessageRequest struct {
 }
 
 func NewNotificationHandler(log *zap.Logger, natsConn *nats.Conn, cache *redis.Client, eventsCfg config.EventsConfig, entClient *ent.Client) *NotificationHandler {
+	var rl *appmw.RateLimiter
+	if cache != nil {
+		rl = appmw.NewRateLimiter(cache)
+	}
 	return &NotificationHandler{
-		log:       log,
-		nats:      natsConn,
-		cache:     cache,
-		eventsCfg: eventsCfg,
-		entClient: entClient,
+		log:         log,
+		nats:        natsConn,
+		cache:       cache,
+		eventsCfg:   eventsCfg,
+		entClient:   entClient,
+		rateLimiter: rl,
+	}
+}
+
+// channelRateLimitKey maps notification channel to the subscription limit key.
+func channelRateLimitKey(channel string) string {
+	switch channel {
+	case "email":
+		return "email_notifications_per_day"
+	case "sms":
+		return "sms_notifications_per_day"
+	case "whatsapp":
+		return "sms_notifications_per_day" // shares SMS quota
+	case "webhook":
+		return "webhook_calls_per_day"
+	default:
+		return ""
 	}
 }
 
@@ -104,6 +129,40 @@ func (h *NotificationHandler) Enqueue(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(errorResponse{Error: "tenant required"})
 		return
+	}
+
+	// Per-channel rate limiting based on subscription plan
+	if h.rateLimiter != nil {
+		limitKey := channelRateLimitKey(req.Channel)
+		if limitKey != "" {
+			claims, _ := authclient.ClaimsFromContext(r.Context())
+			if claims != nil {
+				limit := claims.GetLimit(limitKey)
+				if limit != 0 {
+					// Multiply limit check by number of recipients
+					for range req.To {
+						result, _ := h.rateLimiter.Check(r.Context(), tenant, limitKey, limit)
+						if result != nil && !result.Allowed {
+							w.Header().Set("Content-Type", "application/json")
+							w.Header().Set("X-RateLimit-Limit", fmt.Sprintf("%d", result.Limit))
+							w.Header().Set("X-RateLimit-Remaining", "0")
+							w.Header().Set("X-RateLimit-Feature", limitKey)
+							w.Header().Set("Retry-After", "86400")
+							w.WriteHeader(http.StatusTooManyRequests)
+							json.NewEncoder(w).Encode(map[string]any{
+								"error":       "usage_limit_reached",
+								"feature":     limitKey,
+								"limit":       result.Limit,
+								"used":        result.Used,
+								"upgrade_url": "https://pricingapi.codevertexitsolutions.com/upgrade",
+								"message":     fmt.Sprintf("Daily %s limit reached. Upgrade your plan or add overage.", limitKey),
+							})
+							return
+						}
+					}
+				}
+			}
+		}
 	}
 
 	requestID := httpware.GetRequestID(r.Context())
