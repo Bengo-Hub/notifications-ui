@@ -7,8 +7,8 @@
   - Response: `202 Accepted` with `{ status: "queued", requestId: "..." }`
   - **Rate Limited**: Per-channel daily limits based on subscription plan:
     - `email_notifications_per_day`: Starter=50, Growth=500, Professional=5,000
-    - `sms_notifications_per_day`: Starter=20, Growth=200, Professional=2,000 (shared with WhatsApp)
     - `webhook_calls_per_day`: Starter=100, Growth=1,000, Professional=10,000
+  - **Credit-based** (no rate limit): SMS and WhatsApp are gated by credit balance, not daily quotas. Tenants can send as long as they have sufficient credit.
   - Each recipient counts as one unit. Returns `429` with `X-RateLimit-*` headers when exceeded.
   - Sample payloads:
 

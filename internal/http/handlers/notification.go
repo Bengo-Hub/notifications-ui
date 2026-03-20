@@ -56,17 +56,16 @@ func NewNotificationHandler(log *zap.Logger, natsConn *nats.Conn, cache *redis.C
 }
 
 // channelRateLimitKey maps notification channel to the subscription limit key.
+// SMS and WhatsApp are credit-based (not rate-limited) — tenants can send as
+// long as they have credit balance. Only email and webhook are rate-limited.
 func channelRateLimitKey(channel string) string {
 	switch channel {
 	case "email":
 		return "email_notifications_per_day"
-	case "sms":
-		return "sms_notifications_per_day"
-	case "whatsapp":
-		return "sms_notifications_per_day" // shares SMS quota
 	case "webhook":
 		return "webhook_calls_per_day"
 	default:
+		// sms, whatsapp, push — not rate-limited (credit-based or subscription-gated)
 		return ""
 	}
 }
