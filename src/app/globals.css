@@ -21,6 +21,12 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
+  /* Brand Colors */
+  --color-brand-orange: #ea8022;
+  --color-brand-gold: #ae6221;
+  --color-brand-dark: #2c1a02;
+  --color-brand-light: #f5f1ec;
+
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
