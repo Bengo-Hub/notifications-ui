@@ -170,6 +170,9 @@ func main() {
 		logg.Fatal("subscription failed", zap.Error(err))
 	}
 
+	// Start fleet lifecycle event consumer (logistics-service → email notifications)
+	startFleetConsumer(ctx, nc, js, cfg, logg)
+
 	<-ctx.Done()
 	_ = nc.Drain()
 }

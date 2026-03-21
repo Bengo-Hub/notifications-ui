@@ -1,0 +1,146 @@
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/nats-io/nats.go"
+	"go.uber.org/zap"
+
+	"github.com/bengobox/notifications-api/internal/config"
+	"github.com/bengobox/notifications-api/internal/messaging"
+)
+
+// fleetEvent is the CloudEvents envelope from logistics-service.
+type fleetEvent struct {
+	ID       string                 `json:"id"`
+	Type     string                 `json:"type"`
+	TenantID string                 `json:"tenantId"`
+	Data     map[string]interface{} `json:"data"`
+}
+
+// fleetNotificationMapping maps event types to notification details.
+type fleetNotificationMapping struct {
+	TemplateID   string
+	EmailSubject string
+	DataBuilder  func(data map[string]interface{}) map[string]interface{}
+}
+
+var fleetMappings = map[string]fleetNotificationMapping{
+	"logistics.fleet.member_invited": {
+		TemplateID:   "email/logistics/rider_invite",
+		EmailSubject: "You've been invited to join the fleet",
+		DataBuilder: func(data map[string]interface{}) map[string]interface{} {
+			return map[string]interface{}{
+				"RiderName":    data["user_name"],
+				"DashboardUrl": "https://logistics.codevertexitsolutions.com/dashboard",
+			}
+		},
+	},
+	"logistics.fleet.member_approved": {
+		TemplateID:   "email/logistics/rider_onboarding_approved",
+		EmailSubject: "Your rider application has been approved",
+		DataBuilder: func(data map[string]interface{}) map[string]interface{} {
+			return map[string]interface{}{
+				"RiderName":    data["user_name"],
+				"DashboardUrl": "https://logistics.codevertexitsolutions.com/dashboard",
+			}
+		},
+	},
+	"logistics.fleet.member_suspended": {
+		TemplateID:   "email/logistics/rider_suspended",
+		EmailSubject: "Your fleet membership has been suspended",
+		DataBuilder: func(data map[string]interface{}) map[string]interface{} {
+			return map[string]interface{}{
+				"RiderName":  data["user_name"],
+				"SupportUrl": "https://logistics.codevertexitsolutions.com/support",
+			}
+		},
+	},
+}
+
+// startFleetConsumer subscribes to logistics.fleet.> events from the logistics
+// JetStream stream and republishes them as notification messages.
+func startFleetConsumer(ctx context.Context, nc *nats.Conn, js nats.JetStreamContext, cfg *config.Config, logg *zap.Logger) {
+	if nc == nil || js == nil {
+		logg.Warn("skipping fleet consumer: NATS not available")
+		return
+	}
+
+	handler := func(m *nats.Msg) {
+		var evt fleetEvent
+		if err := json.Unmarshal(m.Data, &evt); err != nil {
+			logg.Error("fleet event: unmarshal failed", zap.Error(err))
+			_ = m.Ack() // unrecoverable
+			return
+		}
+
+		mapping, ok := fleetMappings[evt.Type]
+		if !ok {
+			logg.Debug("fleet event: unhandled type, skipping", zap.String("type", evt.Type))
+			_ = m.Ack()
+			return
+		}
+
+		// Extract recipient email from event data
+		email, _ := evt.Data["user_email"].(string)
+		if email == "" {
+			logg.Warn("fleet event: no user_email in data, skipping", zap.String("type", evt.Type))
+			_ = m.Ack()
+			return
+		}
+
+		memberID, _ := evt.Data["member_id"].(string)
+
+		// Build notification message
+		msg := messaging.Message{
+			TenantID:   evt.TenantID,
+			Channel:    "email",
+			TemplateID: mapping.TemplateID,
+			To:         []string{email},
+			Data:       mapping.DataBuilder(evt.Data),
+			Metadata: map[string]interface{}{
+				"subject": mapping.EmailSubject,
+			},
+			RequestID:      uuid.New().String(),
+			IdempotencyKey: fmt.Sprintf("fleet-%s-%s", evt.Type, memberID),
+			QueuedAt:       time.Now(),
+		}
+
+		// Publish to notifications stream for the existing worker to process
+		if _, err := messaging.Publish(ctx, nc, cfg.Events, msg); err != nil {
+			logg.Error("fleet event: failed to dispatch notification",
+				zap.String("type", evt.Type),
+				zap.String("email", email),
+				zap.Error(err),
+			)
+			_ = m.Nak() // retry
+			return
+		}
+
+		logg.Info("fleet notification dispatched",
+			zap.String("type", evt.Type),
+			zap.String("template", mapping.TemplateID),
+			zap.String("to", email),
+		)
+		_ = m.Ack()
+	}
+
+	_, err := js.Subscribe("logistics.fleet.>", handler,
+		nats.BindStream("logistics"),
+		nats.Durable("notifications-logistics-fleet"),
+		nats.ManualAck(),
+		nats.AckWait(30*time.Second),
+		nats.MaxDeliver(3),
+	)
+	if err != nil {
+		// Non-fatal: logistics stream may not exist yet if logistics-api hasn't started
+		logg.Warn("fleet consumer subscription failed (logistics stream may not exist yet)", zap.Error(err))
+		return
+	}
+
+	logg.Info("fleet consumer started", zap.String("subject", "logistics.fleet.>"))
+}
