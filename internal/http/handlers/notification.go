@@ -29,6 +29,7 @@ type NotificationHandler struct {
 	eventsCfg   config.EventsConfig
 	entClient   *ent.Client
 	rateLimiter *appmw.RateLimiter
+	upgradeURL  string
 }
 
 type CreateMessageRequest struct {
@@ -40,7 +41,7 @@ type CreateMessageRequest struct {
 	Metadata map[string]any `json:"metadata" swaggertype:"object" example:"{\"subject\":\"Invoice INV-1001 is due\",\"provider\":\"smtp\"}"`
 }
 
-func NewNotificationHandler(log *zap.Logger, natsConn *nats.Conn, cache *redis.Client, eventsCfg config.EventsConfig, entClient *ent.Client) *NotificationHandler {
+func NewNotificationHandler(log *zap.Logger, natsConn *nats.Conn, cache *redis.Client, eventsCfg config.EventsConfig, entClient *ent.Client, upgradeURL string) *NotificationHandler {
 	var rl *appmw.RateLimiter
 	if cache != nil {
 		rl = appmw.NewRateLimiter(cache)
@@ -52,6 +53,7 @@ func NewNotificationHandler(log *zap.Logger, natsConn *nats.Conn, cache *redis.C
 		eventsCfg:   eventsCfg,
 		entClient:   entClient,
 		rateLimiter: rl,
+		upgradeURL:  upgradeURL,
 	}
 }
 
@@ -153,7 +155,7 @@ func (h *NotificationHandler) Enqueue(w http.ResponseWriter, r *http.Request) {
 								"feature":     limitKey,
 								"limit":       result.Limit,
 								"used":        result.Used,
-								"upgrade_url": "https://pricingapi.codevertexitsolutions.com/upgrade",
+								"upgrade_url": h.upgradeURL,
 								"message":     fmt.Sprintf("Daily %s limit reached. Upgrade your plan or add overage.", limitKey),
 							})
 							return

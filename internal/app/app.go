@@ -99,7 +99,7 @@ func New(ctx context.Context) (*App, error) {
 	platformIDStr := platformID.String()
 
 	healthHandler := handlers.NewHealthHandler(log, dbPool, redisClient, natsConn)
-	notificationHandler := handlers.NewNotificationHandler(log, natsConn, redisClient, cfg.Events, entClient)
+	notificationHandler := handlers.NewNotificationHandler(log, natsConn, redisClient, cfg.Events, entClient, cfg.Services.SubscriptionsURL)
 	templateHandler := handlers.NewTemplateHandler(templateLoader, notificationHandler)
 	providerManager := providers.NewManager(dbPool, cfg.Postgres, cfg.Providers, encryption.KeyFromEnv(cfg.Security.EncryptionKey), cfg.App.Env, platformIDStr)
 	platformProviders := handlers.NewPlatformProviders(entClient, log, encryption.KeyFromEnv(cfg.Security.EncryptionKey), providerManager)
