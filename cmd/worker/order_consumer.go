@@ -31,7 +31,7 @@ type orderNotificationMapping struct {
 
 var orderMappings = map[string]orderNotificationMapping{
 	"ordering.order.confirmed": {
-		TemplateID:   "email/cafe/cafe_order_placed",
+		TemplateID:   "email/ordering/order_placed",
 		EmailSubject: "Your order has been confirmed",
 		DataBuilder: func(data map[string]interface{}, tenantWebsite string) map[string]interface{} {
 			return map[string]interface{}{
@@ -45,7 +45,7 @@ var orderMappings = map[string]orderNotificationMapping{
 		},
 	},
 	"ordering.order.ready": {
-		TemplateID:   "email/cafe/cafe_order_ready",
+		TemplateID:   "email/ordering/order_ready",
 		EmailSubject: "Your order is ready",
 		DataBuilder: func(data map[string]interface{}, tenantWebsite string) map[string]interface{} {
 			return map[string]interface{}{
@@ -56,7 +56,7 @@ var orderMappings = map[string]orderNotificationMapping{
 		},
 	},
 	"ordering.order.out_for_delivery": {
-		TemplateID:   "email/cafe/cafe_order_out_for_delivery",
+		TemplateID:   "email/ordering/order_out_for_delivery",
 		EmailSubject: "Your order is out for delivery",
 		DataBuilder: func(data map[string]interface{}, tenantWebsite string) map[string]interface{} {
 			return map[string]interface{}{
@@ -68,7 +68,7 @@ var orderMappings = map[string]orderNotificationMapping{
 		},
 	},
 	"ordering.order.completed": {
-		TemplateID:   "email/cafe/cafe_order_delivered",
+		TemplateID:   "email/ordering/order_delivered",
 		EmailSubject: "Your order has been delivered",
 		DataBuilder: func(data map[string]interface{}, tenantWebsite string) map[string]interface{} {
 			return map[string]interface{}{
@@ -79,7 +79,7 @@ var orderMappings = map[string]orderNotificationMapping{
 		},
 	},
 	"ordering.order.cancelled": {
-		TemplateID:   "email/cafe/cafe_order_cancelled",
+		TemplateID:   "email/ordering/order_cancelled",
 		EmailSubject: "Your order has been cancelled",
 		DataBuilder: func(data map[string]interface{}, tenantWebsite string) map[string]interface{} {
 			return map[string]interface{}{
