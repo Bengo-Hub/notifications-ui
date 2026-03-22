@@ -16,9 +16,10 @@ import (
 	identityhandler "github.com/bengobox/notifications-api/internal/http/handlers/identity"
 	"github.com/bengobox/notifications-api/internal/modules/identity"
 	"github.com/bengobox/notifications-api/internal/modules/tenant"
+	ratelimitmw "github.com/bengobox/notifications-api/internal/shared/middleware"
 )
 
-func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handlers.NotificationHandler, templates *handlers.TemplateHandler, platformProviders *handlers.PlatformProviders, tenantProviders *handlers.TenantProviders, analytics *handlers.AnalyticsHandler, billing *handlers.BillingHandler, platformBilling *handlers.PlatformBilling, settings *handlers.SettingsHandler, rbacHandler *handlers.RBACHandler, apiKey string, authMiddleware *authclient.AuthMiddleware, authenticator *identityhandler.Authenticator, allowedOrigins []string, tenantSyncer *tenant.Syncer) http.Handler {
+func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handlers.NotificationHandler, templates *handlers.TemplateHandler, platformProviders *handlers.PlatformProviders, tenantProviders *handlers.TenantProviders, analytics *handlers.AnalyticsHandler, billing *handlers.BillingHandler, platformBilling *handlers.PlatformBilling, settings *handlers.SettingsHandler, rbacHandler *handlers.RBACHandler, apiKey string, authMiddleware *authclient.AuthMiddleware, authenticator *identityhandler.Authenticator, allowedOrigins []string, tenantSyncer *tenant.Syncer, rateLimiter *ratelimitmw.RateLimiter) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RealIP)
@@ -53,12 +54,13 @@ func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handler
 		api.Get("/metrics", health.Metrics)
 
 		// Protected routes - require authentication
+		// NOTE: Notifications is a core service included in all subscription plans for free.
+		// No RequireActiveSubscription — subscription enforcement is NOT applied.
+		// Instead, email sending is rate-limited by subscription plan (max_emails_per_day).
 		api.Group(func(protected chi.Router) {
 			// Apply auth middleware if configured, otherwise allow API key
 			if authMiddleware != nil {
 				protected.Use(authMiddleware.RequireAuth)
-				// Layer 2: Subscription enforcement — reject expired/cancelled tenants
-				protected.Use(authclient.RequireActiveSubscription())
 			} else if apiKey != "" {
 				protected.Use(func(next http.Handler) http.Handler {
 					return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -136,6 +138,10 @@ func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handler
 				tenantRouter.Route("/notifications", func(notif chi.Router) {
 					if authenticator != nil {
 						notif.Use(authenticator.RequirePermissions(identity.PermNotificationsSend))
+					}
+					// Rate limit email sending by subscription plan (max_emails_per_day from JWT claims)
+					if rateLimiter != nil {
+						notif.Use(ratelimitmw.RequireRateLimit(rateLimiter, "max_emails_per_day"))
 					}
 					notif.Post("/messages", notifications.Enqueue)
 				})
