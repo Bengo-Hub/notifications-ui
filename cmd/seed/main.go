@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
 	"log"
 	"os"
@@ -11,7 +12,9 @@ import (
 	"github.com/bengobox/notifications-api/internal/database"
 	"github.com/bengobox/notifications-api/internal/ent"
 	"github.com/bengobox/notifications-api/internal/ent/providersetting"
+	"github.com/bengobox/notifications-api/internal/modules/identity"
 	tenantmodule "github.com/bengobox/notifications-api/internal/modules/tenant"
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 )
 
@@ -64,6 +67,16 @@ func main() {
 		fmt.Printf("  synced tenant: %s (%s)\n", slug, id)
 
 		seedTenantDefaults(ctx, client, id.String(), slug)
+	}
+
+	// ── Phase 3: Identity — roles, permissions, role-permission mappings ─
+	seedPermissions(ctx, client)
+	seedRoles(ctx, client)
+	seedRolePermissions(ctx, client)
+
+	// Optionally seed platform admin user
+	if adminUserID := os.Getenv("SEED_PLATFORM_ADMIN_USER_ID"); adminUserID != "" {
+		seedPlatformAdmin(ctx, client, tenantSyncer, adminUserID)
 	}
 
 	fmt.Println("seed complete")
@@ -163,5 +176,195 @@ func seedTenantDefaults(ctx context.Context, client *ent.Client, tenantID, slug 
 		if err == nil {
 			fmt.Printf("    default %s for %s: %s\n", d.providerType, slug, d.providerName)
 		}
+	}
+}
+
+// permissionUUID generates a deterministic UUID from a permission code.
+func permissionUUID(code string) uuid.UUID {
+	hash := sha256.Sum256([]byte("notifications:" + code))
+	return uuid.UUID(hash[:16])
+}
+
+// seedPermissions creates all notification-service permissions.
+func seedPermissions(ctx context.Context, client *ent.Client) {
+	fmt.Println("  seeding permissions...")
+
+	type permDef struct {
+		code        string
+		module      string
+		description string
+	}
+
+	perms := []permDef{
+		{"notifications:read", "notifications", "View delivery logs and notification history"},
+		{"notifications:send", "notifications", "Send/enqueue notifications"},
+		{"notifications:manage", "notifications", "Full notification management"},
+		{"templates:read", "templates", "View notification templates"},
+		{"templates:manage", "templates", "Create, update, delete templates"},
+		{"templates:test", "templates", "Send test notifications from templates"},
+		{"providers:read", "providers", "View provider configurations"},
+		{"providers:manage", "providers", "Configure notification providers"},
+		{"settings:read", "settings", "View tenant settings"},
+		{"settings:manage", "settings", "Update tenant settings"},
+		{"billing:read", "billing", "View balance and transaction history"},
+		{"billing:manage", "billing", "Initiate top-ups and manage billing"},
+		{"analytics:read", "analytics", "View delivery analytics"},
+		{"analytics:export", "analytics", "Export analytics data"},
+		{"credits:read", "credits", "View credit balance"},
+		{"credits:manage", "credits", "Manage credit transactions"},
+		{"users:read", "users", "View users in tenant"},
+		{"users:manage", "users", "Manage user roles"},
+		{"platform:providers", "platform", "Manage platform-level providers"},
+		{"platform:billing", "platform", "Manage platform billing settings"},
+	}
+
+	for _, p := range perms {
+		id := permissionUUID(p.code)
+		existing, _ := client.Permission.Get(ctx, id)
+		if existing != nil {
+			// Update in case description changed
+			_, _ = existing.Update().
+				SetName(p.code).
+				SetModule(p.module).
+				SetDescription(p.description).
+				Save(ctx)
+			continue
+		}
+
+		err := client.Permission.Create().
+			SetID(id).
+			SetName(p.code).
+			SetModule(p.module).
+			SetDescription(p.description).
+			Exec(ctx)
+		if err == nil {
+			fmt.Printf("    permission: %s\n", p.code)
+		} else {
+			fmt.Printf("    ! permission %s: %v\n", p.code, err)
+		}
+	}
+}
+
+// seedRoles creates the system roles.
+func seedRoles(ctx context.Context, client *ent.Client) {
+	fmt.Println("  seeding roles...")
+
+	type roleDef struct {
+		id          string
+		name        string
+		scope       string
+		description string
+	}
+
+	roles := []roleDef{
+		{"viewer", "Viewer", "tenant", "Read-only access to notifications data"},
+		{"manager", "Manager", "tenant", "Manage notifications, templates, providers"},
+		{"admin", "Admin", "tenant", "Full tenant administration"},
+		{"superuser", "Superuser", "global", "Platform-wide superuser access"},
+	}
+
+	for _, r := range roles {
+		existing, _ := client.Role.Get(ctx, r.id)
+		if existing != nil {
+			_, _ = existing.Update().
+				SetName(r.name).
+				SetScope(r.scope).
+				SetDescription(r.description).
+				SetSystemRole(true).
+				Save(ctx)
+			fmt.Printf("    role (updated): %s (%s)\n", r.id, r.scope)
+			continue
+		}
+
+		err := client.Role.Create().
+			SetID(r.id).
+			SetName(r.name).
+			SetScope(r.scope).
+			SetDescription(r.description).
+			SetSystemRole(true).
+			Exec(ctx)
+		if err == nil {
+			fmt.Printf("    role: %s (%s)\n", r.id, r.scope)
+		} else {
+			fmt.Printf("    ! role %s: %v\n", r.id, err)
+		}
+	}
+}
+
+// seedRolePermissions attaches permissions to roles per DefaultPermissions mapping.
+func seedRolePermissions(ctx context.Context, client *ent.Client) {
+	fmt.Println("  seeding role-permission mappings...")
+
+	roles := []identity.Role{
+		identity.RoleViewer,
+		identity.RoleManager,
+		identity.RoleAdmin,
+		identity.RoleSuperAdmin,
+	}
+
+	for _, role := range roles {
+		perms := identity.DefaultPermissions(role)
+		permIDs := make([]uuid.UUID, 0, len(perms))
+		for _, p := range perms {
+			permIDs = append(permIDs, permissionUUID(string(p)))
+		}
+
+		err := client.Role.UpdateOneID(string(role)).
+			ClearPermissions().
+			AddPermissionIDs(permIDs...).
+			Exec(ctx)
+		if err != nil {
+			fmt.Printf("    ! role-perms %s: %v\n", role, err)
+		} else {
+			fmt.Printf("    role-perms: %s (%d permissions)\n", role, len(permIDs))
+		}
+	}
+}
+
+// seedPlatformAdmin seeds a platform admin user for the codevertex tenant.
+func seedPlatformAdmin(ctx context.Context, client *ent.Client, syncer *tenantmodule.Syncer, adminUserIDStr string) {
+	adminUserID, err := uuid.Parse(adminUserIDStr)
+	if err != nil {
+		fmt.Printf("  ! invalid SEED_PLATFORM_ADMIN_USER_ID: %v\n", err)
+		return
+	}
+
+	// Ensure codevertex tenant is synced
+	tenantID, err := syncer.SyncTenant(ctx, "codevertex")
+	if err != nil {
+		fmt.Printf("  ! failed to sync codevertex tenant for admin: %v\n", err)
+		return
+	}
+
+	// Check if user already exists
+	existing, _ := client.User.Get(ctx, adminUserID)
+	if existing != nil {
+		fmt.Printf("  platform admin already exists: %s\n", adminUserID)
+		return
+	}
+
+	// Ensure superuser and admin roles exist
+	for _, roleID := range []string{"superuser", "admin"} {
+		if _, err := client.Role.Get(ctx, roleID); err != nil {
+			fmt.Printf("  ! role %s not found, run seedRoles first\n", roleID)
+			return
+		}
+	}
+
+	err = client.User.Create().
+		SetID(adminUserID).
+		SetTenantID(tenantID).
+		SetAuthServiceUserID(adminUserID).
+		SetEmail("admin@codevertexitsolutions.com").
+		SetFullName("Platform Admin").
+		SetStatus("active").
+		SetSyncStatus("synced").
+		SetLocale("en").
+		AddRoleIDs("superuser", "admin").
+		Exec(ctx)
+	if err != nil {
+		fmt.Printf("  ! platform admin create: %v\n", err)
+	} else {
+		fmt.Printf("  platform admin seeded: %s\n", adminUserID)
 	}
 }

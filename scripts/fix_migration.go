@@ -26,11 +26,21 @@ func main() {
 	}
 	defer db.Close()
 
-	// Drop and recreate public schema for a clean slate
-	fmt.Println("Dropping and recreating public schema for notifications...")
-	_, err = db.Exec("DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO postgres; GRANT ALL ON SCHEMA public TO public;")
+	// Drop and recreate public + ent_dev schemas for a clean slate
+	// ent_dev is used by Atlas migration generation (search_path=ent_dev)
+	fmt.Println("Dropping and recreating schemas (public, ent_dev) for notifications...")
+	_, err = db.Exec(`
+		DROP SCHEMA IF EXISTS public CASCADE;
+		DROP SCHEMA IF EXISTS ent_dev CASCADE;
+		CREATE SCHEMA public;
+		CREATE SCHEMA ent_dev;
+		GRANT ALL ON SCHEMA public TO postgres;
+		GRANT ALL ON SCHEMA public TO public;
+		GRANT ALL ON SCHEMA ent_dev TO postgres;
+		GRANT ALL ON SCHEMA ent_dev TO public;
+	`)
 	if err != nil {
 		log.Fatalf("Error clearing database: %v", err)
 	}
-	fmt.Println("✓ Successfully cleared database (public schema recreated)")
+	fmt.Println("✓ Successfully cleared database (public + ent_dev schemas recreated)")
 }

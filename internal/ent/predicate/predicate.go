@@ -15,14 +15,23 @@ type DeliveryLog func(*sql.Selector)
 // OutboxEvent is the predicate function for outboxevent builders.
 type OutboxEvent func(*sql.Selector)
 
+// Permission is the predicate function for permission builders.
+type Permission func(*sql.Selector)
+
 // PlatformBilling is the predicate function for platformbilling builders.
 type PlatformBilling func(*sql.Selector)
 
 // ProviderSetting is the predicate function for providersetting builders.
 type ProviderSetting func(*sql.Selector)
 
+// Role is the predicate function for role builders.
+type Role func(*sql.Selector)
+
 // Tenant is the predicate function for tenant builders.
 type Tenant func(*sql.Selector)
 
 // TenantCredit is the predicate function for tenantcredit builders.
 type TenantCredit func(*sql.Selector)
+
+// User is the predicate function for user builders.
+type User func(*sql.Selector)

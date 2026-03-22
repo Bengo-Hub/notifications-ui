@@ -6,6 +6,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/bengobox/notifications-api/internal/ent/migrate"
 
@@ -43,7 +44,16 @@ func main() {
 		log.Fatalln("POSTGRES_URL or NOTIFICATIONS_POSTGRES_URL is required for migration generation")
 	}
 
-	err = migrate.NamedDiff(ctx, dbURL, os.Args[1], opts...)
+	// Use a separate search_path (schema) for dev migration generation
+	// so it doesn't conflict with existing tables in the database
+	devURL := dbURL
+	if strings.Contains(devURL, "?") {
+		devURL += "&search_path=ent_dev"
+	} else {
+		devURL += "?search_path=ent_dev"
+	}
+
+	err = migrate.NamedDiff(ctx, devURL, os.Args[1], opts...)
 	if err != nil {
 		log.Fatalf("failed generating migration: %v", err)
 	}

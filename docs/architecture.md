@@ -22,6 +22,16 @@
 - Delivery statuses emitted back to event bus (`notifications.delivery.*`) for analytics and downstream updates.
 - Webhooks from providers (SendGrid, Twilio) processed via dedicated endpoints (to be added).
 
+## Identity & Authorization (RBAC)
+
+- **Identity Module (`internal/modules/identity`)**: Manages local user records synced from auth-service via NATS events (`auth.user.created`, `auth.user.updated`, `auth.user.deactivated`).
+- **JIT Provisioning**: Valid JWT but missing local user → auto-create with default `viewer` role from token claims.
+- **Roles**: `viewer` (read-only), `manager` (send + manage), `admin` (full tenant), `superuser` (platform-wide).
+- **Permissions**: 20 fine-grained permissions in `module:action` format across notifications, templates, providers, settings, billing, analytics, credits, users, and platform modules.
+- **Authenticator Middleware (`internal/http/handlers/identity`)**: `RequireAuth` (JWT + user load), `RequireRoles`, `RequirePermissions` with superuser/admin bypass.
+- **Priority**: JWT claims (source of truth) → local DB permissions (fallback).
+- **Ent Schemas**: `User`, `Role`, `Permission` with many-to-many edges (`user_roles`, `role_permissions`).
+
 ## Tenancy & Preferences
 
 - Requests scoped by `tenantId` (header or path param).

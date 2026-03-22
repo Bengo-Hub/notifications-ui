@@ -15,10 +15,13 @@ import (
 	"github.com/bengobox/notifications-api/internal/ent/credittransaction"
 	"github.com/bengobox/notifications-api/internal/ent/deliverylog"
 	"github.com/bengobox/notifications-api/internal/ent/outboxevent"
+	"github.com/bengobox/notifications-api/internal/ent/permission"
 	"github.com/bengobox/notifications-api/internal/ent/platformbilling"
 	"github.com/bengobox/notifications-api/internal/ent/providersetting"
+	"github.com/bengobox/notifications-api/internal/ent/role"
 	"github.com/bengobox/notifications-api/internal/ent/tenant"
 	"github.com/bengobox/notifications-api/internal/ent/tenantcredit"
+	"github.com/bengobox/notifications-api/internal/ent/user"
 )
 
 // ent aliases to avoid import conflicts in user's code.
@@ -82,10 +85,13 @@ func checkColumn(table, column string) error {
 			credittransaction.Table: credittransaction.ValidColumn,
 			deliverylog.Table:       deliverylog.ValidColumn,
 			outboxevent.Table:       outboxevent.ValidColumn,
+			permission.Table:        permission.ValidColumn,
 			platformbilling.Table:   platformbilling.ValidColumn,
 			providersetting.Table:   providersetting.ValidColumn,
+			role.Table:              role.ValidColumn,
 			tenant.Table:            tenant.ValidColumn,
 			tenantcredit.Table:      tenantcredit.ValidColumn,
+			user.Table:              user.ValidColumn,
 		})
 	})
 	return columnCheck(table, column)

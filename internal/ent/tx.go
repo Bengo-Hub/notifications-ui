@@ -18,14 +18,20 @@ type Tx struct {
 	DeliveryLog *DeliveryLogClient
 	// OutboxEvent is the client for interacting with the OutboxEvent builders.
 	OutboxEvent *OutboxEventClient
+	// Permission is the client for interacting with the Permission builders.
+	Permission *PermissionClient
 	// PlatformBilling is the client for interacting with the PlatformBilling builders.
 	PlatformBilling *PlatformBillingClient
 	// ProviderSetting is the client for interacting with the ProviderSetting builders.
 	ProviderSetting *ProviderSettingClient
+	// Role is the client for interacting with the Role builders.
+	Role *RoleClient
 	// Tenant is the client for interacting with the Tenant builders.
 	Tenant *TenantClient
 	// TenantCredit is the client for interacting with the TenantCredit builders.
 	TenantCredit *TenantCreditClient
+	// User is the client for interacting with the User builders.
+	User *UserClient
 
 	// lazily loaded.
 	client     *Client
@@ -160,10 +166,13 @@ func (tx *Tx) init() {
 	tx.CreditTransaction = NewCreditTransactionClient(tx.config)
 	tx.DeliveryLog = NewDeliveryLogClient(tx.config)
 	tx.OutboxEvent = NewOutboxEventClient(tx.config)
+	tx.Permission = NewPermissionClient(tx.config)
 	tx.PlatformBilling = NewPlatformBillingClient(tx.config)
 	tx.ProviderSetting = NewProviderSettingClient(tx.config)
+	tx.Role = NewRoleClient(tx.config)
 	tx.Tenant = NewTenantClient(tx.config)
 	tx.TenantCredit = NewTenantCreditClient(tx.config)
+	tx.User = NewUserClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.

@@ -58,8 +58,29 @@ type Tenant struct {
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
-	UpdatedAt    time.Time `json:"updated_at,omitempty"`
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the TenantQuery when eager-loading is set.
+	Edges        TenantEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// TenantEdges holds the relations/edges for other nodes in the graph.
+type TenantEdges struct {
+	// Users holds the value of the users edge.
+	Users []*User `json:"users,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// UsersOrErr returns the Users value or an error if the edge
+// was not loaded in eager-loading.
+func (e TenantEdges) UsersOrErr() ([]*User, error) {
+	if e.loadedTypes[0] {
+		return e.Users, nil
+	}
+	return nil, &NotLoadedError{edge: "users"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -234,6 +255,11 @@ func (t *Tenant) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (t *Tenant) Value(name string) (ent.Value, error) {
 	return t.selectValues.Get(name)
+}
+
+// QueryUsers queries the "users" edge of the Tenant entity.
+func (t *Tenant) QueryUsers() *UserQuery {
+	return NewTenantClient(t.config).QueryUsers(t)
 }
 
 // Update returns a builder for updating this Tenant.

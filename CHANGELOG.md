@@ -7,6 +7,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 ## [Unreleased]
 
 ### Added
+- Service-level RBAC: User, Role, Permission Ent schemas with 4 roles (viewer, manager, admin, superuser) and 20 fine-grained permissions
+- Identity module with NATS-driven user sync from auth-service and JIT user provisioning from JWT
+- Authenticator middleware (RequireAuth, RequireRoles, RequirePermissions) with superuser/admin bypass
+- Per-route permission enforcement on all protected endpoints (platform, analytics, templates, billing, settings, notifications)
+- Seed command extended to bootstrap roles, permissions, and role-permission mappings
+- Atlas versioned migration `add_identity_rbac` for users, roles, permissions, and junction tables
+
+### Changed
+- Bumped shared-auth-client from v0.4.0 to v0.4.1 (adds Permissions field to JWT Claims)
+- Migration generator now uses `search_path=ent_dev` for schema isolation (consistent with treasury-api pattern)
+- `fix_migration.go` updated to also clear `ent_dev` schema
+
+### Added (previous)
 - Initial Go service scaffolding with Gin API, middleware, health endpoints, and documentation
 - HTTPS support for local development using mkcert certificates
 - Custom Swagger UI handler with protocol-aware URL detection for HTTPS compatibility

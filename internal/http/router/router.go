@@ -13,10 +13,12 @@ import (
 	httpware "github.com/Bengo-Hub/httpware"
 	authclient "github.com/Bengo-Hub/shared-auth-client"
 	handlers "github.com/bengobox/notifications-api/internal/http/handlers"
+	identityhandler "github.com/bengobox/notifications-api/internal/http/handlers/identity"
+	"github.com/bengobox/notifications-api/internal/modules/identity"
 	"github.com/bengobox/notifications-api/internal/modules/tenant"
 )
 
-func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handlers.NotificationHandler, templates *handlers.TemplateHandler, platformProviders *handlers.PlatformProviders, tenantProviders *handlers.TenantProviders, analytics *handlers.AnalyticsHandler, billing *handlers.BillingHandler, platformBilling *handlers.PlatformBilling, settings *handlers.SettingsHandler, apiKey string, authMiddleware *authclient.AuthMiddleware, allowedOrigins []string, tenantSyncer *tenant.Syncer) http.Handler {
+func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handlers.NotificationHandler, templates *handlers.TemplateHandler, platformProviders *handlers.PlatformProviders, tenantProviders *handlers.TenantProviders, analytics *handlers.AnalyticsHandler, billing *handlers.BillingHandler, platformBilling *handlers.PlatformBilling, settings *handlers.SettingsHandler, apiKey string, authMiddleware *authclient.AuthMiddleware, authenticator *identityhandler.Authenticator, allowedOrigins []string, tenantSyncer *tenant.Syncer) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RealIP)
@@ -69,18 +71,31 @@ func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handler
 				})
 			}
 
+			// Layer 3: Identity — load/JIT-provision local user with roles & permissions
+			if authenticator != nil {
+				protected.Use(authenticator.RequireAuth)
+			}
+
 			// Platform admin routes (superuser-only)
 			protected.Route("/platform", func(platform chi.Router) {
+				if authenticator != nil {
+					platform.Use(authenticator.RequireRoles(identity.RoleSuperAdmin))
+				}
 				platformProviders.RegisterPlatformProviderRoutes(platform)
 				platform.Route("/billing", func(pb chi.Router) {
+					if authenticator != nil {
+						pb.Use(authenticator.RequirePermissions(identity.PermPlatformBilling))
+					}
 					pb.Get("/", platformBilling.GetSettings)
 					pb.Post("/", platformBilling.UpdateSettings)
 				})
 			})
 
 			// Analytics (platform or tenant-scoped)
-			// For platform users, tenantId is optional and passed via query params or headers
 			protected.Route("/analytics", func(analyticsRouter chi.Router) {
+				if authenticator != nil {
+					analyticsRouter.Use(authenticator.RequirePermissions(identity.PermAnalyticsRead))
+				}
 				analyticsRouter.Get("/delivery", analytics.Delivery)
 				analyticsRouter.Get("/delivery/{tenantId}", analytics.Delivery)
 				analyticsRouter.Get("/logs", analytics.Logs)
@@ -88,8 +103,8 @@ func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handler
 			})
 
 			// Base group for tenant-scoped operations
-			protected.Group(func(tenant chi.Router) {
-				tenant.Use(httpware.TenantV2(httpware.TenantConfig{
+			protected.Group(func(tenantRouter chi.Router) {
+				tenantRouter.Use(httpware.TenantV2(httpware.TenantConfig{
 					ClaimsExtractor: func(ctx context.Context) (tenantID, tenantSlug string, isPlatformOwner bool, ok bool) {
 						claims, found := authclient.ClaimsFromContext(ctx)
 						if !found {
@@ -103,9 +118,9 @@ func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handler
 					Required:     false, // Make optional to allow platform owners to bypass
 				}))
 
-				// JIT tenant sync: ensure tenant exists in local DB when slug is in context (avoids "tenant not found" after SSO)
+				// JIT tenant sync: ensure tenant exists in local DB when slug is in context
 				if tenantSyncer != nil {
-					tenant.Use(func(next http.Handler) http.Handler {
+					tenantRouter.Use(func(next http.Handler) http.Handler {
 						return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 							slug := httpware.GetTenantSlug(r.Context())
 							if slug != "" {
@@ -118,29 +133,60 @@ func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handler
 					})
 				}
 
-				tenant.Route("/notifications", func(notif chi.Router) {
+				tenantRouter.Route("/notifications", func(notif chi.Router) {
+					if authenticator != nil {
+						notif.Use(authenticator.RequirePermissions(identity.PermNotificationsSend))
+					}
 					notif.Post("/messages", notifications.Enqueue)
 				})
 
-				tenant.Route("/templates", func(tmpl chi.Router) {
-					tmpl.Get("/", templates.List)
-					tmpl.Get("/{id}", templates.Get)
-					tmpl.Put("/{id}", templates.Update)
-					tmpl.Post("/{id}/test", templates.TestSend)
+				tenantRouter.Route("/templates", func(tmpl chi.Router) {
+					tmpl.Group(func(read chi.Router) {
+						if authenticator != nil {
+							read.Use(authenticator.RequirePermissions(identity.PermTemplatesRead))
+						}
+						read.Get("/", templates.List)
+						read.Get("/{id}", templates.Get)
+					})
+					tmpl.Group(func(write chi.Router) {
+						if authenticator != nil {
+							write.Use(authenticator.RequirePermissions(identity.PermTemplatesManage))
+						}
+						write.Put("/{id}", templates.Update)
+					})
+					tmpl.Group(func(test chi.Router) {
+						if authenticator != nil {
+							test.Use(authenticator.RequirePermissions(identity.PermTemplatesTest))
+						}
+						test.Post("/{id}/test", templates.TestSend)
+					})
 				})
 
 				// Tenant provider selection + branding
-				tenantProviders.RegisterTenantProviderRoutes(tenant)
+				tenantProviders.RegisterTenantProviderRoutes(tenantRouter)
 
 				// Billing routes
-				tenant.Route("/billing", func(b chi.Router) {
-					b.Get("/balance", billing.GetBalance)
-					b.Post("/topup", billing.TopUp)
-					b.Post("/initiate", billing.Initiate)
+				tenantRouter.Route("/billing", func(b chi.Router) {
+					b.Group(func(read chi.Router) {
+						if authenticator != nil {
+							read.Use(authenticator.RequirePermissions(identity.PermBillingRead))
+						}
+						read.Get("/balance", billing.GetBalance)
+					})
+					b.Group(func(write chi.Router) {
+						if authenticator != nil {
+							write.Use(authenticator.RequirePermissions(identity.PermBillingManage))
+						}
+						write.Post("/topup", billing.TopUp)
+						write.Post("/initiate", billing.Initiate)
+					})
 				})
 
 				// Settings routes
-				tenant.Route("/settings", func(s chi.Router) {
+				tenantRouter.Route("/settings", func(s chi.Router) {
+					if authenticator != nil {
+						s.Use(authenticator.RequirePermissions(identity.PermSettingsRead))
+					}
 					s.Get("/security", settings.GetSecuritySettings)
 				})
 			})

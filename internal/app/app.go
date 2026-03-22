@@ -25,8 +25,10 @@ import (
 	"github.com/bengobox/notifications-api/internal/encryption"
 	"github.com/bengobox/notifications-api/internal/ent"
 	handlers "github.com/bengobox/notifications-api/internal/http/handlers"
+	identityhandler "github.com/bengobox/notifications-api/internal/http/handlers/identity"
 	router "github.com/bengobox/notifications-api/internal/http/router"
 	"github.com/bengobox/notifications-api/internal/modules/billing"
+	"github.com/bengobox/notifications-api/internal/modules/identity"
 	"github.com/bengobox/notifications-api/internal/modules/outbox"
 	"github.com/bengobox/notifications-api/internal/modules/tenant"
 	"github.com/bengobox/notifications-api/internal/platform/cache"
@@ -111,8 +113,21 @@ func New(ctx context.Context) (*App, error) {
 	platformBilling := handlers.NewPlatformBilling(entClient, log)
 	settingsHandler := handlers.NewSettingsHandler(log, encryption.KeyFromEnv(cfg.Security.EncryptionKey))
 
+	// Initialize identity module (RBAC)
+	identityRepo := identity.NewEntRepository(entClient)
+	identityService := identity.NewService(identityRepo, log, tenantSyncer)
+
+	// Subscribe to auth-service events for user sync (if NATS available)
+	if natsConn != nil {
+		identityEvents := identity.NewEventHandler(identityService, log)
+		if err := identityEvents.SubscribeToAuthEvents(natsConn); err != nil {
+			log.Warn("failed to subscribe to auth events for identity sync", zap.Error(err))
+		}
+	}
+
 	// Initialize auth-service JWT validator
 	var authMiddleware *authclient.AuthMiddleware
+	var authenticator *identityhandler.Authenticator
 	if cfg.Security.RequireJWT {
 		authConfig := authclient.DefaultConfig(
 			cfg.Security.JWKSURL,
@@ -135,6 +150,9 @@ func New(ctx context.Context) (*App, error) {
 		if err != nil {
 			return nil, fmt.Errorf("auth validator init: %w", err)
 		}
+
+		// Create identity authenticator with RBAC middleware
+		authenticator = identityhandler.NewAuthenticator(log, identityService, validator)
 
 		// Add API key validator if database URL is provided
 		var apiKeyValidator *authclient.APIKeyValidator
@@ -179,7 +197,7 @@ func New(ctx context.Context) (*App, error) {
 		}
 	}
 
-	httpRouter := router.New(log, healthHandler, notificationHandler, templateHandler, platformProviders, tenantProviders, analyticsHandler, billingHandler, platformBilling, settingsHandler, cfg.Security.APIKey, authMiddleware, cfg.HTTP.AllowedOrigins, tenantSyncer)
+	httpRouter := router.New(log, healthHandler, notificationHandler, templateHandler, platformProviders, tenantProviders, analyticsHandler, billingHandler, platformBilling, settingsHandler, cfg.Security.APIKey, authMiddleware, authenticator, cfg.HTTP.AllowedOrigins, tenantSyncer)
 
 	httpServer := &http.Server{
 		Addr:              fmt.Sprintf("%s:%d", cfg.HTTP.Host, cfg.HTTP.Port),
