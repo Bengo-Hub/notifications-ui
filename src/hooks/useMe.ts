@@ -1,6 +1,7 @@
 'use client';
 
 import { fetchProfile } from '@/lib/auth/api';
+import type { Permission, UserRole } from '@/lib/auth/types';
 import { useAuthStore } from '@/store/auth';
 import { useQuery } from '@tanstack/react-query';
 
@@ -10,8 +11,8 @@ export interface MeProfile {
   id: string;
   email: string;
   fullName?: string;
-  roles: string[];
-  permissions?: string[];
+  roles: UserRole[];
+  permissions: Permission[];
   tenant_id?: string;
   tenant_slug?: string;
   is_platform_owner?: boolean;
@@ -43,13 +44,13 @@ export function useMe() {
 
   const hasRole = (role: string) => {
     if (!user?.roles) return false;
-    return user.roles.includes(role) || user.roles.includes('super_admin') || user.roles.includes('admin');
+    return user.roles.includes(role as UserRole) || user.roles.includes('superuser') || user.roles.includes('admin');
   };
 
   const hasPermission = (permission: string) => {
     if (!user) return false;
-    if (user.roles?.includes('super_admin') || user.roles?.includes('admin')) return true;
-    return (user as MeProfile).permissions?.includes(permission) ?? false;
+    if (user.roles?.includes('superuser') || user.roles?.includes('admin')) return true;
+    return (user as MeProfile).permissions?.includes(permission as Permission) ?? false;
   };
 
   return {

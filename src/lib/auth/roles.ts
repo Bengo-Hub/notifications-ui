@@ -1,5 +1,9 @@
 /** RBAC helpers: use with user from useMe (roles + permissions from auth-api GET /me). */
 
+import type { Permission, UserProfile, UserRole } from "./types";
+
+export type { UserRole, Permission, UserProfile };
+
 export interface UserWithRole {
   role?: string;
   roles?: string[];
@@ -26,8 +30,8 @@ export function hasPermission(
   return user.permissions.includes(permission);
 }
 
-/** Platform routes (e.g. /platform) require admin or super_admin. */
+/** Platform routes (e.g. /platform) require admin or superuser. */
 export function canAccessPlatform(user: (UserWithRole & UserWithPermissions) | null | undefined): boolean {
   if (!user) return false;
-  return hasRole(user, 'admin') || hasRole(user, 'super_admin');
+  return hasRole(user, 'admin') || hasRole(user, 'superuser');
 }
