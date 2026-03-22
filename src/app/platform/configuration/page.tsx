@@ -1,8 +1,8 @@
 'use client';
 
 import { Card, CardContent } from '@/components/ui/base';
+import { Server, Users } from 'lucide-react';
 import Link from 'next/link';
-import { Link2, Server, Users } from 'lucide-react';
 
 export default function PlatformConfigurationPage() {
     return (
@@ -38,20 +38,6 @@ export default function PlatformConfigurationPage() {
                     </Card>
                 </Link>
             </div>
-
-            <Card className="bg-muted/30">
-                <CardContent className="p-4">
-                    <h3 className="font-medium flex items-center gap-2 mb-2">
-                        <Link2 className="h-4 w-4" />
-                        Backend links
-                    </h3>
-                    <ul className="text-sm text-muted-foreground space-y-1">
-                        <li>• Platform: GET/POST /api/v1/platform/providers, POST /api/v1/platform/providers/:id/test</li>
-                        <li>• Tenant: /api/v1/templates, /api/v1/providers/available, /api/v1/branding</li>
-                        <li>• Analytics: GET /api/v1/analytics/delivery-stats</li>
-                    </ul>
-                </CardContent>
-            </Card>
         </div>
     );
 }
