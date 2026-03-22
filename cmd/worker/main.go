@@ -173,6 +173,12 @@ func main() {
 	// Start fleet lifecycle event consumer (logistics-service → email notifications)
 	startFleetConsumer(ctx, nc, js, cfg, logg)
 
+	// Start inventory stock event consumer (inventory-service → low stock alerts)
+	startInventoryConsumer(ctx, nc, js, cfg, logg)
+
+	// Start order status event consumer (ordering-service → customer notifications)
+	startOrderConsumer(ctx, nc, js, cfg, logg)
+
 	<-ctx.Done()
 	_ = nc.Drain()
 }

@@ -1,0 +1,174 @@
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/nats-io/nats.go"
+	"go.uber.org/zap"
+
+	"github.com/bengobox/notifications-api/internal/config"
+	"github.com/bengobox/notifications-api/internal/messaging"
+)
+
+// orderEvent is the CloudEvents envelope from ordering-service.
+type orderEvent struct {
+	ID       string                 `json:"id"`
+	Type     string                 `json:"type"`
+	TenantID string                 `json:"tenantId"`
+	Data     map[string]interface{} `json:"data"`
+}
+
+// orderNotificationMapping maps event types to notification details.
+type orderNotificationMapping struct {
+	TemplateID   string
+	EmailSubject string
+	DataBuilder  func(data map[string]interface{}) map[string]interface{}
+}
+
+var orderMappings = map[string]orderNotificationMapping{
+	"ordering.order.confirmed": {
+		TemplateID:   "email/cafe/cafe_order_placed",
+		EmailSubject: "Your order has been confirmed",
+		DataBuilder: func(data map[string]interface{}) map[string]interface{} {
+			return map[string]interface{}{
+				"name":               data["customer_name"],
+				"order_id":           data["order_id"],
+				"total_amount":       data["total_amount"],
+				"estimated_prep_time": data["estimated_prep_time"],
+				"delivery_address":   data["delivery_address"],
+				"order_link":         fmt.Sprintf("https://theurbanloftcafe.com/orders/%s", data["order_id"]),
+			}
+		},
+	},
+	"ordering.order.ready": {
+		TemplateID:   "email/cafe/cafe_order_ready",
+		EmailSubject: "Your order is ready",
+		DataBuilder: func(data map[string]interface{}) map[string]interface{} {
+			return map[string]interface{}{
+				"name":       data["customer_name"],
+				"order_id":   data["order_id"],
+				"order_link": fmt.Sprintf("https://theurbanloftcafe.com/orders/%s", data["order_id"]),
+			}
+		},
+	},
+	"ordering.order.out_for_delivery": {
+		TemplateID:   "email/cafe/cafe_order_out_for_delivery",
+		EmailSubject: "Your order is out for delivery",
+		DataBuilder: func(data map[string]interface{}) map[string]interface{} {
+			return map[string]interface{}{
+				"name":       data["customer_name"],
+				"order_id":   data["order_id"],
+				"rider_name": data["rider_name"],
+				"order_link": fmt.Sprintf("https://theurbanloftcafe.com/orders/%s", data["order_id"]),
+			}
+		},
+	},
+	"ordering.order.completed": {
+		TemplateID:   "email/cafe/cafe_order_delivered",
+		EmailSubject: "Your order has been delivered",
+		DataBuilder: func(data map[string]interface{}) map[string]interface{} {
+			return map[string]interface{}{
+				"name":       data["customer_name"],
+				"order_id":   data["order_id"],
+				"order_link": fmt.Sprintf("https://theurbanloftcafe.com/orders/%s", data["order_id"]),
+			}
+		},
+	},
+	"ordering.order.cancelled": {
+		TemplateID:   "email/cafe/cafe_order_cancelled",
+		EmailSubject: "Your order has been cancelled",
+		DataBuilder: func(data map[string]interface{}) map[string]interface{} {
+			return map[string]interface{}{
+				"name":           data["customer_name"],
+				"order_id":       data["order_id"],
+				"cancel_reason":  data["cancel_reason"],
+				"order_link":     fmt.Sprintf("https://theurbanloftcafe.com/orders/%s", data["order_id"]),
+			}
+		},
+	},
+}
+
+// startOrderConsumer subscribes to ordering.order.> events and dispatches
+// customer notifications for order status changes.
+func startOrderConsumer(ctx context.Context, nc *nats.Conn, js nats.JetStreamContext, cfg *config.Config, logg *zap.Logger) {
+	if nc == nil || js == nil {
+		logg.Warn("skipping order consumer: NATS not available")
+		return
+	}
+
+	handler := func(m *nats.Msg) {
+		var evt orderEvent
+		if err := json.Unmarshal(m.Data, &evt); err != nil {
+			logg.Error("order event: unmarshal failed", zap.Error(err))
+			_ = m.Ack()
+			return
+		}
+
+		mapping, ok := orderMappings[evt.Type]
+		if !ok {
+			logg.Debug("order event: unhandled type, skipping", zap.String("type", evt.Type))
+			_ = m.Ack()
+			return
+		}
+
+		// Extract customer email from event data
+		email, _ := evt.Data["customer_email"].(string)
+		if email == "" {
+			logg.Warn("order event: no customer_email in data, skipping", zap.String("type", evt.Type))
+			_ = m.Ack()
+			return
+		}
+
+		orderID, _ := evt.Data["order_id"].(string)
+
+		msg := messaging.Message{
+			TenantID:   evt.TenantID,
+			Channel:    "email",
+			TemplateID: mapping.TemplateID,
+			To:         []string{email},
+			Data:       mapping.DataBuilder(evt.Data),
+			Metadata: map[string]interface{}{
+				"subject": mapping.EmailSubject,
+			},
+			RequestID:      uuid.New().String(),
+			IdempotencyKey: fmt.Sprintf("order-%s-%s", evt.Type, orderID),
+			QueuedAt:       time.Now(),
+		}
+
+		if _, err := messaging.Publish(ctx, nc, cfg.Events, msg); err != nil {
+			logg.Error("order event: failed to dispatch notification",
+				zap.String("type", evt.Type),
+				zap.String("order_id", orderID),
+				zap.Error(err),
+			)
+			_ = m.Nak()
+			return
+		}
+
+		logg.Info("order notification dispatched",
+			zap.String("type", evt.Type),
+			zap.String("template", mapping.TemplateID),
+			zap.String("order_id", orderID),
+			zap.String("to", email),
+		)
+		_ = m.Ack()
+	}
+
+	_, err := js.Subscribe("ordering.order.>", handler,
+		nats.BindStream("ordering"),
+		nats.Durable("notifications-ordering-status"),
+		nats.ManualAck(),
+		nats.AckWait(30*time.Second),
+		nats.MaxDeliver(3),
+	)
+	if err != nil {
+		logg.Warn("order consumer subscription failed (ordering stream may not exist yet)", zap.Error(err))
+		return
+	}
+
+	logg.Info("order consumer started", zap.String("subject", "ordering.order.>"))
+}
