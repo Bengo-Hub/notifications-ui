@@ -155,9 +155,17 @@ export const useAuthStore = create<AuthState>()(
 
             logout: async () => {
                 get().syncTenantToStorage(null);
-                set({ status: 'idle', user: null, session: null, isAuthenticated: false });
+                set({ status: 'unauthenticated', user: null, session: null, isAuthenticated: false });
                 apiClient.setAccessToken(null);
-                window.location.href = buildLogoutUrl(window.location.origin);
+
+                // Clear persisted storage so re-visit doesn't rehydrate stale session
+                try { localStorage.removeItem('notifications-auth-storage'); } catch { /* no-op */ }
+
+                // Redirect to SSO logout which clears the session cookie, then SSO
+                // redirects to accounts login page. We do NOT redirect back to
+                // notifications because the AuthProvider would immediately re-trigger
+                // SSO login (no unauthenticated landing page exists).
+                window.location.href = buildLogoutUrl('https://accounts.codevertexitsolutions.com');
             },
 
             fetchUser: async () => {
