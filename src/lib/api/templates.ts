@@ -7,12 +7,13 @@ export interface NotificationTemplate {
     subject?: string;
     content: string;
     updatedAt: string;
+    tags?: string[];
 }
 
-/** API returns { templates: [{ id, channel }] }; map to NotificationTemplate[] */
+/** API returns { templates: [{ id, channel, tags }] }; map to NotificationTemplate[] */
 export const templatesApi = {
     list: async (): Promise<NotificationTemplate[]> => {
-        const res = await apiClient.get<{ templates: { id: string; channel: string }[] }>('/api/v1/templates');
+        const res = await apiClient.get<{ templates: { id: string; channel: string; tags?: string[] }[] }>('/api/v1/templates');
         const list = res?.templates ?? [];
         return list.map((t) => ({
             id: t.id,
@@ -20,6 +21,7 @@ export const templatesApi = {
             type: t.channel as 'email' | 'sms' | 'push',
             content: '',
             updatedAt: new Date().toISOString(),
+            tags: t.tags ?? [],
         }));
     },
     get: (id: string, channel: string) =>

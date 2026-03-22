@@ -3,17 +3,32 @@
 import { Badge, Button, Card, CardContent, CardHeader } from '@/components/ui/base';
 import { useTemplates } from '@/hooks/use-templates';
 import { cn } from '@/lib/utils';
-import { Edit2, Mail, MessageSquare, MoreVertical, Plus, Search, Smartphone, Trash2, Zap } from 'lucide-react';
+import { Edit2, Mail, MessageSquare, MoreVertical, Plus, Search, Smartphone, Tag, Trash2, Zap } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 
 export default function TemplatesPage() {
     const { data: templates = [], isLoading: loading, isError, refetch } = useTemplates();
     const [searchQuery, setSearchQuery] = useState('');
+    const [channelFilter, setChannelFilter] = useState<'all' | 'email' | 'sms' | 'push'>('all');
+    const [tagFilter, setTagFilter] = useState<string>('all');
+    const router = useRouter();
 
-    const filteredTemplates = useMemo(() => templates.filter(t =>
-        t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.type.toLowerCase().includes(searchQuery.toLowerCase())
-    ), [templates, searchQuery]);
+    // Collect all unique tags from templates
+    const allTags = useMemo(() => {
+        const tags = new Set<string>();
+        templates.forEach(t => (t.tags ?? []).forEach(tag => tags.add(tag)));
+        return Array.from(tags).sort();
+    }, [templates]);
+
+    const filteredTemplates = useMemo(() => templates.filter(t => {
+        const matchesSearch = t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            t.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (t.tags ?? []).some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+        const matchesChannel = channelFilter === 'all' || t.type === channelFilter;
+        const matchesTag = tagFilter === 'all' || (t.tags ?? []).includes(tagFilter);
+        return matchesSearch && matchesChannel && matchesTag;
+    }), [templates, searchQuery, channelFilter, tagFilter]);
 
     const getTypeIcon = (type: string) => {
         switch (type) {
@@ -30,6 +45,27 @@ export default function TemplatesPage() {
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Notification Templates</h1>
                     <p className="text-muted-foreground mt-1">Manage cross-channel communication templates for your organization.</p>
+                    {allTags.length > 0 && (
+                        <div className="flex gap-2 flex-wrap mt-3">
+                            <Badge
+                                variant={tagFilter === 'all' ? 'default' : 'outline'}
+                                className={cn("cursor-pointer capitalize", tagFilter !== 'all' && "border-muted text-muted-foreground")}
+                                onClick={() => setTagFilter('all')}
+                            >
+                                All
+                            </Badge>
+                            {allTags.map((tag) => (
+                                <Badge
+                                    key={tag}
+                                    variant={tagFilter === tag ? 'default' : 'outline'}
+                                    className={cn("cursor-pointer capitalize", tagFilter !== tag && "border-muted text-muted-foreground")}
+                                    onClick={() => setTagFilter(tag)}
+                                >
+                                    {tag}
+                                </Badge>
+                            ))}
+                        </div>
+                    )}
                 </div>
                 <Button className="gap-2 shadow-lg shadow-primary/20">
                     <Plus className="h-4 w-4" />
@@ -57,10 +93,16 @@ export default function TemplatesPage() {
                             />
                         </div>
                         <div className="flex gap-2">
-                            <Badge variant="default" className="cursor-pointer">All</Badge>
-                            <Badge variant="outline" className="cursor-pointer border-muted text-muted-foreground">Email</Badge>
-                            <Badge variant="outline" className="cursor-pointer border-muted text-muted-foreground">SMS</Badge>
-                            <Badge variant="outline" className="cursor-pointer border-muted text-muted-foreground">Push</Badge>
+                            {(['all', 'email', 'sms', 'push'] as const).map((ch) => (
+                                <Badge
+                                    key={ch}
+                                    variant={channelFilter === ch ? 'default' : 'outline'}
+                                    className={cn("cursor-pointer uppercase", channelFilter !== ch && "border-muted text-muted-foreground")}
+                                    onClick={() => setChannelFilter(ch)}
+                                >
+                                    {ch}
+                                </Badge>
+                            ))}
                         </div>
                     </CardHeader>
                     <CardContent className="p-0">
@@ -74,7 +116,11 @@ export default function TemplatesPage() {
                                     </p>
                                 </div>
                             ) : filteredTemplates.map((template) => (
-                                <div key={template.id} className="p-4 flex items-center justify-between hover:bg-accent/5 transition-colors group">
+                                <div
+                                    key={`${template.type}-${template.id}`}
+                                    className="p-4 flex items-center justify-between hover:bg-accent/5 transition-colors group cursor-pointer"
+                                    onClick={() => router.push(`/templates/${template.id}?channel=${template.type}`)}
+                                >
                                     <div className="flex items-center gap-4">
                                         <div className={cn(
                                             "h-10 w-10 rounded-lg flex items-center justify-center border border-border shadow-sm",
@@ -86,25 +132,22 @@ export default function TemplatesPage() {
                                         </div>
                                         <div>
                                             <h4 className="text-sm font-bold group-hover:text-primary transition-colors">{template.name}</h4>
-                                            <p className="text-xs text-muted-foreground mt-0.5 max-w-xs truncate">{template.subject || template.content}</p>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 capitalize">{template.type}</Badge>
+                                                {(template.tags ?? []).map((tag) => (
+                                                    <Badge key={tag} variant="default" className="text-[10px] px-1.5 py-0">
+                                                        <Tag className="h-2.5 w-2.5 mr-1" />{tag}
+                                                    </Badge>
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-6">
-                                        <div className="text-right hidden sm:block">
-                                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Last Sync</p>
-                                            <p className="text-xs font-semibold">{new Date(template.updatedAt).toLocaleDateString()}</p>
-                                        </div>
                                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={(e: React.MouseEvent) => { e.stopPropagation(); router.push(`/templates/${template.id}?channel=${template.type}`); }}>
                                                 <Edit2 className="h-3.5 w-3.5" />
                                             </Button>
-                                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10">
-                                                <Trash2 className="h-3.5 w-3.5" />
-                                            </Button>
                                         </div>
-                                        <button className="h-8 w-8 rounded-md flex items-center justify-center hover:bg-accent text-muted-foreground">
-                                            <MoreVertical className="h-4 w-4" />
-                                        </button>
                                     </div>
                                 </div>
                             ))}

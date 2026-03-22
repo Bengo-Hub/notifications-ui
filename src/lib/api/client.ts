@@ -48,7 +48,18 @@ class ApiClient {
 
     private handleError = (error: any) => {
         if (error.response?.status === 401) {
-            console.warn('API Unauthorized access');
+            const url: string = error.config?.url ?? '';
+            // Do not auto-logout for /auth/me — it may 401 before JIT sync completes.
+            // Only auto-logout for regular API calls where 401 means token is invalid.
+            if (!url.includes('/auth/me')) {
+                console.warn('API Unauthorized access');
+                import('@/store/auth').then(({ useAuthStore }) => {
+                    const store = useAuthStore.getState();
+                    if (store.status === 'authenticated') {
+                        store.logout();
+                    }
+                });
+            }
         }
         return Promise.reject(error);
     };
