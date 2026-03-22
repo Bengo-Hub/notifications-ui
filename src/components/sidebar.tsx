@@ -69,70 +69,73 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
 
     return (
         <>
-            {/* Mobile overlay when sidebar is open */}
             {open && (
                 <div
-                    className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+                    className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
                     aria-hidden
                     onClick={onClose}
                 />
             )}
             <aside
                 className={cn(
-                    "fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col transition-transform duration-300 md:sticky md:top-0 md:h-screen md:z-auto md:translate-x-0 md:min-w-[280px]",
+                    "fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col transition-transform duration-300 ease-out md:sticky md:top-0 md:h-screen md:z-auto md:translate-x-0 md:min-w-[260px]",
                     open ? "translate-x-0" : "-translate-x-full md:translate-x-0"
                 )}
             >
-                <div className="space-y-4 py-6 flex flex-col h-full bg-brand-dark text-white border-r border-white/10 w-full overflow-hidden">
-                    <div className="px-6 py-4 flex flex-col h-full overflow-y-auto custom-scrollbar">
-                        <Link href="/dashboard" className="flex items-center justify-center mb-10 transition-all hover:scale-105 duration-500" onClick={onClose}>
+                <div className="flex flex-col h-full bg-brand-dark border-r border-brand-primary/10 w-full overflow-hidden">
+                    {/* Logo */}
+                    <div className="px-6 pt-6 pb-2">
+                        <Link href="/dashboard" className="flex items-center gap-3 group" onClick={onClose}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src="/logo.svg" alt="Codevertex" className="h-12 w-auto object-contain drop-shadow-2xl" />
+                            <img src="/logo.svg" alt="Codevertex" className="h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-105" />
                         </Link>
-
-                        <div className="space-y-1 mt-4">
-                            <div className="px-6 pb-2">
-                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
-                                    Notification Node
-                                </p>
-                            </div>
-                            {routes.map((route) => {
-                                const Icon = route.icon;
-                                return (
-                                    <Link
-                                        key={route.href}
-                                        href={route.href}
-                                        onClick={onClose}
-                                        className={cn(
-                                            "group flex items-center gap-4 px-6 py-4 rounded-2xl transition-all duration-300",
-                                            route.active 
-                                                ? "bg-primary text-white shadow-xl shadow-primary/20 scale-[1.02]" 
-                                                : "text-white/50 hover:bg-white/5 hover:text-white"
-                                        )}
-                                    >
-                                        <Icon className={cn("h-5 w-5 transition-transform duration-300 group-hover:scale-110", route.active ? "text-white" : "group-hover:text-white")} />
-                                        <span className="font-bold text-xs uppercase tracking-widest">{route.label}</span>
-                                    </Link>
-                                );
-                            })}
-                        </div>
                     </div>
 
-                    <div className="p-6 border-t border-white/10 mt-auto">
-                        <div className="flex items-center gap-4 px-5 py-4 rounded-2xl bg-white/5 text-white/70">
-                            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-xs font-black text-primary uppercase shadow-inner">
+                    {/* Navigation */}
+                    <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto custom-scrollbar">
+                        <p className="px-3 pb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-brand-orange/40">
+                            Navigation
+                        </p>
+                        {routes.map((route) => {
+                            const Icon = route.icon;
+                            return (
+                                <Link
+                                    key={route.href}
+                                    href={route.href}
+                                    onClick={onClose}
+                                    className={cn(
+                                        "group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+                                        route.active
+                                            ? "bg-brand-orange/15 text-brand-orange shadow-sm"
+                                            : "text-brand-light/50 hover:bg-brand-light/5 hover:text-brand-light/80"
+                                    )}
+                                >
+                                    <Icon className={cn(
+                                        "h-[18px] w-[18px] shrink-0 transition-colors",
+                                        route.active ? "text-brand-orange" : "text-brand-light/30 group-hover:text-brand-light/60"
+                                    )} />
+                                    <span>{route.label}</span>
+                                </Link>
+                            );
+                        })}
+                    </nav>
+
+                    {/* User section */}
+                    <div className="p-3 border-t border-brand-light/5">
+                        <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-brand-light/5">
+                            <div className="w-8 h-8 rounded-lg bg-brand-orange/20 flex items-center justify-center text-xs font-bold text-brand-orange shrink-0">
                                 {user?.tenantSlug?.[0]?.toUpperCase() || 'C'}
                             </div>
                             <div className="flex flex-col min-w-0 flex-1">
-                                <span className="font-black text-[10px] uppercase tracking-widest truncate">{user?.tenantSlug || 'Codevertex'}</span>
-                                <span className="text-[9px] font-bold opacity-50 uppercase tracking-tighter">Event Router</span>
+                                <span className="text-xs font-semibold text-brand-light/80 truncate">{user?.tenantSlug || 'Codevertex'}</span>
+                                <span className="text-[10px] text-brand-light/30">Notifications</span>
                             </div>
                             <button
                                 onClick={() => logout()}
-                                className="p-2 rounded-xl hover:bg-white/5 transition-colors text-white/50 hover:text-rose-400"
+                                className="p-1.5 rounded-lg hover:bg-brand-light/5 transition-colors text-brand-light/30 hover:text-red-400"
                                 title="Sign out"
                             >
-                                <LogOut className="h-5 w-5" />
+                                <LogOut className="h-4 w-4" />
                             </button>
                         </div>
                     </div>

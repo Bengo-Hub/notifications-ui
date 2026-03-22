@@ -30,7 +30,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
         <QueryClientProvider client={queryClient}>
             <ThemeProvider
                 attribute="class"
-                defaultTheme="light"
+                defaultTheme="dark"
                 enableSystem
                 disableTransitionOnChange
             >
@@ -38,9 +38,9 @@ export function AppProviders({ children }: { children: ReactNode }) {
                     <BrandingProvider>
                         <div className="flex h-screen overflow-hidden bg-background">
                             <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-                            <div className="flex-1 flex flex-col min-w-0 overflow-hidden text-slate-900 dark:text-slate-100">
+                            <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
                                 <Header onMenuClick={() => setSidebarOpen((v) => !v)} />
-                                <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900/50">
+                                <main className="flex-1 overflow-y-auto bg-background">
                                     <div className="min-h-full flex flex-col">
                                         <div className="flex-1">{children}</div>
                                         <Footer />
