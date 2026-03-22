@@ -26,37 +26,37 @@ type fleetEvent struct {
 type fleetNotificationMapping struct {
 	TemplateID   string
 	EmailSubject string
-	DataBuilder  func(data map[string]interface{}) map[string]interface{}
+	DataBuilder  func(data map[string]interface{}, tenantWebsite string) map[string]interface{}
 }
 
 var fleetMappings = map[string]fleetNotificationMapping{
 	"logistics.fleet.member_invited": {
 		TemplateID:   "email/logistics/rider_invite",
 		EmailSubject: "You've been invited to join the fleet",
-		DataBuilder: func(data map[string]interface{}) map[string]interface{} {
+		DataBuilder: func(data map[string]interface{}, tenantWebsite string) map[string]interface{} {
 			return map[string]interface{}{
 				"RiderName":    data["user_name"],
-				"DashboardUrl": "https://logistics.codevertexitsolutions.com/dashboard",
+				"DashboardUrl": fmt.Sprintf("%s/dashboard", tenantWebsite),
 			}
 		},
 	},
 	"logistics.fleet.member_approved": {
 		TemplateID:   "email/logistics/rider_onboarding_approved",
 		EmailSubject: "Your rider application has been approved",
-		DataBuilder: func(data map[string]interface{}) map[string]interface{} {
+		DataBuilder: func(data map[string]interface{}, tenantWebsite string) map[string]interface{} {
 			return map[string]interface{}{
 				"RiderName":    data["user_name"],
-				"DashboardUrl": "https://logistics.codevertexitsolutions.com/dashboard",
+				"DashboardUrl": fmt.Sprintf("%s/dashboard", tenantWebsite),
 			}
 		},
 	},
 	"logistics.fleet.member_suspended": {
 		TemplateID:   "email/logistics/rider_suspended",
 		EmailSubject: "Your fleet membership has been suspended",
-		DataBuilder: func(data map[string]interface{}) map[string]interface{} {
+		DataBuilder: func(data map[string]interface{}, tenantWebsite string) map[string]interface{} {
 			return map[string]interface{}{
 				"RiderName":  data["user_name"],
-				"SupportUrl": "https://logistics.codevertexitsolutions.com/support",
+				"SupportUrl": fmt.Sprintf("%s/support", tenantWebsite),
 			}
 		},
 	},
@@ -64,7 +64,7 @@ var fleetMappings = map[string]fleetNotificationMapping{
 
 // startFleetConsumer subscribes to logistics.fleet.> events from the logistics
 // JetStream stream and republishes them as notification messages.
-func startFleetConsumer(ctx context.Context, nc *nats.Conn, js nats.JetStreamContext, cfg *config.Config, logg *zap.Logger) {
+func startFleetConsumer(ctx context.Context, nc *nats.Conn, js nats.JetStreamContext, cfg *config.Config, tr *tenantResolver, logg *zap.Logger) {
 	if nc == nil || js == nil {
 		logg.Warn("skipping fleet consumer: NATS not available")
 		return
@@ -93,6 +93,14 @@ func startFleetConsumer(ctx context.Context, nc *nats.Conn, js nats.JetStreamCon
 			return
 		}
 
+		// Resolve tenant website for building dashboard/support links
+		tenantWebsite := ""
+		if ti, err := tr.resolve(ctx, evt.TenantID); err == nil {
+			tenantWebsite = ti.Website
+		} else {
+			logg.Warn("fleet event: could not resolve tenant, using empty website", zap.String("tenant_id", evt.TenantID), zap.Error(err))
+		}
+
 		memberID, _ := evt.Data["member_id"].(string)
 
 		// Build notification message
@@ -101,7 +109,7 @@ func startFleetConsumer(ctx context.Context, nc *nats.Conn, js nats.JetStreamCon
 			Channel:    "email",
 			TemplateID: mapping.TemplateID,
 			To:         []string{email},
-			Data:       mapping.DataBuilder(evt.Data),
+			Data:       mapping.DataBuilder(evt.Data, tenantWebsite),
 			Metadata: map[string]interface{}{
 				"subject": mapping.EmailSubject,
 			},

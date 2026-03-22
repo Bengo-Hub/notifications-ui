@@ -18,7 +18,7 @@ import (
 	"github.com/bengobox/notifications-api/internal/modules/tenant"
 )
 
-func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handlers.NotificationHandler, templates *handlers.TemplateHandler, platformProviders *handlers.PlatformProviders, tenantProviders *handlers.TenantProviders, analytics *handlers.AnalyticsHandler, billing *handlers.BillingHandler, platformBilling *handlers.PlatformBilling, settings *handlers.SettingsHandler, apiKey string, authMiddleware *authclient.AuthMiddleware, authenticator *identityhandler.Authenticator, allowedOrigins []string, tenantSyncer *tenant.Syncer) http.Handler {
+func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handlers.NotificationHandler, templates *handlers.TemplateHandler, platformProviders *handlers.PlatformProviders, tenantProviders *handlers.TenantProviders, analytics *handlers.AnalyticsHandler, billing *handlers.BillingHandler, platformBilling *handlers.PlatformBilling, settings *handlers.SettingsHandler, rbacHandler *handlers.RBACHandler, apiKey string, authMiddleware *authclient.AuthMiddleware, authenticator *identityhandler.Authenticator, allowedOrigins []string, tenantSyncer *tenant.Syncer) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RealIP)
@@ -189,6 +189,16 @@ func New(log *zap.Logger, health *handlers.HealthHandler, notifications *handler
 					}
 					s.Get("/security", settings.GetSecuritySettings)
 				})
+
+				// RBAC management routes
+				if rbacHandler != nil {
+					tenantRouter.Group(func(rbacRouter chi.Router) {
+						if authenticator != nil {
+							rbacRouter.Use(authenticator.RequirePermissions(identity.PermUsersManage))
+						}
+						rbacHandler.RegisterRoutes(rbacRouter)
+					})
+				}
 			})
 		})
 	})

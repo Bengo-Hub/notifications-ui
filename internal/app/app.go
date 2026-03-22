@@ -30,6 +30,7 @@ import (
 	"github.com/bengobox/notifications-api/internal/modules/billing"
 	"github.com/bengobox/notifications-api/internal/modules/identity"
 	"github.com/bengobox/notifications-api/internal/modules/outbox"
+	"github.com/bengobox/notifications-api/internal/modules/rbac"
 	"github.com/bengobox/notifications-api/internal/modules/tenant"
 	"github.com/bengobox/notifications-api/internal/platform/cache"
 	"github.com/bengobox/notifications-api/internal/platform/database"
@@ -197,7 +198,12 @@ func New(ctx context.Context) (*App, error) {
 		}
 	}
 
-	httpRouter := router.New(log, healthHandler, notificationHandler, templateHandler, platformProviders, tenantProviders, analyticsHandler, billingHandler, platformBilling, settingsHandler, cfg.Security.APIKey, authMiddleware, authenticator, cfg.HTTP.AllowedOrigins, tenantSyncer)
+	// Initialize RBAC module
+	rbacRepo := rbac.NewEntRepository(entClient)
+	rbacService := rbac.NewService(rbacRepo, log.Named("rbac"))
+	rbacHandler := handlers.NewRBACHandler(log.Named("rbac.handler"), rbacService, rbacRepo)
+
+	httpRouter := router.New(log, healthHandler, notificationHandler, templateHandler, platformProviders, tenantProviders, analyticsHandler, billingHandler, platformBilling, settingsHandler, rbacHandler, cfg.Security.APIKey, authMiddleware, authenticator, cfg.HTTP.AllowedOrigins, tenantSyncer)
 
 	httpServer := &http.Server{
 		Addr:              fmt.Sprintf("%s:%d", cfg.HTTP.Host, cfg.HTTP.Port),

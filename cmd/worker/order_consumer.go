@@ -26,67 +26,67 @@ type orderEvent struct {
 type orderNotificationMapping struct {
 	TemplateID   string
 	EmailSubject string
-	DataBuilder  func(data map[string]interface{}) map[string]interface{}
+	DataBuilder  func(data map[string]interface{}, tenantWebsite string) map[string]interface{}
 }
 
 var orderMappings = map[string]orderNotificationMapping{
 	"ordering.order.confirmed": {
 		TemplateID:   "email/cafe/cafe_order_placed",
 		EmailSubject: "Your order has been confirmed",
-		DataBuilder: func(data map[string]interface{}) map[string]interface{} {
+		DataBuilder: func(data map[string]interface{}, tenantWebsite string) map[string]interface{} {
 			return map[string]interface{}{
-				"name":               data["customer_name"],
-				"order_id":           data["order_id"],
-				"total_amount":       data["total_amount"],
+				"name":                data["customer_name"],
+				"order_id":            data["order_id"],
+				"total_amount":        data["total_amount"],
 				"estimated_prep_time": data["estimated_prep_time"],
-				"delivery_address":   data["delivery_address"],
-				"order_link":         fmt.Sprintf("https://theurbanloftcafe.com/orders/%s", data["order_id"]),
+				"delivery_address":    data["delivery_address"],
+				"order_link":          fmt.Sprintf("%s/orders/%s", tenantWebsite, data["order_id"]),
 			}
 		},
 	},
 	"ordering.order.ready": {
 		TemplateID:   "email/cafe/cafe_order_ready",
 		EmailSubject: "Your order is ready",
-		DataBuilder: func(data map[string]interface{}) map[string]interface{} {
+		DataBuilder: func(data map[string]interface{}, tenantWebsite string) map[string]interface{} {
 			return map[string]interface{}{
 				"name":       data["customer_name"],
 				"order_id":   data["order_id"],
-				"order_link": fmt.Sprintf("https://theurbanloftcafe.com/orders/%s", data["order_id"]),
+				"order_link": fmt.Sprintf("%s/orders/%s", tenantWebsite, data["order_id"]),
 			}
 		},
 	},
 	"ordering.order.out_for_delivery": {
 		TemplateID:   "email/cafe/cafe_order_out_for_delivery",
 		EmailSubject: "Your order is out for delivery",
-		DataBuilder: func(data map[string]interface{}) map[string]interface{} {
+		DataBuilder: func(data map[string]interface{}, tenantWebsite string) map[string]interface{} {
 			return map[string]interface{}{
 				"name":       data["customer_name"],
 				"order_id":   data["order_id"],
 				"rider_name": data["rider_name"],
-				"order_link": fmt.Sprintf("https://theurbanloftcafe.com/orders/%s", data["order_id"]),
+				"order_link": fmt.Sprintf("%s/orders/%s", tenantWebsite, data["order_id"]),
 			}
 		},
 	},
 	"ordering.order.completed": {
 		TemplateID:   "email/cafe/cafe_order_delivered",
 		EmailSubject: "Your order has been delivered",
-		DataBuilder: func(data map[string]interface{}) map[string]interface{} {
+		DataBuilder: func(data map[string]interface{}, tenantWebsite string) map[string]interface{} {
 			return map[string]interface{}{
 				"name":       data["customer_name"],
 				"order_id":   data["order_id"],
-				"order_link": fmt.Sprintf("https://theurbanloftcafe.com/orders/%s", data["order_id"]),
+				"order_link": fmt.Sprintf("%s/orders/%s", tenantWebsite, data["order_id"]),
 			}
 		},
 	},
 	"ordering.order.cancelled": {
 		TemplateID:   "email/cafe/cafe_order_cancelled",
 		EmailSubject: "Your order has been cancelled",
-		DataBuilder: func(data map[string]interface{}) map[string]interface{} {
+		DataBuilder: func(data map[string]interface{}, tenantWebsite string) map[string]interface{} {
 			return map[string]interface{}{
-				"name":           data["customer_name"],
-				"order_id":       data["order_id"],
-				"cancel_reason":  data["cancel_reason"],
-				"order_link":     fmt.Sprintf("https://theurbanloftcafe.com/orders/%s", data["order_id"]),
+				"name":          data["customer_name"],
+				"order_id":      data["order_id"],
+				"cancel_reason": data["cancel_reason"],
+				"order_link":    fmt.Sprintf("%s/orders/%s", tenantWebsite, data["order_id"]),
 			}
 		},
 	},
@@ -94,7 +94,7 @@ var orderMappings = map[string]orderNotificationMapping{
 
 // startOrderConsumer subscribes to ordering.order.> events and dispatches
 // customer notifications for order status changes.
-func startOrderConsumer(ctx context.Context, nc *nats.Conn, js nats.JetStreamContext, cfg *config.Config, logg *zap.Logger) {
+func startOrderConsumer(ctx context.Context, nc *nats.Conn, js nats.JetStreamContext, cfg *config.Config, tr *tenantResolver, logg *zap.Logger) {
 	if nc == nil || js == nil {
 		logg.Warn("skipping order consumer: NATS not available")
 		return
@@ -123,6 +123,14 @@ func startOrderConsumer(ctx context.Context, nc *nats.Conn, js nats.JetStreamCon
 			return
 		}
 
+		// Resolve tenant website for building order links
+		tenantWebsite := ""
+		if ti, err := tr.resolve(ctx, evt.TenantID); err == nil {
+			tenantWebsite = ti.Website
+		} else {
+			logg.Warn("order event: could not resolve tenant, using empty website", zap.String("tenant_id", evt.TenantID), zap.Error(err))
+		}
+
 		orderID, _ := evt.Data["order_id"].(string)
 
 		msg := messaging.Message{
@@ -130,7 +138,7 @@ func startOrderConsumer(ctx context.Context, nc *nats.Conn, js nats.JetStreamCon
 			Channel:    "email",
 			TemplateID: mapping.TemplateID,
 			To:         []string{email},
-			Data:       mapping.DataBuilder(evt.Data),
+			Data:       mapping.DataBuilder(evt.Data, tenantWebsite),
 			Metadata: map[string]interface{}{
 				"subject": mapping.EmailSubject,
 			},

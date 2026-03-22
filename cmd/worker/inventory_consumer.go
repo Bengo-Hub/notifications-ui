@@ -26,14 +26,14 @@ type inventoryEvent struct {
 type inventoryNotificationMapping struct {
 	TemplateID   string
 	EmailSubject string
-	DataBuilder  func(data map[string]interface{}) map[string]interface{}
+	DataBuilder  func(data map[string]interface{}, tenantWebsite string) map[string]interface{}
 }
 
 var inventoryMappings = map[string]inventoryNotificationMapping{
 	"inventory.stock.low": {
 		TemplateID:   "email/inventory/low_stock_alert",
 		EmailSubject: "Low Stock Alert",
-		DataBuilder: func(data map[string]interface{}) map[string]interface{} {
+		DataBuilder: func(data map[string]interface{}, tenantWebsite string) map[string]interface{} {
 			return map[string]interface{}{
 				"name":          "Store Manager",
 				"item_name":     data["name"],
@@ -42,7 +42,7 @@ var inventoryMappings = map[string]inventoryNotificationMapping{
 				"min_threshold": data["reorder_level"],
 				"unit":          "",
 				"location":      data["warehouse_id"],
-				"item_link":     fmt.Sprintf("https://theurbanloftcafe.com/dashboard/inventory?sku=%s", data["sku"]),
+				"item_link":     fmt.Sprintf("%s/dashboard/inventory?sku=%s", tenantWebsite, data["sku"]),
 			}
 		},
 	},
@@ -50,7 +50,7 @@ var inventoryMappings = map[string]inventoryNotificationMapping{
 
 // startInventoryConsumer subscribes to inventory.> events from the inventory-service
 // JetStream stream and republishes them as notification messages.
-func startInventoryConsumer(ctx context.Context, nc *nats.Conn, js nats.JetStreamContext, cfg *config.Config, logg *zap.Logger) {
+func startInventoryConsumer(ctx context.Context, nc *nats.Conn, js nats.JetStreamContext, cfg *config.Config, tr *tenantResolver, logg *zap.Logger) {
 	if nc == nil || js == nil {
 		logg.Warn("skipping inventory consumer: NATS not available")
 		return
@@ -71,17 +71,27 @@ func startInventoryConsumer(ctx context.Context, nc *nats.Conn, js nats.JetStrea
 			return
 		}
 
-		// For inventory alerts, send to tenant admin (use tenant_id to look up admin email)
-		// Fallback: use a configured admin email or the event's tenant context
-		adminEmail := "admin@theurbanloftcafe.com" // TODO: resolve from tenant settings
+		// Resolve tenant admin email and website from local tenant table
+		ti, err := tr.resolve(ctx, evt.TenantID)
+		if err != nil {
+			logg.Error("inventory event: failed to resolve tenant", zap.String("tenant_id", evt.TenantID), zap.Error(err))
+			_ = m.Nak()
+			return
+		}
+		if ti.ContactEmail == "" {
+			logg.Warn("inventory event: tenant has no contact_email, skipping", zap.String("tenant_id", evt.TenantID))
+			_ = m.Ack()
+			return
+		}
+
 		sku, _ := evt.Data["sku"].(string)
 
 		msg := messaging.Message{
 			TenantID:   evt.TenantID,
 			Channel:    "email",
 			TemplateID: mapping.TemplateID,
-			To:         []string{adminEmail},
-			Data:       mapping.DataBuilder(evt.Data),
+			To:         []string{ti.ContactEmail},
+			Data:       mapping.DataBuilder(evt.Data, ti.Website),
 			Metadata: map[string]interface{}{
 				"subject": mapping.EmailSubject,
 			},

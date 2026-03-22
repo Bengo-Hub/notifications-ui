@@ -170,14 +170,17 @@ func main() {
 		logg.Fatal("subscription failed", zap.Error(err))
 	}
 
+	// Tenant resolver for event consumers to look up contact_email/website
+	tr := newTenantResolver(client)
+
 	// Start fleet lifecycle event consumer (logistics-service → email notifications)
-	startFleetConsumer(ctx, nc, js, cfg, logg)
+	startFleetConsumer(ctx, nc, js, cfg, tr, logg)
 
 	// Start inventory stock event consumer (inventory-service → low stock alerts)
-	startInventoryConsumer(ctx, nc, js, cfg, logg)
+	startInventoryConsumer(ctx, nc, js, cfg, tr, logg)
 
 	// Start order status event consumer (ordering-service → customer notifications)
-	startOrderConsumer(ctx, nc, js, cfg, logg)
+	startOrderConsumer(ctx, nc, js, cfg, tr, logg)
 
 	<-ctx.Done()
 	_ = nc.Drain()

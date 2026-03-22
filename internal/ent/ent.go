@@ -14,14 +14,20 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/bengobox/notifications-api/internal/ent/credittransaction"
 	"github.com/bengobox/notifications-api/internal/ent/deliverylog"
+	"github.com/bengobox/notifications-api/internal/ent/notificationpermission"
+	"github.com/bengobox/notifications-api/internal/ent/notificationrole"
+	"github.com/bengobox/notifications-api/internal/ent/notificationrolepermission"
 	"github.com/bengobox/notifications-api/internal/ent/outboxevent"
 	"github.com/bengobox/notifications-api/internal/ent/permission"
 	"github.com/bengobox/notifications-api/internal/ent/platformbilling"
 	"github.com/bengobox/notifications-api/internal/ent/providersetting"
+	"github.com/bengobox/notifications-api/internal/ent/ratelimitconfig"
 	"github.com/bengobox/notifications-api/internal/ent/role"
+	"github.com/bengobox/notifications-api/internal/ent/serviceconfig"
 	"github.com/bengobox/notifications-api/internal/ent/tenant"
 	"github.com/bengobox/notifications-api/internal/ent/tenantcredit"
 	"github.com/bengobox/notifications-api/internal/ent/user"
+	"github.com/bengobox/notifications-api/internal/ent/userroleassignment"
 )
 
 // ent aliases to avoid import conflicts in user's code.
@@ -82,16 +88,22 @@ var (
 func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			credittransaction.Table: credittransaction.ValidColumn,
-			deliverylog.Table:       deliverylog.ValidColumn,
-			outboxevent.Table:       outboxevent.ValidColumn,
-			permission.Table:        permission.ValidColumn,
-			platformbilling.Table:   platformbilling.ValidColumn,
-			providersetting.Table:   providersetting.ValidColumn,
-			role.Table:              role.ValidColumn,
-			tenant.Table:            tenant.ValidColumn,
-			tenantcredit.Table:      tenantcredit.ValidColumn,
-			user.Table:              user.ValidColumn,
+			credittransaction.Table:          credittransaction.ValidColumn,
+			deliverylog.Table:                deliverylog.ValidColumn,
+			notificationpermission.Table:     notificationpermission.ValidColumn,
+			notificationrole.Table:           notificationrole.ValidColumn,
+			notificationrolepermission.Table: notificationrolepermission.ValidColumn,
+			outboxevent.Table:                outboxevent.ValidColumn,
+			permission.Table:                 permission.ValidColumn,
+			platformbilling.Table:            platformbilling.ValidColumn,
+			providersetting.Table:            providersetting.ValidColumn,
+			ratelimitconfig.Table:            ratelimitconfig.ValidColumn,
+			role.Table:                       role.ValidColumn,
+			serviceconfig.Table:              serviceconfig.ValidColumn,
+			tenant.Table:                     tenant.ValidColumn,
+			tenantcredit.Table:               tenantcredit.ValidColumn,
+			user.Table:                       user.ValidColumn,
+			userroleassignment.Table:         userroleassignment.ValidColumn,
 		})
 	})
 	return columnCheck(table, column)

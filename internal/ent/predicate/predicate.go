@@ -12,6 +12,15 @@ type CreditTransaction func(*sql.Selector)
 // DeliveryLog is the predicate function for deliverylog builders.
 type DeliveryLog func(*sql.Selector)
 
+// NotificationPermission is the predicate function for notificationpermission builders.
+type NotificationPermission func(*sql.Selector)
+
+// NotificationRole is the predicate function for notificationrole builders.
+type NotificationRole func(*sql.Selector)
+
+// NotificationRolePermission is the predicate function for notificationrolepermission builders.
+type NotificationRolePermission func(*sql.Selector)
+
 // OutboxEvent is the predicate function for outboxevent builders.
 type OutboxEvent func(*sql.Selector)
 
@@ -24,8 +33,14 @@ type PlatformBilling func(*sql.Selector)
 // ProviderSetting is the predicate function for providersetting builders.
 type ProviderSetting func(*sql.Selector)
 
+// RateLimitConfig is the predicate function for ratelimitconfig builders.
+type RateLimitConfig func(*sql.Selector)
+
 // Role is the predicate function for role builders.
 type Role func(*sql.Selector)
+
+// ServiceConfig is the predicate function for serviceconfig builders.
+type ServiceConfig func(*sql.Selector)
 
 // Tenant is the predicate function for tenant builders.
 type Tenant func(*sql.Selector)
@@ -35,3 +50,6 @@ type TenantCredit func(*sql.Selector)
 
 // User is the predicate function for user builders.
 type User func(*sql.Selector)
+
+// UserRoleAssignment is the predicate function for userroleassignment builders.
+type UserRoleAssignment func(*sql.Selector)

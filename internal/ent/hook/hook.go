@@ -33,6 +33,42 @@ func (f DeliveryLogFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value,
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.DeliveryLogMutation", m)
 }
 
+// The NotificationPermissionFunc type is an adapter to allow the use of ordinary
+// function as NotificationPermission mutator.
+type NotificationPermissionFunc func(context.Context, *ent.NotificationPermissionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f NotificationPermissionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.NotificationPermissionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.NotificationPermissionMutation", m)
+}
+
+// The NotificationRoleFunc type is an adapter to allow the use of ordinary
+// function as NotificationRole mutator.
+type NotificationRoleFunc func(context.Context, *ent.NotificationRoleMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f NotificationRoleFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.NotificationRoleMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.NotificationRoleMutation", m)
+}
+
+// The NotificationRolePermissionFunc type is an adapter to allow the use of ordinary
+// function as NotificationRolePermission mutator.
+type NotificationRolePermissionFunc func(context.Context, *ent.NotificationRolePermissionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f NotificationRolePermissionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.NotificationRolePermissionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.NotificationRolePermissionMutation", m)
+}
+
 // The OutboxEventFunc type is an adapter to allow the use of ordinary
 // function as OutboxEvent mutator.
 type OutboxEventFunc func(context.Context, *ent.OutboxEventMutation) (ent.Value, error)
@@ -81,6 +117,18 @@ func (f ProviderSettingFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Va
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ProviderSettingMutation", m)
 }
 
+// The RateLimitConfigFunc type is an adapter to allow the use of ordinary
+// function as RateLimitConfig mutator.
+type RateLimitConfigFunc func(context.Context, *ent.RateLimitConfigMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RateLimitConfigFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.RateLimitConfigMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RateLimitConfigMutation", m)
+}
+
 // The RoleFunc type is an adapter to allow the use of ordinary
 // function as Role mutator.
 type RoleFunc func(context.Context, *ent.RoleMutation) (ent.Value, error)
@@ -91,6 +139,18 @@ func (f RoleFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error)
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RoleMutation", m)
+}
+
+// The ServiceConfigFunc type is an adapter to allow the use of ordinary
+// function as ServiceConfig mutator.
+type ServiceConfigFunc func(context.Context, *ent.ServiceConfigMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ServiceConfigFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ServiceConfigMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ServiceConfigMutation", m)
 }
 
 // The TenantFunc type is an adapter to allow the use of ordinary
@@ -127,6 +187,18 @@ func (f UserFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error)
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.UserMutation", m)
+}
+
+// The UserRoleAssignmentFunc type is an adapter to allow the use of ordinary
+// function as UserRoleAssignment mutator.
+type UserRoleAssignmentFunc func(context.Context, *ent.UserRoleAssignmentMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f UserRoleAssignmentFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.UserRoleAssignmentMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.UserRoleAssignmentMutation", m)
 }
 
 // Condition is a hook condition function.

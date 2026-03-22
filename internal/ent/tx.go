@@ -16,6 +16,12 @@ type Tx struct {
 	CreditTransaction *CreditTransactionClient
 	// DeliveryLog is the client for interacting with the DeliveryLog builders.
 	DeliveryLog *DeliveryLogClient
+	// NotificationPermission is the client for interacting with the NotificationPermission builders.
+	NotificationPermission *NotificationPermissionClient
+	// NotificationRole is the client for interacting with the NotificationRole builders.
+	NotificationRole *NotificationRoleClient
+	// NotificationRolePermission is the client for interacting with the NotificationRolePermission builders.
+	NotificationRolePermission *NotificationRolePermissionClient
 	// OutboxEvent is the client for interacting with the OutboxEvent builders.
 	OutboxEvent *OutboxEventClient
 	// Permission is the client for interacting with the Permission builders.
@@ -24,14 +30,20 @@ type Tx struct {
 	PlatformBilling *PlatformBillingClient
 	// ProviderSetting is the client for interacting with the ProviderSetting builders.
 	ProviderSetting *ProviderSettingClient
+	// RateLimitConfig is the client for interacting with the RateLimitConfig builders.
+	RateLimitConfig *RateLimitConfigClient
 	// Role is the client for interacting with the Role builders.
 	Role *RoleClient
+	// ServiceConfig is the client for interacting with the ServiceConfig builders.
+	ServiceConfig *ServiceConfigClient
 	// Tenant is the client for interacting with the Tenant builders.
 	Tenant *TenantClient
 	// TenantCredit is the client for interacting with the TenantCredit builders.
 	TenantCredit *TenantCreditClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
+	// UserRoleAssignment is the client for interacting with the UserRoleAssignment builders.
+	UserRoleAssignment *UserRoleAssignmentClient
 
 	// lazily loaded.
 	client     *Client
@@ -165,14 +177,20 @@ func (tx *Tx) Client() *Client {
 func (tx *Tx) init() {
 	tx.CreditTransaction = NewCreditTransactionClient(tx.config)
 	tx.DeliveryLog = NewDeliveryLogClient(tx.config)
+	tx.NotificationPermission = NewNotificationPermissionClient(tx.config)
+	tx.NotificationRole = NewNotificationRoleClient(tx.config)
+	tx.NotificationRolePermission = NewNotificationRolePermissionClient(tx.config)
 	tx.OutboxEvent = NewOutboxEventClient(tx.config)
 	tx.Permission = NewPermissionClient(tx.config)
 	tx.PlatformBilling = NewPlatformBillingClient(tx.config)
 	tx.ProviderSetting = NewProviderSettingClient(tx.config)
+	tx.RateLimitConfig = NewRateLimitConfigClient(tx.config)
 	tx.Role = NewRoleClient(tx.config)
+	tx.ServiceConfig = NewServiceConfigClient(tx.config)
 	tx.Tenant = NewTenantClient(tx.config)
 	tx.TenantCredit = NewTenantCreditClient(tx.config)
 	tx.User = NewUserClient(tx.config)
+	tx.UserRoleAssignment = NewUserRoleAssignmentClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.

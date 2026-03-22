@@ -77,6 +77,122 @@ var (
 			},
 		},
 	}
+	// NotificationPermissionsColumns holds the columns for the "notification_permissions" table.
+	NotificationPermissionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "permission_code", Type: field.TypeString, Unique: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "module", Type: field.TypeString},
+		{Name: "action", Type: field.TypeString},
+		{Name: "resource", Type: field.TypeString, Nullable: true},
+		{Name: "description", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "created_at", Type: field.TypeTime},
+	}
+	// NotificationPermissionsTable holds the schema information for the "notification_permissions" table.
+	NotificationPermissionsTable = &schema.Table{
+		Name:       "notification_permissions",
+		Columns:    NotificationPermissionsColumns,
+		PrimaryKey: []*schema.Column{NotificationPermissionsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "notificationpermission_permission_code",
+				Unique:  true,
+				Columns: []*schema.Column{NotificationPermissionsColumns[1]},
+			},
+			{
+				Name:    "notificationpermission_module",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationPermissionsColumns[3]},
+			},
+			{
+				Name:    "notificationpermission_action",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationPermissionsColumns[4]},
+			},
+			{
+				Name:    "notificationpermission_module_action",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationPermissionsColumns[3], NotificationPermissionsColumns[4]},
+			},
+		},
+	}
+	// NotificationRolesColumns holds the columns for the "notification_roles" table.
+	NotificationRolesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "role_code", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "is_system_role", Type: field.TypeBool, Default: false},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// NotificationRolesTable holds the schema information for the "notification_roles" table.
+	NotificationRolesTable = &schema.Table{
+		Name:       "notification_roles",
+		Columns:    NotificationRolesColumns,
+		PrimaryKey: []*schema.Column{NotificationRolesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "notificationrole_tenant_id",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationRolesColumns[1]},
+			},
+			{
+				Name:    "notificationrole_tenant_id_role_code",
+				Unique:  true,
+				Columns: []*schema.Column{NotificationRolesColumns[1], NotificationRolesColumns[2]},
+			},
+			{
+				Name:    "notificationrole_is_system_role",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationRolesColumns[5]},
+			},
+		},
+	}
+	// NotificationRolePermissionsColumns holds the columns for the "notification_role_permissions" table.
+	NotificationRolePermissionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "role_id", Type: field.TypeUUID},
+		{Name: "permission_id", Type: field.TypeUUID},
+	}
+	// NotificationRolePermissionsTable holds the schema information for the "notification_role_permissions" table.
+	NotificationRolePermissionsTable = &schema.Table{
+		Name:       "notification_role_permissions",
+		Columns:    NotificationRolePermissionsColumns,
+		PrimaryKey: []*schema.Column{NotificationRolePermissionsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "notification_role_permissions_notification_roles_role",
+				Columns:    []*schema.Column{NotificationRolePermissionsColumns[1]},
+				RefColumns: []*schema.Column{NotificationRolesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "notification_role_permissions_notification_permissions_permission",
+				Columns:    []*schema.Column{NotificationRolePermissionsColumns[2]},
+				RefColumns: []*schema.Column{NotificationPermissionsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "notificationrolepermission_role_id_permission_id",
+				Unique:  true,
+				Columns: []*schema.Column{NotificationRolePermissionsColumns[1], NotificationRolePermissionsColumns[2]},
+			},
+			{
+				Name:    "notificationrolepermission_role_id",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationRolePermissionsColumns[1]},
+			},
+			{
+				Name:    "notificationrolepermission_permission_id",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationRolePermissionsColumns[2]},
+			},
+		},
+	}
 	// OutboxEventsColumns holds the columns for the "outbox_events" table.
 	OutboxEventsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -192,6 +308,43 @@ var (
 			},
 		},
 	}
+	// RateLimitConfigsColumns holds the columns for the "rate_limit_configs" table.
+	RateLimitConfigsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "service_name", Type: field.TypeString},
+		{Name: "key_type", Type: field.TypeString},
+		{Name: "endpoint_pattern", Type: field.TypeString, Default: "*"},
+		{Name: "requests_per_window", Type: field.TypeInt, Default: 60},
+		{Name: "window_seconds", Type: field.TypeInt, Default: 60},
+		{Name: "burst_multiplier", Type: field.TypeFloat64, Default: 1.5},
+		{Name: "is_active", Type: field.TypeBool, Default: true},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// RateLimitConfigsTable holds the schema information for the "rate_limit_configs" table.
+	RateLimitConfigsTable = &schema.Table{
+		Name:       "rate_limit_configs",
+		Columns:    RateLimitConfigsColumns,
+		PrimaryKey: []*schema.Column{RateLimitConfigsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "ratelimitconfig_service_name_key_type_endpoint_pattern",
+				Unique:  true,
+				Columns: []*schema.Column{RateLimitConfigsColumns[1], RateLimitConfigsColumns[2], RateLimitConfigsColumns[3]},
+			},
+			{
+				Name:    "ratelimitconfig_service_name",
+				Unique:  false,
+				Columns: []*schema.Column{RateLimitConfigsColumns[1]},
+			},
+			{
+				Name:    "ratelimitconfig_is_active",
+				Unique:  false,
+				Columns: []*schema.Column{RateLimitConfigsColumns[7]},
+			},
+		},
+	}
 	// RolesColumns holds the columns for the "roles" table.
 	RolesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -207,6 +360,36 @@ var (
 		Name:       "roles",
 		Columns:    RolesColumns,
 		PrimaryKey: []*schema.Column{RolesColumns[0]},
+	}
+	// ServiceConfigsColumns holds the columns for the "service_configs" table.
+	ServiceConfigsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "config_key", Type: field.TypeString},
+		{Name: "config_value", Type: field.TypeString, Size: 2147483647},
+		{Name: "config_type", Type: field.TypeString, Default: "string"},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "is_secret", Type: field.TypeBool, Default: false},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// ServiceConfigsTable holds the schema information for the "service_configs" table.
+	ServiceConfigsTable = &schema.Table{
+		Name:       "service_configs",
+		Columns:    ServiceConfigsColumns,
+		PrimaryKey: []*schema.Column{ServiceConfigsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "serviceconfig_tenant_id_config_key",
+				Unique:  true,
+				Columns: []*schema.Column{ServiceConfigsColumns[1], ServiceConfigsColumns[2]},
+			},
+			{
+				Name:    "serviceconfig_config_key",
+				Unique:  false,
+				Columns: []*schema.Column{ServiceConfigsColumns[2]},
+			},
+		},
 	}
 	// TenantsColumns holds the columns for the "tenants" table.
 	TenantsColumns = []*schema.Column{
@@ -342,6 +525,70 @@ var (
 			},
 		},
 	}
+	// UserRoleAssignmentsColumns holds the columns for the "user_role_assignments" table.
+	UserRoleAssignmentsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "assigned_by", Type: field.TypeUUID},
+		{Name: "assigned_at", Type: field.TypeTime},
+		{Name: "expires_at", Type: field.TypeTime, Nullable: true},
+		{Name: "notification_role_user_assignments", Type: field.TypeUUID, Nullable: true},
+		{Name: "user_id", Type: field.TypeUUID},
+		{Name: "role_id", Type: field.TypeUUID},
+	}
+	// UserRoleAssignmentsTable holds the schema information for the "user_role_assignments" table.
+	UserRoleAssignmentsTable = &schema.Table{
+		Name:       "user_role_assignments",
+		Columns:    UserRoleAssignmentsColumns,
+		PrimaryKey: []*schema.Column{UserRoleAssignmentsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "user_role_assignments_notification_roles_user_assignments",
+				Columns:    []*schema.Column{UserRoleAssignmentsColumns[5]},
+				RefColumns: []*schema.Column{NotificationRolesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "user_role_assignments_users_user",
+				Columns:    []*schema.Column{UserRoleAssignmentsColumns[6]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "user_role_assignments_notification_roles_role",
+				Columns:    []*schema.Column{UserRoleAssignmentsColumns[7]},
+				RefColumns: []*schema.Column{NotificationRolesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "userroleassignment_tenant_id_user_id_role_id",
+				Unique:  true,
+				Columns: []*schema.Column{UserRoleAssignmentsColumns[1], UserRoleAssignmentsColumns[6], UserRoleAssignmentsColumns[7]},
+			},
+			{
+				Name:    "userroleassignment_tenant_id",
+				Unique:  false,
+				Columns: []*schema.Column{UserRoleAssignmentsColumns[1]},
+			},
+			{
+				Name:    "userroleassignment_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{UserRoleAssignmentsColumns[6]},
+			},
+			{
+				Name:    "userroleassignment_role_id",
+				Unique:  false,
+				Columns: []*schema.Column{UserRoleAssignmentsColumns[7]},
+			},
+			{
+				Name:    "userroleassignment_expires_at",
+				Unique:  false,
+				Columns: []*schema.Column{UserRoleAssignmentsColumns[4]},
+			},
+		},
+	}
 	// RolePermissionsColumns holds the columns for the "role_permissions" table.
 	RolePermissionsColumns = []*schema.Column{
 		{Name: "role_id", Type: field.TypeString},
@@ -396,21 +643,32 @@ var (
 	Tables = []*schema.Table{
 		CreditTransactionsTable,
 		DeliveryLogsTable,
+		NotificationPermissionsTable,
+		NotificationRolesTable,
+		NotificationRolePermissionsTable,
 		OutboxEventsTable,
 		PermissionsTable,
 		PlatformBillingsTable,
 		ProviderSettingsTable,
+		RateLimitConfigsTable,
 		RolesTable,
+		ServiceConfigsTable,
 		TenantsTable,
 		TenantCreditsTable,
 		UsersTable,
+		UserRoleAssignmentsTable,
 		RolePermissionsTable,
 		UserRolesTable,
 	}
 )
 
 func init() {
+	NotificationRolePermissionsTable.ForeignKeys[0].RefTable = NotificationRolesTable
+	NotificationRolePermissionsTable.ForeignKeys[1].RefTable = NotificationPermissionsTable
 	UsersTable.ForeignKeys[0].RefTable = TenantsTable
+	UserRoleAssignmentsTable.ForeignKeys[0].RefTable = NotificationRolesTable
+	UserRoleAssignmentsTable.ForeignKeys[1].RefTable = UsersTable
+	UserRoleAssignmentsTable.ForeignKeys[2].RefTable = NotificationRolesTable
 	RolePermissionsTable.ForeignKeys[0].RefTable = RolesTable
 	RolePermissionsTable.ForeignKeys[1].RefTable = PermissionsTable
 	UserRolesTable.ForeignKeys[0].RefTable = UsersTable
