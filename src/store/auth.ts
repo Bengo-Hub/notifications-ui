@@ -8,19 +8,9 @@ import {
     storeState,
     storeVerifier
 } from '@/lib/auth/pkce';
+import type { UserProfile } from '@/lib/auth/types';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-
-interface UserProfile {
-    id: string;
-    email: string;
-    fullName?: string;
-    roles: string[];
-    permissions: string[];
-    tenant_id?: string;
-    tenant_slug?: string;
-    is_platform_owner?: boolean;
-}
 
 interface Session {
     accessToken: string;
@@ -48,7 +38,7 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>()(
     persist(
-        (set: any, get: any) => ({
+        (set, get) => ({
             status: 'idle',
             user: null,
             session: null,
@@ -57,9 +47,9 @@ export const useAuthStore = create<AuthState>()(
 
         syncTenantToStorage: (user: UserProfile | null) => {
             if (user) {
-                localStorage.setItem('tenant_id', user.tenant_id || '');
-                localStorage.setItem('tenant_slug', user.tenant_slug || '');
-                localStorage.setItem('is_platform_owner', (user.is_platform_owner || user.tenant_slug === 'codevertex').toString());
+                localStorage.setItem('tenant_id', user.tenantId || '');
+                localStorage.setItem('tenant_slug', user.tenantSlug || '');
+                localStorage.setItem('is_platform_owner', (user.isPlatformOwner || user.tenantSlug === 'codevertex').toString());
             } else {
                 localStorage.removeItem('tenant_id');
                 localStorage.removeItem('tenant_slug');
@@ -175,6 +165,7 @@ export const useAuthStore = create<AuthState>()(
                 if (!session) return;
                 try {
                     const user = await fetchProfile(session.accessToken);
+                    get().syncTenantToStorage(user);
                     set({ user, isAuthenticated: true });
                 } catch (error) {
                     console.error('Fetch user failed:', error);

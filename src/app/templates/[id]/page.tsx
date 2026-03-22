@@ -16,7 +16,7 @@ export default function TemplateEditorPage() {
     const router = useRouter();
     const queryClient = useQueryClient();
     const { user } = useAuthStore();
-    const tenantSlug = user?.tenant_slug;
+    const tenantSlug = user?.tenantSlug;
     const isNew = id === 'new';
 
     const [template, setTemplate] = useState<Partial<NotificationTemplate>>({

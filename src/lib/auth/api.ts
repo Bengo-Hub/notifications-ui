@@ -1,3 +1,5 @@
+import type { Permission, UserProfile, UserRole } from './types';
+
 const SSO_BASE_URL = process.env.NEXT_PUBLIC_SSO_URL || 'https://sso.codevertexitsolutions.com';
 const SSO_CLIENT_ID = process.env.NEXT_PUBLIC_SSO_CLIENT_ID || 'notifications-ui';
 
@@ -65,12 +67,31 @@ export async function exchangeCodeForTokens(params: TokenExchangeParams) {
     return response.json();
 }
 
-export async function fetchProfile(accessToken: string) {
-    const response = await fetch(`${SSO_BASE_URL}/api/v1/auth/me`, {
-        headers: { 'Authorization': `Bearer ${accessToken}` },
-    });
-    if (!response.ok) {
-        throw new Error('Failed to fetch profile');
-    }
-    return response.json();
+/**
+ * Fetch current user profile (roles, permissions) from SSO auth-api.
+ * Must call SSO, not notifications-api -- notifications-api does not expose /auth/me.
+ */
+export async function fetchProfile(accessToken: string): Promise<UserProfile> {
+  const res = await fetch(`${SSO_BASE_URL}/api/v1/auth/me`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error_description || err.error || `Profile failed: ${res.status}`);
+  }
+  const data = await res.json();
+  const slug = data.tenant_slug ?? data.tenant?.slug ?? '';
+  const roles = (data.roles ?? []) as UserRole[];
+  return {
+    id: data.id ?? '',
+    email: data.email ?? '',
+    fullName: data.profile?.name ?? data.full_name ?? data.email ?? '',
+    roles,
+    permissions: (data.permissions ?? []) as Permission[],
+    organizationId: data.tenant_id ?? data.primary_tenant ?? '',
+    tenantId: data.tenant_id ?? data.primary_tenant ?? '',
+    tenantSlug: slug,
+    isPlatformOwner: data.is_platform_owner === true || slug === 'codevertex',
+    isSuperUser: roles.includes('superuser'),
+  };
 }

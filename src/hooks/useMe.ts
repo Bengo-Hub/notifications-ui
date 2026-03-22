@@ -1,22 +1,11 @@
 'use client';
 
 import { fetchProfile } from '@/lib/auth/api';
-import type { Permission, UserRole } from '@/lib/auth/types';
+import type { Permission, UserProfile, UserRole } from '@/lib/auth/types';
 import { useAuthStore } from '@/store/auth';
 import { useQuery } from '@tanstack/react-query';
 
 const ME_STALE_TIME_MS = 5 * 60 * 1000; // 5 min TTL
-
-export interface MeProfile {
-  id: string;
-  email: string;
-  fullName?: string;
-  roles: UserRole[];
-  permissions: Permission[];
-  tenant_id?: string;
-  tenant_slug?: string;
-  is_platform_owner?: boolean;
-}
 
 export function useMe() {
   const { session, setUser } = useAuthStore();
@@ -27,8 +16,8 @@ export function useMe() {
     queryFn: async () => {
       if (!accessToken) return null;
       const user = await fetchProfile(accessToken);
-      setUser(user as MeProfile);
-      return user as MeProfile;
+      setUser(user as UserProfile);
+      return user as UserProfile;
     },
     enabled: !!accessToken,
     staleTime: ME_STALE_TIME_MS,
@@ -44,13 +33,14 @@ export function useMe() {
 
   const hasRole = (role: string) => {
     if (!user?.roles) return false;
-    return user.roles.includes(role as UserRole) || user.roles.includes('superuser') || user.roles.includes('admin');
+    if (user.isSuperUser || user.roles.includes('superuser')) return true;
+    return user.roles.includes(role as UserRole);
   };
 
   const hasPermission = (permission: string) => {
     if (!user) return false;
-    if (user.roles?.includes('superuser') || user.roles?.includes('admin')) return true;
-    return (user as MeProfile).permissions?.includes(permission as Permission) ?? false;
+    if (user.isSuperUser || user.roles?.includes('superuser')) return true;
+    return user.permissions?.includes(permission as Permission) ?? false;
   };
 
   return {

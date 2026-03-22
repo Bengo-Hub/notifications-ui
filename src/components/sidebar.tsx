@@ -26,8 +26,8 @@ interface SidebarProps {
 export function Sidebar({ open = false, onClose }: SidebarProps) {
     const pathname = usePathname();
     const { user } = useMe();
-    const isPlatformOwner = user?.is_platform_owner || user?.tenant_slug === 'codevertex';
-    const tenantSlug = user?.tenant_slug || '';
+    const isPlatformOwner = user?.isPlatformOwner || user?.tenantSlug === 'codevertex';
+    const tenantSlug = user?.tenantSlug || '';
     const logout = useAuthStore((s) => s.logout);
 
     const routes = [
@@ -124,10 +124,10 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                     <div className="p-6 border-t border-white/10 mt-auto">
                         <div className="flex items-center gap-4 px-5 py-4 rounded-2xl bg-white/5 text-white/70">
                             <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-xs font-black text-primary uppercase shadow-inner">
-                                {user?.tenant_slug?.[0]?.toUpperCase() || 'C'}
+                                {user?.tenantSlug?.[0]?.toUpperCase() || 'C'}
                             </div>
                             <div className="flex flex-col min-w-0 flex-1">
-                                <span className="font-black text-[10px] uppercase tracking-widest truncate">{user?.tenant_slug || 'Codevertex'}</span>
+                                <span className="font-black text-[10px] uppercase tracking-widest truncate">{user?.tenantSlug || 'Codevertex'}</span>
                                 <span className="text-[9px] font-bold opacity-50 uppercase tracking-tighter">Event Router</span>
                             </div>
                             <button
