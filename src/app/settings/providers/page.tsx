@@ -22,9 +22,7 @@ function getProvidersForChannel(channelId: string): string[] {
     }
 }
 
-function ProviderSettingsForm({ channelId, providerName, fields, settings, isLoading, isSaving, onFieldChange, onSave }: {
-    channelId: string;
-    providerName: string;
+function ProviderSettingsForm({ fields, settings, isLoading, isSaving, onFieldChange, onSave }: {
     fields: { key: string; label: string; type: string; placeholder: string }[];
     settings: Record<string, string>;
     isLoading: boolean;
@@ -202,6 +200,7 @@ export default function ProvidersPage() {
             const name = p.provider_name;
             if (type && name) loadProviderSettings(type, name);
         });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [providers]);
 
     if (loading && providers.length === 0) return <div className="p-12 text-center text-muted-foreground transition-all animate-pulse">Initializing providers...</div>;

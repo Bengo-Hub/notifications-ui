@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { templatesApi, type NotificationTemplate } from '@/lib/api/templates';
+import { templatesApi } from '@/lib/api/templates';
 
 const STALE_MS = 5 * 60 * 1000;
 

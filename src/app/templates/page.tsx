@@ -3,7 +3,7 @@
 import { Badge, Button, Card, CardContent, CardHeader } from '@/components/ui/base';
 import { useTemplates } from '@/hooks/use-templates';
 import { cn } from '@/lib/utils';
-import { Edit2, Mail, MessageSquare, MoreVertical, Plus, Search, Smartphone, Tag, Trash2, Zap } from 'lucide-react';
+import { Edit2, Mail, MessageSquare, Plus, Search, Smartphone, Tag, Zap } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 

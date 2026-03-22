@@ -1,6 +1,5 @@
 'use client';
 
-import { settingsApi } from '@/lib/api/settings';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 
 interface BrandingContextType {
@@ -19,7 +18,7 @@ const CODEVERTEX_BRAND = {
 };
 
 export function BrandingProvider({ children }: { children: ReactNode }) {
-    const [branding, setBranding] = useState<BrandingContextType>({
+    const [branding] = useState<BrandingContextType>({
         ...CODEVERTEX_BRAND,
         getServiceTitle: (appName: string) => `Codevertex ${appName}`,
     });

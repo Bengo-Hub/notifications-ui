@@ -3,8 +3,7 @@
 import { Badge, Button, Card, CardContent, CardHeader } from '@/components/ui/base';
 import { settingsApi, TenantBranding } from '@/lib/api/settings';
 import { Code, Image as ImageIcon, Info, Palette, RefreshCw, Save, Type, Upload } from 'lucide-react';
-import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 export default function BrandingPage() {
@@ -16,11 +15,7 @@ export default function BrandingPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
-    useEffect(() => {
-        loadBranding();
-    }, []);
-
-    const loadBranding = async () => {
+    const loadBranding = useCallback(async () => {
         try {
             setLoading(true);
             const data = await settingsApi.getBranding();
@@ -30,7 +25,12 @@ export default function BrandingPage() {
         } finally {
             setLoading(false);
         }
-    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    useEffect(() => {
+        loadBranding();
+    }, [loadBranding]);
 
     const handleSave = async () => {
         try {
@@ -169,7 +169,7 @@ export default function BrandingPage() {
                                 <div className="h-2 w-full" style={{ backgroundColor: branding.primary_color }} />
                                 <div className="p-8 space-y-6">
                                     <div className="h-10 w-10 bg-accent/50 rounded-lg flex items-center justify-center overflow-hidden">
-                                        {branding.logo_url ? <img src={branding.logo_url} /> : <div className="h-full w-full bg-primary/20" />}
+                                        {branding.logo_url ? <img src={branding.logo_url} alt="Logo preview" /> : <div className="h-full w-full bg-primary/20" />}
                                     </div>
                                     <div className="space-y-2">
                                         <div className="h-4 w-3/4 bg-accent/30 rounded" />

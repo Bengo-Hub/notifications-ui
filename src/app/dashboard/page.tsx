@@ -3,7 +3,6 @@
 import { useActivityLogs, useDeliveryStats } from '@/hooks/use-analytics';
 import { useTemplates } from '@/hooks/use-templates';
 import { Activity, Mail, MessageSquare, Smartphone } from 'lucide-react';
-import { useParams } from 'next/navigation';
 
 export default function DashboardPage() {
     const { data: stats, isLoading: statsLoading, isError: statsError, refetch: refetchStats } = useDeliveryStats();

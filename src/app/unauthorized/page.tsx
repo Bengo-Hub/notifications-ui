@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
 import { ShieldX } from 'lucide-react';
 
 export default function UnauthorizedPage() {

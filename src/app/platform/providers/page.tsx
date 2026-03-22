@@ -5,7 +5,7 @@ import { usePlatformProviders, useTestPlatformProvider } from '@/hooks/use-setti
 import { settingsApi } from '@/lib/api/settings';
 import { cn } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, Check, ChevronDown, Globe, Loader2, Lock, Mail, MessageSquare, RefreshCw, Save, Server, Settings2, Shield } from 'lucide-react';
+import { ChevronDown, Globe, Loader2, Lock, Mail, MessageSquare, RefreshCw, Save, Server, Settings2, Shield } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 

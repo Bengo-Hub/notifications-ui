@@ -5,11 +5,11 @@ import { templateKeys } from '@/hooks/use-templates';
 import { NotificationTemplate, templatesApi } from '@/lib/api/templates';
 import { cn } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Code, Eye, Info, Mail, MessageSquare, Monitor, Plus, Save, Send, Smartphone, Zap } from 'lucide-react';
+import { ArrowLeft, Code, Eye, Info, Mail, MessageSquare, Monitor, Save, Send, Smartphone, Zap } from 'lucide-react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { useAuthStore } from '@/store/auth';
+
 
 export default function TemplateEditorPage() {
     // Catch-all: [...id] gives us an array, e.g. ['auth', 'welcome'] for /templates/auth/welcome
@@ -20,7 +20,6 @@ export default function TemplateEditorPage() {
 
     const router = useRouter();
     const queryClient = useQueryClient();
-    const { user } = useAuthStore();
     const isNew = templateId === 'new';
 
     const [template, setTemplate] = useState<Partial<NotificationTemplate>>({
@@ -37,6 +36,7 @@ export default function TemplateEditorPage() {
         if (!isNew) {
             loadTemplate();
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [templateId]);
 
     const loadTemplate = async () => {
@@ -152,7 +152,7 @@ export default function TemplateEditorPage() {
 
     // Build visual preview — wrap content fragment in email base template
     const previewHtml = useMemo(() => {
-        let contentHtml = processGoTemplate(template.content ?? '', sampleData);
+        const contentHtml = processGoTemplate(template.content ?? '', sampleData);
 
         // Email base template with branding
         const baseTemplate = `<!doctype html>
@@ -193,6 +193,7 @@ export default function TemplateEditorPage() {
             return baseTemplate.replace('{{CONTENT}}', contentHtml);
         }
         return contentHtml;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [template.content, template.type]);
 
     if (loading) return <div className="p-12 text-center text-muted-foreground">Loading editor...</div>;

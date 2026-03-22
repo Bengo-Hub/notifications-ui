@@ -1,18 +1,15 @@
 'use client';
 
 import { useMe } from '@/hooks/useMe';
-import { canAccessPlatform } from '@/lib/auth/roles';
 import { cn } from '@/lib/utils';
 import {
     Activity,
-    Bell,
     CreditCard,
     LayoutDashboard,
     LogOut,
     Mail,
     Server,
     Settings,
-    X
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -27,7 +24,6 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
     const pathname = usePathname();
     const { user } = useMe();
     const isPlatformOwner = user?.isPlatformOwner || user?.tenantSlug === 'codevertex';
-    const tenantSlug = user?.tenantSlug || '';
     const logout = useAuthStore((s) => s.logout);
 
     const routes = [

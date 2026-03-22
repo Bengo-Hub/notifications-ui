@@ -1,6 +1,7 @@
 /// <reference lib="webworker" />
 
-export default null;
+const _swDefault = null;
+export default _swDefault;
 declare let self: ServiceWorkerGlobalScope;
 
 // Custom Service Worker for Push Notifications

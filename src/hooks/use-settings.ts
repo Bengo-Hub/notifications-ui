@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { settingsApi, type ProviderSetting, type TenantBranding } from '@/lib/api/settings';
+import { settingsApi, type ProviderSetting } from '@/lib/api/settings';
 
 const STALE_MS = 5 * 60 * 1000;
 

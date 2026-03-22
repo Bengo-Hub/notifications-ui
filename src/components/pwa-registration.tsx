@@ -64,29 +64,6 @@ export function PWARegistration() {
         }
     };
 
-    const handlePushSubscription = async () => {
-        try {
-            const granted = await pushManager.requestPermission();
-            if (!granted) {
-                toast.error('Notification permission denied');
-                return;
-            }
-
-            // VAPID Public Key from environment or platform config
-            const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BF9y-vP5v...'; // Placeholder
-            const subscription = await pushManager.subscribeUser(vapidKey);
-
-            if (subscription) {
-                // Here we would sync with backend
-                console.log('Push subscription:', subscription);
-                toast.success('Real-time alerts enabled!');
-            }
-        } catch (error) {
-            console.error('Push error:', error);
-            toast.error('Failed to enable push notifications');
-        }
-    };
-
     if (!showInstall) return null;
 
     return (

@@ -3,15 +3,12 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
-import { Button, Card, CardContent, CardHeader, Badge } from '@/components/ui/base';
-import { 
-  MessageSquare, 
-  MessageCircle, 
-  Plus, 
-  History, 
-  TrendingUp, 
+import { Button, Card, CardContent, Badge } from '@/components/ui/base';
+import {
+  MessageSquare,
+  MessageCircle,
+  History,
   AlertCircle,
-  CreditCard,
   ArrowRight,
   CheckCircle2,
   Loader2
@@ -36,12 +33,12 @@ export default function CreditsPage() {
   const [selectedType, setSelectedType] = useState<'SMS' | 'WHATSAPP'>('SMS');
   const [isInitiating, setIsInitiating] = useState(false);
 
-  const { data: smsBalance, isLoading: smsLoading, refetch: refetchSms } = useQuery({
+  const { data: smsBalance, isLoading: smsLoading } = useQuery({
     queryKey: ['credit-balance', 'SMS'],
     queryFn: () => apiClient.get<CreditBalance>('/api/v1/billing/balance?type=SMS'),
   });
 
-  const { data: whatsappBalance, isLoading: whatsappLoading, refetch: refetchWhatsapp } = useQuery({
+  const { data: whatsappBalance, isLoading: whatsappLoading } = useQuery({
     queryKey: ['credit-balance', 'WHATSAPP'],
     queryFn: () => apiClient.get<CreditBalance>('/api/v1/billing/balance?type=WHATSAPP'),
   });
