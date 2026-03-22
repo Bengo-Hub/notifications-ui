@@ -1,0 +1,21 @@
+{{ define "content" }}
+  <p>New contact form submission from <strong>{{ .sender_name }}</strong> ({{ .sender_email }}):</p>
+  <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+    <tr>
+      <td style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:600;width:120px;">Name</td>
+      <td style="padding:8px 12px;border:1px solid #e5e7eb;">{{ .sender_name }}</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:600;">Email</td>
+      <td style="padding:8px 12px;border:1px solid #e5e7eb;">{{ .sender_email }}</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:600;">Subject</td>
+      <td style="padding:8px 12px;border:1px solid #e5e7eb;">{{ .subject }}</td>
+    </tr>
+  </table>
+  <div style="padding:16px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb;">
+    <p style="white-space:pre-wrap;margin:0;">{{ .message }}</p>
+  </div>
+  <p class="muted">This message was sent via the website contact form. Reply directly to {{ .sender_email }}.</p>
+{{ end }}
