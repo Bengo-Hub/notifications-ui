@@ -86,6 +86,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                 <div className="space-y-4 py-6 flex flex-col h-full bg-brand-dark text-white border-r border-white/10 w-full overflow-hidden">
                     <div className="px-6 py-4 flex flex-col h-full overflow-y-auto custom-scrollbar">
                         <Link href="/dashboard" className="flex items-center justify-center mb-10 transition-all hover:scale-105 duration-500" onClick={onClose}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src="/logo.svg" alt="Codevertex" className="h-12 w-auto object-contain drop-shadow-2xl" />
                         </Link>
 

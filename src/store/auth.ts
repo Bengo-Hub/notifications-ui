@@ -148,7 +148,7 @@ export const useAuthStore = create<AuthState>()(
                     }
 
                     set({ status: 'authenticated' });
-                } catch (_error) {
+                } catch {
                     set({ status: 'error', error: 'Sign-in failed' });
                 }
             },

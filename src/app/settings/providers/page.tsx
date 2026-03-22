@@ -292,8 +292,6 @@ export default function ProvidersPage() {
                                                 )}
 
                                                 {!isChanging && <ProviderSettingsForm
-                                                    channelId={channel.id}
-                                                    providerName={config.provider_name}
                                                     fields={PROVIDER_FIELDS[config.provider_name] ?? []}
                                                     settings={providerSettings[`${channel.id}:${config.provider_name}`] ?? {}}
                                                     isLoading={loadingSettings === `${channel.id}:${config.provider_name}`}

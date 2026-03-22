@@ -64,6 +64,7 @@ export default function BrandingPage() {
                                 <div className="flex items-center gap-6 p-4 rounded-2xl bg-accent/10 border border-dashed border-border group hover:bg-accent/20 transition-all cursor-pointer">
                                     <div className="h-16 w-16 rounded-xl bg-card border border-border flex items-center justify-center shadow-sm overflow-hidden">
                                         {branding.logo_url ? (
+                                            /* eslint-disable-next-line @next/next/no-img-element */
                                             <img src={branding.logo_url} alt="Logo" className="h-full w-full object-contain p-2" />
                                         ) : (
                                             <ImageIcon className="h-6 w-6 text-muted-foreground opacity-30" />
@@ -169,6 +170,7 @@ export default function BrandingPage() {
                                 <div className="h-2 w-full" style={{ backgroundColor: branding.primary_color }} />
                                 <div className="p-8 space-y-6">
                                     <div className="h-10 w-10 bg-accent/50 rounded-lg flex items-center justify-center overflow-hidden">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
                                         {branding.logo_url ? <img src={branding.logo_url} alt="Logo preview" /> : <div className="h-full w-full bg-primary/20" />}
                                     </div>
                                     <div className="space-y-2">
