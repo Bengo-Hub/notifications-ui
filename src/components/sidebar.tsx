@@ -85,9 +85,14 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                 <div className="flex flex-col h-full bg-card border-r border-border w-full overflow-hidden transition-colors">
                     {/* Logo */}
                     <div className="px-5 pt-5 pb-2">
-                        <Link href="/dashboard" className="flex items-center gap-3 group" onClick={onClose}>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src="/logo.svg" alt="Codevertex" className="h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-105" />
+                        <Link href="/dashboard" className="flex items-center gap-3 group text-foreground" onClick={onClose}>
+                            <svg width="200" height="60" viewBox="0 0 200 60" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-9 w-auto transition-transform duration-300 group-hover:scale-105">
+                                <circle cx="90" cy="30" r="18" stroke="#722F5F" strokeWidth="3"/>
+                                <path d="M82 30L87 35L98 24" stroke="#722F5F" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                                <text x="10" y="38" fill="currentColor" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '24px' }}>Code</text>
+                                <text x="115" y="38" fill="currentColor" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '24px' }}>ertex</text>
+                                <text x="70" y="52" fill="currentColor" opacity="0.5" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: '8px', letterSpacing: '2px' }}>IT SOLUTIONS</text>
+                            </svg>
                         </Link>
                     </div>
 
