@@ -82,9 +82,9 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                     open ? "translate-x-0" : "-translate-x-full md:translate-x-0"
                 )}
             >
-                <div className="flex flex-col h-full bg-brand-dark border-r border-brand-primary/10 w-full overflow-hidden">
+                <div className="flex flex-col h-full bg-card border-r border-border w-full overflow-hidden transition-colors">
                     {/* Logo */}
-                    <div className="px-6 pt-6 pb-2">
+                    <div className="px-5 pt-5 pb-2">
                         <Link href="/dashboard" className="flex items-center gap-3 group" onClick={onClose}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src="/logo.svg" alt="Codevertex" className="h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-105" />
@@ -93,7 +93,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
 
                     {/* Navigation */}
                     <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto custom-scrollbar">
-                        <p className="px-3 pb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-brand-orange/40">
+                        <p className="px-3 pb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/50">
                             Navigation
                         </p>
                         {routes.map((route) => {
@@ -106,13 +106,13 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                                     className={cn(
                                         "group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
                                         route.active
-                                            ? "bg-brand-orange/15 text-brand-orange shadow-sm"
-                                            : "text-brand-light/50 hover:bg-brand-light/5 hover:text-brand-light/80"
+                                            ? "bg-primary/10 text-primary shadow-sm"
+                                            : "text-muted-foreground hover:bg-accent hover:text-foreground"
                                     )}
                                 >
                                     <Icon className={cn(
                                         "h-[18px] w-[18px] shrink-0 transition-colors",
-                                        route.active ? "text-brand-orange" : "text-brand-light/30 group-hover:text-brand-light/60"
+                                        route.active ? "text-primary" : "text-muted-foreground/50 group-hover:text-foreground"
                                     )} />
                                     <span>{route.label}</span>
                                 </Link>
@@ -121,18 +121,18 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                     </nav>
 
                     {/* User section */}
-                    <div className="p-3 border-t border-brand-light/5">
-                        <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-brand-light/5">
-                            <div className="w-8 h-8 rounded-lg bg-brand-orange/20 flex items-center justify-center text-xs font-bold text-brand-orange shrink-0">
+                    <div className="p-3 border-t border-border">
+                        <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-accent/50">
+                            <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center text-xs font-bold text-primary shrink-0">
                                 {user?.tenantSlug?.[0]?.toUpperCase() || 'C'}
                             </div>
                             <div className="flex flex-col min-w-0 flex-1">
-                                <span className="text-xs font-semibold text-brand-light/80 truncate">{user?.tenantSlug || 'Codevertex'}</span>
-                                <span className="text-[10px] text-brand-light/30">Notifications</span>
+                                <span className="text-xs font-semibold text-foreground truncate">{user?.tenantSlug || 'Codevertex'}</span>
+                                <span className="text-[10px] text-muted-foreground">Notifications</span>
                             </div>
                             <button
                                 onClick={() => logout()}
-                                className="p-1.5 rounded-lg hover:bg-brand-light/5 transition-colors text-brand-light/30 hover:text-red-400"
+                                className="p-1.5 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-destructive"
                                 title="Sign out"
                             >
                                 <LogOut className="h-4 w-4" />
