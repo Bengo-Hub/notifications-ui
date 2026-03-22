@@ -37,12 +37,13 @@ export function hasPermission(
   return user.permissions.includes(permission);
 }
 
-/** Platform routes (e.g. /platform) require admin or superuser. */
+/** Platform routes (e.g. /platform) require platform owner or superuser.
+ *  Tenant admins should NOT access platform routes per SSO integration guide. */
 export function canAccessPlatform(
-  user: (UserWithRole & UserWithPermissions) | null | undefined,
+  user: (UserWithRole & UserWithPermissions & { isPlatformOwner?: boolean }) | null | undefined,
 ): boolean {
   if (!user) return false;
-  return hasRole(user, "admin") || hasRole(user, "superuser");
+  return user.isPlatformOwner === true || hasRole(user, "superuser");
 }
 
 export { userHasRole, userHasPermission };

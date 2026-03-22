@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 const CHANNELS = [
-    { id: 'email', name: 'Email', icon: Mail, providers: [{ name: 'smtp', label: 'SMTP' }, { name: 'sendgrid', label: 'SendGrid' }] },
+    { id: 'email', name: 'Email', icon: Mail, providers: [{ name: 'smtp', label: 'SMTP' }, { name: 'sendgrid', label: 'SendGrid' }, { name: 'brevo', label: 'Brevo' }] },
     { id: 'sms', name: 'SMS', icon: MessageSquare, providers: [{ name: 'africastalking', label: "Africa's Talking" }] },
 ] as const;
 

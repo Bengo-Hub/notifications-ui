@@ -49,6 +49,14 @@ class ApiClient {
     private handleError = (error: any) => {
         if (error.response?.status === 401) {
             console.warn('API Unauthorized access');
+            // Clear session and redirect to SSO per SSO integration guide.
+            // Lazy import to avoid circular dependency with auth store.
+            import('@/store/auth').then(({ useAuthStore }) => {
+                const store = useAuthStore.getState();
+                if (store.status === 'authenticated') {
+                    store.logout();
+                }
+            });
         }
         return Promise.reject(error);
     };

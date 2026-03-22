@@ -9,7 +9,7 @@ export default function ProvidersPage() {
     const { data: providers = [], isLoading: loading, isError, refetch } = useTenantProviders();
 
     const channels = [
-        { id: 'email', name: 'Email', icon: Mail, description: 'SMTP, SendGrid, or AWS SES', color: 'blue' },
+        { id: 'email', name: 'Email', icon: Mail, description: 'SMTP, SendGrid, Brevo, or AWS SES', color: 'blue' },
         { id: 'sms', name: 'SMS', icon: MessageSquare, description: 'Twilio, Infobip, or AfricasTalking', color: 'green' },
         { id: 'push', name: 'Web Push', icon: Smartphone, description: 'Firebase (FCM) or VAPID', color: 'orange' },
     ];
