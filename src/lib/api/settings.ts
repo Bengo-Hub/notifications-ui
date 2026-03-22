@@ -45,9 +45,20 @@ export const settingsApi = {
 
     listProviders: () =>
         apiClient.get<{ providers: unknown[] }>('/api/v1/providers/available'),
-    
+
+    getSelectedProviders: () =>
+        apiClient.get<{ selected: { provider_type: string; provider_name: string }[] }>('/api/v1/providers/selected'),
+
     updateProvider: (setting: Partial<ProviderSetting>) =>
         apiClient.post('/api/v1/providers/select', setting),
+
+    getProviderSettings: (providerType: string, providerName: string) =>
+        apiClient.get<{ provider_type: string; provider_name: string; settings: Record<string, string> }>(
+            `/api/v1/providers/settings?provider_type=${providerType}&provider_name=${providerName}`
+        ),
+
+    saveProviderSettings: (body: { provider_type: string; provider_name: string; settings: Record<string, string> }) =>
+        apiClient.post<{ message: string }>('/api/v1/providers/settings', body),
 
     getBranding: () =>
         apiClient.get<TenantBranding>('/api/v1/branding'),
