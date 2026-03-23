@@ -279,8 +279,8 @@ export default function TemplateEditorPage() {
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-sm font-bold secondary-foreground">Channel Type</label>
-                                            <div className="grid grid-cols-3 gap-2">
-                                                {['email', 'sms', 'push'].map((type) => (
+                                            <div className="grid grid-cols-4 gap-2">
+                                                {['email', 'sms', 'push', 'whatsapp'].map((type) => (
                                                     <button
                                                         key={type}
                                                         onClick={() => setTemplate({ ...template, type: type as 'email' | 'sms' | 'push' })}
@@ -292,6 +292,7 @@ export default function TemplateEditorPage() {
                                                         {type === 'email' && <Mail className="h-3 w-3" />}
                                                         {type === 'sms' && <MessageSquare className="h-3 w-3" />}
                                                         {type === 'push' && <Smartphone className="h-3 w-3" />}
+                                                        {type === 'whatsapp' && <MessageSquare className="h-3 w-3" />}
                                                         {type}
                                                     </button>
                                                 ))}

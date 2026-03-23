@@ -1,21 +1,24 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { templatesApi } from '@/lib/api/templates';
+import { templatesApi, type PaginatedResponse, type NotificationTemplate, type TemplateListParams } from '@/lib/api/templates';
 
-const STALE_MS = 5 * 60 * 1000;
+// 2 hours stale time — matches backend Redis cache TTL
+const STALE_MS = 2 * 60 * 60 * 1000;
 
 export const templateKeys = {
   all: () => ['templates'] as const,
-  list: () => [...templateKeys.all(), 'list'] as const,
+  list: (params?: TemplateListParams) => [...templateKeys.all(), 'list', params ?? {}] as const,
   detail: (id: string, channel: string) => [...templateKeys.all(), id, channel] as const,
 };
 
-export function useTemplates() {
-  return useQuery({
-    queryKey: templateKeys.list(),
-    queryFn: () => templatesApi.list(),
+export function useTemplates(params?: TemplateListParams & { enabled?: boolean }) {
+  const { enabled = true, ...listParams } = params ?? {};
+  return useQuery<PaginatedResponse<NotificationTemplate>>({
+    queryKey: templateKeys.list(listParams),
+    queryFn: () => templatesApi.list(listParams),
     staleTime: STALE_MS,
+    enabled,
   });
 }
 
