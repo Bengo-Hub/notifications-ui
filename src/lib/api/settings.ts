@@ -43,6 +43,11 @@ export const settingsApi = {
     deactivatePlatformProvider: (id: string) =>
         apiClient.delete(`/api/v1/platform/providers/${id}`),
 
+    getPlatformProviderSettings: (providerType: string, providerName: string) =>
+        apiClient.get<{ provider_type: string; provider_name: string; settings: Record<string, string> }>(
+            `/api/v1/platform/providers/settings?provider_type=${providerType}&provider_name=${providerName}`
+        ),
+
     listProviders: () =>
         apiClient.get<{ providers: unknown[] }>('/api/v1/providers/available'),
 

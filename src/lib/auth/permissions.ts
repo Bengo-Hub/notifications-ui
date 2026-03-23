@@ -2,6 +2,17 @@ import type { Permission, UserProfile, UserRole } from "./types";
 
 type Operator = "and" | "or";
 
+/** Returns true when the user is a platform owner OR a superuser (any tenant). */
+export function isPlatformOwnerOrSuperuser(user: UserProfile | null): boolean {
+  if (!user) return false;
+  return (
+    user.isPlatformOwner === true ||
+    user.tenantSlug === "codevertex" ||
+    user.isSuperUser === true ||
+    user.roles.includes("superuser")
+  );
+}
+
 export function userHasRole(
   user: UserProfile | null,
   roles?: UserRole[] | null,

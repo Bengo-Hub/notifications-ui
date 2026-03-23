@@ -1,6 +1,6 @@
 'use client';
 
-import { Badge, Button, Card, CardContent } from '@/components/ui/base';
+import { Badge, Button, Card, CardContent, Switch } from '@/components/ui/base';
 import { usePlatformProviders, useTestPlatformProvider } from '@/hooks/use-settings';
 import { settingsApi } from '@/lib/api/settings';
 import { cn } from '@/lib/utils';
@@ -16,7 +16,7 @@ const PROVIDER_FIELDS: Record<string, { key: string; label: string; type: string
         { key: 'username', label: 'Username', type: 'text', placeholder: 'user@example.com' },
         { key: 'password', label: 'Password', type: 'password', placeholder: '••••••••' },
         { key: 'from', label: 'From Address', type: 'text', placeholder: 'no-reply@yourcompany.com' },
-        { key: 'start_tls', label: 'Start TLS', type: 'text', placeholder: 'true' },
+        { key: 'start_tls', label: 'Start TLS', type: 'switch', placeholder: '' },
     ],
     sendgrid: [
         { key: 'api_key', label: 'API Key', type: 'password', placeholder: 'SG.xxxx' },
@@ -52,6 +52,12 @@ const PROVIDER_FIELDS: Record<string, { key: string; label: string; type: string
     ],
 };
 
+const FIELD_DEFAULTS: Record<string, string> = {
+    port: '587',
+    start_tls: 'true',
+    host: 'smtp.gmail.com',
+};
+
 const CHANNELS = [
     {
         id: 'email', name: 'Email', icon: Mail, color: 'blue',
@@ -85,7 +91,7 @@ function ProviderConfigForm({ channelId, providerName, onConfigured }: {
     useEffect(() => {
         (async () => {
             try {
-                const res = await settingsApi.getProviderSettings(channelId, providerName);
+                const res = await settingsApi.getPlatformProviderSettings(channelId, providerName);
                 setSettings(res.settings ?? {});
             } catch {
                 setSettings({});
@@ -131,13 +137,22 @@ function ProviderConfigForm({ channelId, providerName, onConfigured }: {
                             {field.type === 'password' ? <Lock className="h-3 w-3" /> : <Globe className="h-3 w-3" />}
                             {field.label}
                         </label>
-                        <input
-                            type={field.type}
-                            value={settings[field.key] ?? ''}
-                            placeholder={field.placeholder}
-                            onChange={(e) => setSettings(prev => ({ ...prev, [field.key]: e.target.value }))}
-                            className="w-full bg-accent/20 p-2.5 rounded-lg border border-border text-sm font-mono focus:ring-1 focus:ring-primary outline-none transition-all"
-                        />
+                        {field.type === 'switch' ? (
+                            <div className="flex items-center h-10 pt-1">
+                                <Switch
+                                    checked={(settings[field.key] ?? FIELD_DEFAULTS[field.key] ?? 'true') !== 'false'}
+                                    onCheckedChange={(val) => setSettings(prev => ({ ...prev, [field.key]: val ? 'true' : 'false' }))}
+                                />
+                            </div>
+                        ) : (
+                            <input
+                                type={field.type}
+                                value={settings[field.key] ?? FIELD_DEFAULTS[field.key] ?? ''}
+                                placeholder={field.placeholder}
+                                onChange={(e) => setSettings(prev => ({ ...prev, [field.key]: e.target.value }))}
+                                className="w-full bg-accent/20 p-2.5 rounded-lg border border-border text-sm font-mono focus:ring-1 focus:ring-primary outline-none transition-all"
+                            />
+                        )}
                     </div>
                 ))}
             </div>

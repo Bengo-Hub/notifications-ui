@@ -1,13 +1,25 @@
 'use client';
 
 import { Badge, Button, Card, CardContent, CardHeader } from '@/components/ui/base';
+import { useMe } from '@/hooks/useMe';
 import { useActivityLogs, useDeliveryStats } from '@/hooks/use-analytics';
 import type { ActivityLog } from '@/lib/api/analytics';
+import { isPlatformOwnerOrSuperuser } from '@/lib/auth/permissions';
 import { cn } from '@/lib/utils';
 import { Activity, AlertCircle, ArrowDownRight, ArrowUpRight, BarChart3, CheckCircle2, Clock, Filter, Mail, MessageSquare, Smartphone, Zap } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 
 export default function MonitoringPage() {
+    const { user } = useMe();
+    const router = useRouter();
+
+    // Defense-in-depth: redirect non-platform users (AuthProvider also handles this)
+    useEffect(() => {
+        if (user && !isPlatformOwnerOrSuperuser(user)) {
+            router.replace('/unauthorized');
+        }
+    }, [user, router]);
     const [range, setRange] = useState<'24h' | '7d'>('24h');
     const [channelFilter, setChannelFilter] = useState<string>('');
     const [statusFilter, setStatusFilter] = useState<string>('');

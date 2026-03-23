@@ -10,9 +10,10 @@ export interface PaginationProps {
     hasMore: boolean;
     onPageChange: (page: number) => void;
     className?: string;
+    variant?: 'default' | 'compact';
 }
 
-export function Pagination({ page, total, limit, hasMore, onPageChange, className }: PaginationProps) {
+export function Pagination({ page, total, limit, hasMore, onPageChange, className, variant = 'default' }: PaginationProps) {
     const totalPages = Math.max(1, Math.ceil(total / limit));
     const start = Math.min((page - 1) * limit + 1, total);
     const end = Math.min(page * limit, total);
@@ -27,11 +28,13 @@ export function Pagination({ page, total, limit, hasMore, onPageChange, classNam
     if (total === 0) return null;
 
     return (
-        <div className={cn("flex items-center justify-between py-4 px-2", className)}>
-            <p className="text-xs text-muted-foreground">
-                Showing <span className="font-medium text-foreground">{start}</span>–<span className="font-medium text-foreground">{end}</span> of{' '}
-                <span className="font-medium text-foreground">{total.toLocaleString()}</span>
-            </p>
+        <div className={cn("flex items-center justify-between py-4 px-2", className, variant === 'compact' && "py-0 px-0 justify-end")}>
+            {variant === 'default' && (
+                <p className="text-xs text-muted-foreground">
+                    Showing <span className="font-medium text-foreground">{start}</span>–<span className="font-medium text-foreground">{end}</span> of{' '}
+                    <span className="font-medium text-foreground">{total.toLocaleString()}</span>
+                </p>
+            )}
             <div className="flex items-center gap-1">
                 <button
                     onClick={() => onPageChange(page - 1)}

@@ -1,8 +1,10 @@
 'use client';
 
 import { Badge, Button, Card, CardContent, CardHeader } from '@/components/ui/base';
+import { useMe } from '@/hooks/useMe';
 import { Pagination } from '@/components/ui/pagination';
 import { useTemplates } from '@/hooks/use-templates';
+import { isPlatformOwnerOrSuperuser } from '@/lib/auth/permissions';
 import { cn } from '@/lib/utils';
 import { Edit2, Hash, Mail, MessageCircle, MessageSquare, Plus, Search, Smartphone, Tag, Zap } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -14,14 +16,15 @@ type Channel = (typeof CHANNELS)[number];
 const COMMON_CATEGORIES = ['auth', 'cafe', 'finance', 'logistics', 'shared'];
 
 export default function TemplatesPage() {
+    const { user } = useMe();
+    const canManage = isPlatformOwnerOrSuperuser(user);
+
     const [page, setPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState('');
     const [channelFilter, setChannelFilter] = useState<Channel>('all');
     const [categoryFilter, setCategoryFilter] = useState<string>('');
-    const router = useRouter();
-
-    // Debounced search — submit on Enter or after idle
     const [searchInput, setSearchInput] = useState('');
+    const router = useRouter();
 
     const { data: result, isLoading: loading, isError, refetch } = useTemplates({
         page,
@@ -58,6 +61,14 @@ export default function TemplatesPage() {
         setPage(1);
     };
 
+    const clearFilters = () => {
+        setSearchQuery('');
+        setSearchInput('');
+        setChannelFilter('all');
+        setCategoryFilter('');
+        setPage(1);
+    };
+
     const handleChannelChange = (ch: Channel) => {
         if (ch === 'all') {
             clearFilters();
@@ -69,14 +80,6 @@ export default function TemplatesPage() {
 
     const handleCategoryChange = (cat: string) => {
         setCategoryFilter(prev => prev === cat ? '' : cat);
-        setPage(1);
-    };
-
-    const clearFilters = () => {
-        setSearchQuery('');
-        setSearchInput('');
-        setChannelFilter('all');
-        setCategoryFilter('');
         setPage(1);
     };
 
@@ -115,10 +118,12 @@ export default function TemplatesPage() {
                         </div>
                     )}
                 </div>
-                <Button className="gap-2 shadow-lg shadow-primary/20">
-                    <Plus className="h-4 w-4" />
-                    Create Template
-                </Button>
+                {canManage && (
+                    <Button className="gap-2 shadow-lg shadow-primary/20">
+                        <Plus className="h-4 w-4" />
+                        Create Template
+                    </Button>
+                )}
             </div>
 
             {isError && (
@@ -219,9 +224,11 @@ export default function TemplatesPage() {
                                     </div>
                                     <div className="flex items-center gap-6">
                                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={(e: React.MouseEvent) => { e.stopPropagation(); router.push(`/templates/${template.filePath?.replace(/\.[^.]+$/, '').replace(/^[^/]+\//, '') ?? template.name}?channel=${template.channel}`); }}>
-                                                <Edit2 className="h-3.5 w-3.5" />
-                                            </Button>
+                                            {canManage && (
+                                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={(e: React.MouseEvent) => { e.stopPropagation(); router.push(`/templates/${template.filePath?.replace(/\.[^.]+$/, '').replace(/^[^/]+\//, '') ?? template.name}?channel=${template.channel}`); }}>
+                                                    <Edit2 className="h-3.5 w-3.5" />
+                                                </Button>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

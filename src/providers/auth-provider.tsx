@@ -1,7 +1,7 @@
 'use client';
 
 import { useMe } from '@/hooks/useMe';
-import { canAccessPlatform } from '@/lib/auth/roles';
+import { isPlatformOwnerOrSuperuser } from '@/lib/auth/permissions';
 import { useAuthStore } from '@/store/auth';
 import { usePathname, useRouter } from 'next/navigation';
 import { ReactNode, useEffect } from 'react';
@@ -37,10 +37,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }, [meError, pathname]);
 
-    // Authenticated but accessing /platform without permission -> 403 unauthorized
+    // Platform-only routes: /platform, /templates, /monitoring
     useEffect(() => {
-        if (status === 'authenticated' && user && pathname?.startsWith('/platform') && !canAccessPlatform(user)) {
-            router.replace('/unauthorized');
+        if (status === 'authenticated' && user) {
+            const platformOnlyPrefixes = ['/platform', '/templates', '/monitoring'];
+            const isRestricted = platformOnlyPrefixes.some(prefix => pathname?.startsWith(prefix));
+            if (isRestricted && !isPlatformOwnerOrSuperuser(user)) {
+                router.replace('/unauthorized');
+            }
         }
     }, [status, user, pathname, router]);
 

@@ -14,6 +14,7 @@ import {
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
+import { isPlatformOwnerOrSuperuser } from '@/lib/auth/permissions';
 
 interface SidebarProps {
     open?: boolean;
@@ -23,7 +24,7 @@ interface SidebarProps {
 export function Sidebar({ open = false, onClose }: SidebarProps) {
     const pathname = usePathname();
     const { user } = useMe();
-    const isPlatformOwner = user?.isPlatformOwner || user?.tenantSlug === 'codevertex';
+    const isPlatformOwner = isPlatformOwnerOrSuperuser(user ?? null);
     const logout = useAuthStore((s) => s.logout);
 
     const routes = [
@@ -33,18 +34,22 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
             href: '/dashboard',
             active: pathname === '/dashboard',
         },
-        {
-            label: 'Templates',
-            icon: Mail,
-            href: '/templates',
-            active: pathname.startsWith('/templates'),
-        },
-        {
-            label: 'Monitoring',
-            icon: Activity,
-            href: '/monitoring',
-            active: pathname.startsWith('/monitoring'),
-        },
+        ...(isPlatformOwner
+            ? [
+                {
+                    label: 'Templates',
+                    icon: Mail,
+                    href: '/templates',
+                    active: pathname.startsWith('/templates'),
+                },
+                {
+                    label: 'Monitoring',
+                    icon: Activity,
+                    href: '/monitoring',
+                    active: pathname.startsWith('/monitoring'),
+                },
+            ]
+            : []),
         {
             label: 'Billing',
             icon: CreditCard,

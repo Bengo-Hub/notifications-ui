@@ -26,7 +26,7 @@ export function useMe() {
   const accessToken = session?.accessToken ?? null;
 
   const query = useQuery({
-    queryKey: ['me'],
+    queryKey: ['me', accessToken],
     queryFn: async () => {
       if (!accessToken) return null;
 
