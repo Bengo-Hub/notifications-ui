@@ -11,7 +11,7 @@ export default function DashboardPage() {
     const isPlatformUser = isPlatformOwnerOrSuperuser(user ?? null);
 
     const { data: stats, isLoading: statsLoading, isError: statsError, refetch: refetchStats } = useDeliveryStats();
-    const { data: templates = [], isLoading: templatesLoading, isError: templatesError, refetch: refetchTemplates } = useTemplates({ enabled: isPlatformUser });
+    const { data: templates, isLoading: templatesLoading, isError: templatesError, refetch: refetchTemplates } = useTemplates({ enabled: isPlatformUser });
     const { data: activityLogs = [], isLoading: logsLoading, isError: logsError, refetch: refetchLogs } = useActivityLogs(10);
 
     const loading = statsLoading || (isPlatformUser && templatesLoading) || logsLoading;
@@ -23,7 +23,7 @@ export default function DashboardPage() {
         refetchLogs();
     };
 
-    if (loading && !stats && !(isPlatformUser && templates?.length)) {
+    if (loading && !stats && !(isPlatformUser && templates?.data?.length)) {
         return (
             <div className="p-8">
                 <div className="animate-pulse space-y-6">
@@ -76,7 +76,7 @@ export default function DashboardPage() {
                         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
                             <h3 className="text-lg font-semibold">Active Templates</h3>
                             <p className="text-4xl font-bold mt-2">
-                                {templatesLoading ? '—' : templates.length}
+                                {templatesLoading ? '—' : templates?.total ?? 0}
                             </p>
                             <p className="text-xs text-muted-foreground mt-1">Available notification templates</p>
                         </div>
