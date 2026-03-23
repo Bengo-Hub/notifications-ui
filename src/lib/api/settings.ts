@@ -26,8 +26,17 @@ export interface TenantBranding {
     metadata?: Record<string, any>;
 }
 
+export interface TenantListItem {
+    id: string;
+    name: string;
+    slug: string;
+}
+
 /** Platform admin: list all platform-configured providers (no tenant filter). */
 export const settingsApi = {
+    listPlatformTenants: () =>
+        apiClient.get<TenantListItem[]>('/api/v1/platform/tenants'),
+
     listPlatformProviders: () =>
         apiClient.get<{ providers: ProviderSetting[] }>('/api/v1/platform/providers'),
 

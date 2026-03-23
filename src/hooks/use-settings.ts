@@ -6,10 +6,20 @@ import { settingsApi, type ProviderSetting } from '@/lib/api/settings';
 const STALE_MS = 5 * 60 * 1000;
 
 export const settingsKeys = {
+  platformTenants: () => ['settings', 'platform', 'tenants'] as const,
   platformProviders: () => ['settings', 'platform', 'providers'] as const,
   tenantProviders: () => ['settings', 'current', 'providers'] as const,
   branding: () => ['settings', 'current', 'branding'] as const,
 };
+
+export function usePlatformTenants(enabled = true) {
+  return useQuery({
+    queryKey: settingsKeys.platformTenants(),
+    queryFn: () => settingsApi.listPlatformTenants(),
+    staleTime: STALE_MS,
+    enabled,
+  });
+}
 
 export function usePlatformProviders() {
   return useQuery({

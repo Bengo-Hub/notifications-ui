@@ -1,11 +1,14 @@
 'use client';
 
 import { Badge, Button, Card, CardContent, CardHeader } from '@/components/ui/base';
+import { useMe } from '@/hooks/useMe';
+import { usePlatformTenants } from '@/hooks/use-settings';
 import { templateKeys } from '@/hooks/use-templates';
+import { isPlatformOwnerOrSuperuser } from '@/lib/auth/permissions';
 import { NotificationTemplate, templatesApi } from '@/lib/api/templates';
 import { cn } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Code, Eye, Info, Mail, MessageSquare, Monitor, Save, Send, Smartphone, Zap } from 'lucide-react';
+import { ArrowLeft, Building2, Code, Eye, Info, Mail, MessageSquare, Monitor, Save, Send, Smartphone, Zap } from 'lucide-react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -21,6 +24,11 @@ export default function TemplateEditorPage() {
     const router = useRouter();
     const queryClient = useQueryClient();
     const isNew = templateId === 'new';
+
+    const { user } = useMe();
+    const isPlatformUser = isPlatformOwnerOrSuperuser(user ?? null);
+    const { data: tenants } = usePlatformTenants(isPlatformUser);
+    const [selectedTenantId, setSelectedTenantId] = useState('');
 
     const [template, setTemplate] = useState<Partial<NotificationTemplate>>({
         name: '',
@@ -85,6 +93,10 @@ export default function TemplateEditorPage() {
     const [testSending, setTestSending] = useState(false);
     const [testRecipient, setTestRecipient] = useState('');
     const handleTestSend = async () => {
+        if (isPlatformUser && !selectedTenantId) {
+            toast.error('Please select a tenant before sending a test');
+            return;
+        }
         const channel = template.type ?? 'email';
         const to = testRecipient.trim() || (channel === 'email' ? 'test@example.com' : '+254700000000');
         try {
@@ -92,7 +104,7 @@ export default function TemplateEditorPage() {
             await templatesApi.testSend(templateId, channel, [to], {
                 name: 'Test User',
                 org_name: 'Test Org',
-            });
+            }, isPlatformUser ? selectedTenantId : undefined);
             toast.success('Test notification queued for delivery');
             queryClient.invalidateQueries({ queryKey: templateKeys.all() });
         } catch (error) {
@@ -240,6 +252,21 @@ export default function TemplateEditorPage() {
                     <div className="flex items-center gap-2">
                         {!isNew && (
                             <>
+                                {isPlatformUser && tenants && tenants.length > 0 && (
+                                    <div className="relative">
+                                        <Building2 className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                                        <select
+                                            value={selectedTenantId}
+                                            onChange={(e) => setSelectedTenantId(e.target.value)}
+                                            className="w-44 bg-accent/20 border border-border rounded-lg py-1.5 pl-8 pr-3 text-sm appearance-none cursor-pointer"
+                                        >
+                                            <option value="">Select tenant...</option>
+                                            {tenants.map((t) => (
+                                                <option key={t.id} value={t.id}>{t.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
                                 <input
                                     type="text"
                                     placeholder={template.type === 'email' ? 'test@example.com' : 'Recipient'}
@@ -247,7 +274,7 @@ export default function TemplateEditorPage() {
                                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTestRecipient(e.target.value)}
                                     className="w-48 bg-accent/20 border border-border rounded-lg py-1.5 px-3 text-sm"
                                 />
-                                <Button onClick={handleTestSend} disabled={testSending} variant="outline" className="gap-2">
+                                <Button onClick={handleTestSend} disabled={testSending || (isPlatformUser && !selectedTenantId)} variant="outline" className="gap-2">
                                     <Send className="h-4 w-4" />
                                     {testSending ? 'Sending...' : 'Test Send'}
                                 </Button>

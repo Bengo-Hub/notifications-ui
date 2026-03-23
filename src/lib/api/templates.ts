@@ -70,9 +70,14 @@ export const templatesApi = {
             `/api/v1/templates/${id}?channel=${channel}`,
             { content: data.content, subject: data.subject }
         ),
-    testSend: (id: string, channel: string, to: string[], data?: Record<string, unknown>) =>
-        apiClient.post<{ status: string; requestId: string }>(
-            `/api/v1/templates/${id}/test`,
+    testSend: (id: string, channel: string, to: string[], data?: Record<string, unknown>, tenantId?: string) => {
+        const params = new URLSearchParams();
+        if (tenantId) params.set('tenantId', tenantId);
+        params.set('channel', channel);
+        const qs = params.toString();
+        return apiClient.post<{ status: string; requestId: string }>(
+            `/api/v1/templates/${id}/test?${qs}`,
             { channel, to, data: data ?? {} }
-        ),
+        );
+    },
 };
