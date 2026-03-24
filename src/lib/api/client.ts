@@ -3,6 +3,12 @@ import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 
 // Must point to notifications API host (not the UI host). NEXT_PUBLIC_* are inlined at build time.
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://notificationsapi.codevertexitsolutions.com';
 
+/** Registered by app-providers to clear queryClient + auth store on 401 */
+let on401Callback: (() => void) | null = null;
+export function setOn401(cb: () => void) {
+    on401Callback = cb;
+}
+
 class ApiClient {
     private instance: AxiosInstance;
     private accessToken: string | null = null;
@@ -24,7 +30,7 @@ class ApiClient {
         if (this.accessToken) {
             config.headers.Authorization = `Bearer ${this.accessToken}`;
         }
-        
+
         // Tenant Identification Headers — only for tenant-scoped users.
         // Platform owners have access to all tenants and must NOT send
         // tenant headers; the backend resolves scope from JWT claims.
@@ -52,13 +58,8 @@ class ApiClient {
             // Do not auto-logout for /auth/me — it may 401 before JIT sync completes.
             // Only auto-logout for regular API calls where 401 means token is invalid.
             if (!url.includes('/auth/me')) {
-                console.warn('API Unauthorized access');
-                import('@/store/auth').then(({ useAuthStore }) => {
-                    const store = useAuthStore.getState();
-                    if (store.status === 'authenticated') {
-                        store.logout();
-                    }
-                });
+                console.warn('API 401 — triggering logout');
+                on401Callback?.();
             }
         }
         return Promise.reject(error);

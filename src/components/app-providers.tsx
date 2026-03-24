@@ -3,12 +3,14 @@
 import { Footer } from '@/components/footer';
 import { Header } from '@/components/header';
 import { Sidebar } from '@/components/sidebar';
+import { setOn401 } from '@/lib/api/client';
 import { AuthProvider } from '@/providers/auth-provider';
 import { BrandingProvider } from '@/providers/branding-provider';
+import { useAuthStore } from '@/store/auth';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from 'sonner';
-import { ReactNode, useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 
 export function AppProviders({ children }: { children: ReactNode }) {
     const [queryClient] = useState(
@@ -25,6 +27,14 @@ export function AppProviders({ children }: { children: ReactNode }) {
             })
     );
     const [sidebarOpen, setSidebarOpen] = useState(false);
+
+    // Register global 401 handler: clear all cached queries + logout
+    useEffect(() => {
+        setOn401(() => {
+            queryClient.clear();
+            useAuthStore.getState().logout();
+        });
+    }, [queryClient]);
 
     return (
         <QueryClientProvider client={queryClient}>
