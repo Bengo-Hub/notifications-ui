@@ -5,13 +5,14 @@ import { useTenantProviders } from '@/hooks/use-settings';
 import { settingsApi } from '@/lib/api/settings';
 import { cn } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, Check, ChevronDown, ExternalLink, Globe, Loader2, Lock, Mail, MessageSquare, Save, Smartphone } from 'lucide-react';
+import { AlertCircle, Check, ChevronDown, ExternalLink, Globe, Loader2, Lock, Mail, MessageSquare, Save } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 const EMAIL_PROVIDERS = ['smtp', 'sendgrid', 'brevo'];
 const SMS_PROVIDERS = ['twilio', 'africastalking', 'vonage', 'plivo'];
-const PUSH_PROVIDERS = ['fcm'];
+// Push (FCM) is platform-level only — configured at /platform/providers, not per-tenant
+const PUSH_PROVIDERS: string[] = [];
 
 function getProvidersForChannel(channelId: string): string[] {
     switch (channelId) {
@@ -102,10 +103,10 @@ export default function ProvidersPage() {
     const [loadingSettings, setLoadingSettings] = useState<string | null>(null);
     const [savingSettings, setSavingSettings] = useState<string | null>(null);
 
+    // Push (FCM) is platform-level — managed at /platform/providers by superadmin
     const channels = [
         { id: 'email', name: 'Email', icon: Mail, description: 'SMTP, SendGrid, Brevo, or AWS SES', color: 'blue' },
         { id: 'sms', name: 'SMS', icon: MessageSquare, description: 'Twilio, Infobip, or AfricasTalking', color: 'green' },
-        { id: 'push', name: 'Web Push', icon: Smartphone, description: 'Firebase (FCM) or VAPID', color: 'orange' },
     ];
 
     const handleSelectProvider = async (channelId: string, providerName: string) => {
