@@ -10,6 +10,7 @@ import { useAuthStore } from '@/store/auth';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from 'sonner';
+import { SubscriptionBanner } from '@/components/subscription/subscription-banner';
 import { ReactNode, useEffect, useState } from 'react';
 
 export function AppProviders({ children }: { children: ReactNode }) {
@@ -50,6 +51,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
                             <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
                             <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
                                 <Header onMenuClick={() => setSidebarOpen((v) => !v)} />
+                                <SubscriptionBanner />
                                 <main className="flex-1 overflow-y-auto bg-background">
                                     <div className="min-h-full flex flex-col">
                                         <div className="flex-1">{children}</div>

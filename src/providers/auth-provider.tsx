@@ -30,9 +30,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         checkAuth();
     }, [status, pathname, initialize]);
 
-    // 401 on /me: redirect to login (SSO)
+    // Auth error on /me: redirect to login (SSO) — but NOT for subscription 403
     useEffect(() => {
         if (meError && !pathname?.includes('/auth')) {
+            const data = (meError as any)?.response?.data;
+            if (data?.code === 'subscription_inactive' || data?.upgrade === true) return;
             useAuthStore.getState().redirectToSSO(window.location.href);
         }
     }, [meError, pathname]);

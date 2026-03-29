@@ -52,6 +52,13 @@ class ApiClient {
 
     private handleResponse = (response: AxiosResponse) => response;
 
+    private onSubscription403Callback: ((data: any) => void) | null = null;
+
+    /** Register a callback for subscription-related 403 errors (code=subscription_inactive, upgrade=true). */
+    public setOnSubscription403(callback: ((data: any) => void) | null) {
+        this.onSubscription403Callback = callback;
+    }
+
     private handleError = (error: any) => {
         if (error.response?.status === 401) {
             const url: string = error.config?.url ?? '';
@@ -60,6 +67,12 @@ class ApiClient {
             if (!url.includes('/auth/me')) {
                 console.warn('API 401 — triggering logout');
                 on401Callback?.();
+            }
+        }
+        if (error.response?.status === 403 && this.onSubscription403Callback) {
+            const data = error.response?.data;
+            if (data?.code === 'subscription_inactive' || data?.upgrade === true) {
+                this.onSubscription403Callback(data);
             }
         }
         return Promise.reject(error);
