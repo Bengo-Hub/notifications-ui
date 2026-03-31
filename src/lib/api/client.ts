@@ -5,7 +5,7 @@ const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://notificationsapi.
 
 /** Registered by app-providers to clear queryClient + auth store on 401 */
 let on401Callback: (() => void) | null = null;
-export function setOn401(cb: () => void) {
+export function setOn401(cb: (() => void) | null) {
     on401Callback = cb;
 }
 
@@ -59,13 +59,24 @@ class ApiClient {
         this.onSubscription403Callback = callback;
     }
 
-    private handleError = (error: any) => {
+    private handleError = async (error: any) => {
         if (error.response?.status === 401) {
             const url: string = error.config?.url ?? '';
             // Do not auto-logout for /auth/me — it may 401 before JIT sync completes.
-            // Only auto-logout for regular API calls where 401 means token is invalid.
-            if (!url.includes('/auth/me')) {
-                console.warn('API 401 — triggering logout');
+            if (!url.includes('/auth/me') && !error.config?._retried) {
+                // Attempt token refresh before triggering logout
+                const { refreshAccessToken } = await import('@/lib/auth/token-refresh');
+                const newToken = await refreshAccessToken();
+
+                if (newToken) {
+                    // Retry the original request with the refreshed token
+                    this.accessToken = newToken;
+                    error.config._retried = true;
+                    error.config.headers.Authorization = `Bearer ${newToken}`;
+                    return this.instance.request(error.config);
+                }
+
+                // Refresh failed — fire logout callback
                 on401Callback?.();
             }
         }

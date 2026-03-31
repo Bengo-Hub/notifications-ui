@@ -29,12 +29,20 @@ export function AppProviders({ children }: { children: ReactNode }) {
     );
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    // Register global 401 handler: clear all cached queries + logout
+    // Register global 401 handler: clear all cached queries + logout.
+    // Skip during syncing/loading to avoid clearing session during JIT sync.
+    // Also skip within 15s of authentication (tokens may still be propagating).
+    // Note: the primary defense is token refresh in client.ts — this callback
+    // only fires after refresh has already failed.
     useEffect(() => {
         setOn401(() => {
+            const { status, lastAuthenticatedAt } = useAuthStore.getState();
+            if (status === 'syncing' || status === 'loading') return;
+            if (lastAuthenticatedAt && Date.now() - lastAuthenticatedAt < 15_000) return;
             queryClient.clear();
             useAuthStore.getState().logout();
         });
+        return () => setOn401(null);
     }, [queryClient]);
 
     return (

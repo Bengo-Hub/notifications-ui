@@ -24,6 +24,7 @@ interface AuthState {
     session: Session | null;
     error: string | null;
     isAuthenticated?: boolean;
+    lastAuthenticatedAt: number | null;
 
     /** Subscription info fetched lazily after login (undefined = not started, null = loading). */
     subscriptionInfo: Record<string, unknown> | null | undefined;
@@ -50,6 +51,7 @@ export const useAuthStore = create<AuthState>()(
             session: null,
             error: null,
             isAuthenticated: false,
+            lastAuthenticatedAt: null,
 
         syncTenantToStorage: (user: UserProfile | null) => {
             if (user) {
@@ -76,7 +78,7 @@ export const useAuthStore = create<AuthState>()(
                 try {
                     const user = await fetchProfile(session.accessToken);
                     get().syncTenantToStorage(user);
-                    set({ user, status: 'authenticated', isAuthenticated: true });
+                    set({ user, status: 'authenticated', isAuthenticated: true, lastAuthenticatedAt: Date.now() });
                 } catch (error) {
                     console.error('Failed to initialize auth:', error);
                     get().syncTenantToStorage(null);
@@ -145,7 +147,7 @@ export const useAuthStore = create<AuthState>()(
                         try {
                             const user = await fetchProfile(session.accessToken);
                             get().syncTenantToStorage(user);
-                            set({ user, status: 'authenticated', isAuthenticated: true });
+                            set({ user, status: 'authenticated', isAuthenticated: true, lastAuthenticatedAt: Date.now() });
                             return;
                         } catch {
                             attempts++;
@@ -153,7 +155,7 @@ export const useAuthStore = create<AuthState>()(
                         }
                     }
 
-                    set({ status: 'authenticated' });
+                    set({ status: 'authenticated', lastAuthenticatedAt: Date.now() });
                 } catch {
                     set({ status: 'error', error: 'Sign-in failed' });
                 }
@@ -161,11 +163,12 @@ export const useAuthStore = create<AuthState>()(
 
             logout: async () => {
                 get().syncTenantToStorage(null);
-                set({ status: 'unauthenticated', user: null, session: null, isAuthenticated: false });
+                set({ status: 'unauthenticated', user: null, session: null, isAuthenticated: false, lastAuthenticatedAt: null });
                 apiClient.setAccessToken(null);
 
                 // Clear persisted storage so re-visit doesn't rehydrate stale session
                 try { localStorage.removeItem('notifications-auth-storage'); } catch { /* no-op */ }
+                try { sessionStorage.clear(); } catch { /* no-op */ }
 
                 // Redirect to SSO logout which clears the session cookie, then SSO
                 // redirects to accounts login page. We do NOT redirect back to
