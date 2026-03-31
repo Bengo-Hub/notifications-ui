@@ -61,15 +61,16 @@ class ApiClient {
 
     private handleError = async (error: any) => {
         if (error.response?.status === 401) {
+            // If token is already cleared (explicit logout in progress), skip entirely
+            if (!this.accessToken) return Promise.reject(error);
+
             const url: string = error.config?.url ?? '';
-            // Do not auto-logout for /auth/me — it may 401 before JIT sync completes.
             if (!url.includes('/auth/me') && !error.config?._retried) {
                 // Attempt token refresh before triggering logout
                 const { refreshAccessToken } = await import('@/lib/auth/token-refresh');
                 const newToken = await refreshAccessToken();
 
                 if (newToken) {
-                    // Retry the original request with the refreshed token
                     this.accessToken = newToken;
                     error.config._retried = true;
                     error.config.headers.Authorization = `Bearer ${newToken}`;
