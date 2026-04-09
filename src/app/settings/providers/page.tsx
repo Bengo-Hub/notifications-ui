@@ -29,9 +29,10 @@ const FIELD_DEFAULTS: Record<string, string> = {
     host: 'smtp.gmail.com',
 };
 
-function ProviderSettingsForm({ fields, settings, isLoading, isSaving, onFieldChange, onSave }: {
+function ProviderSettingsForm({ fields, settings, savedSettings, isLoading, isSaving, onFieldChange, onSave }: {
     fields: { key: string; label: string; type: string; placeholder: string }[];
     settings: Record<string, string>;
+    savedSettings?: Record<string, string>;
     isLoading: boolean;
     isSaving: boolean;
     onFieldChange: (key: string, value: string) => void;
@@ -70,7 +71,7 @@ function ProviderSettingsForm({ fields, settings, isLoading, isSaving, onFieldCh
                                 <input
                                     type={field.type}
                                     value={settings[field.key] ?? FIELD_DEFAULTS[field.key] ?? ''}
-                                    placeholder={field.placeholder}
+                                    placeholder={savedSettings?.[field.key] && savedSettings[field.key] !== '' ? 'Leave blank to keep current value' : field.placeholder}
                                     onChange={(e) => onFieldChange(field.key, e.target.value)}
                                     className="w-full bg-accent/20 p-2.5 rounded-lg border border-border text-sm font-mono focus:ring-1 focus:ring-primary outline-none transition-all"
                                 />
@@ -100,6 +101,7 @@ export default function ProvidersPage() {
     const [changingChannel, setChangingChannel] = useState<string | null>(null);
     const [saving, setSaving] = useState<string | null>(null);
     const [providerSettings, setProviderSettings] = useState<Record<string, Record<string, string>>>({});
+    const [savedProviderSettings, setSavedProviderSettings] = useState<Record<string, Record<string, string>>>({});
     const [loadingSettings, setLoadingSettings] = useState<string | null>(null);
     const [savingSettings, setSavingSettings] = useState<string | null>(null);
 
@@ -178,7 +180,9 @@ export default function ProvidersPage() {
         try {
             setLoadingSettings(settingsKey);
             const res = await settingsApi.getProviderSettings(providerType, providerName);
-            setProviderSettings(prev => ({ ...prev, [settingsKey]: res.settings ?? {} }));
+            const loaded = res.settings ?? {};
+            setProviderSettings(prev => ({ ...prev, [settingsKey]: loaded }));
+            setSavedProviderSettings(prev => ({ ...prev, [settingsKey]: { ...loaded } }));
         } catch {
             setProviderSettings(prev => ({ ...prev, [settingsKey]: {} }));
         } finally {
@@ -310,6 +314,7 @@ export default function ProvidersPage() {
                                                 {!isChanging && <ProviderSettingsForm
                                                     fields={PROVIDER_FIELDS[config.provider_name] ?? []}
                                                     settings={providerSettings[`${channel.id}:${config.provider_name}`] ?? {}}
+                                                    savedSettings={savedProviderSettings[`${channel.id}:${config.provider_name}`]}
                                                     isLoading={loadingSettings === `${channel.id}:${config.provider_name}`}
                                                     isSaving={savingSettings === `${channel.id}:${config.provider_name}`}
                                                     onFieldChange={(key, value) => updateSettingField(channel.id, config.provider_name, key, value)}
