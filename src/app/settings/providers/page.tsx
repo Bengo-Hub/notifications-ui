@@ -54,7 +54,11 @@ function ProviderSettingsForm({ fields, settings, savedSettings, isLoading, isSa
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {fields.map((field) => (
+                    {fields.map((field) => field.type === 'banner' ? (
+                        <div key={field.key} className="md:col-span-2 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-3 text-xs text-blue-700 dark:text-blue-300">
+                            <span className="font-bold">ℹ️ SMTP Guide:</span> {field.placeholder}
+                        </div>
+                    ) : (
                         <div key={field.key} className="space-y-1.5">
                             <label className="text-xs font-bold text-muted-foreground flex items-center gap-1">
                                 {field.type === 'password' ? <Lock className="h-3 w-3" /> : <Globe className="h-3 w-3" />}
@@ -133,12 +137,13 @@ export default function ProvidersPage() {
 
     const PROVIDER_FIELDS: Record<string, { key: string; label: string; type: string; placeholder: string }[]> = {
         smtp: [
+            { key: '_smtp_guide', label: '', type: 'banner', placeholder: 'Port 465 → SSL/TLS (implicit encryption). Port 587 → STARTTLS (upgrade to TLS). Port 25 → Unencrypted (not recommended). Most providers (Gmail, Zoho, Outlook) use port 465 (SSL) or 587 (STARTTLS).' },
             { key: 'host', label: 'SMTP Host', type: 'text', placeholder: 'smtp.gmail.com' },
             { key: 'port', label: 'Port', type: 'text', placeholder: '587' },
             { key: 'username', label: 'Username', type: 'text', placeholder: 'user@example.com' },
             { key: 'password', label: 'Password', type: 'password', placeholder: 'Leave empty to keep current value' },
             { key: 'from', label: 'From Address', type: 'text', placeholder: 'no-reply@yourcompany.com' },
-            { key: 'start_tls', label: 'Start TLS', type: 'switch', placeholder: '' },
+            { key: 'start_tls', label: 'Start TLS', type: 'switch', placeholder: 'Enable for port 587. Disable for port 465 (SSL).' },
         ],
         sendgrid: [
             { key: 'api_key', label: 'API Key', type: 'password', placeholder: 'Leave empty to keep current value' },
