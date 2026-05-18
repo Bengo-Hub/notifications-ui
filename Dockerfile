@@ -1,4 +1,4 @@
-# Base image
+﻿# Base image
 FROM node:20-alpine AS base
 
 # Install dependencies only when needed
@@ -16,7 +16,7 @@ COPY package.json pnpm-lock.yaml* .npmrc* ./
 # Install without --frozen-lockfile so pnpm.overrides in package.json apply.
 # pnpm.overrides pins side-channel to 1.0.6, avoiding the missing
 # side-channel-list transitive dependency from side-channel@1.1.0.
-RUN pnpm install --shamefully-hoist
+RUN pnpm install --shamefully-hoist --frozen-lockfile
 
 # Rebuild the source code only when needed
 FROM base AS builder
