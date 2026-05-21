@@ -1,19 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
-
+import { useEffect, useRef } from "react";
 import { useAuthStore } from "@/store/auth";
 import type { SubscriptionInfo } from "@/lib/auth/subscription";
 import { fetchSubscriptionInfo } from "@/lib/auth/subscription";
+import { useSubscriptionStore } from "@/store/subscription";
 
-/**
- * Hook for accessing subscription state and feature gating.
- * Subscription is loaded lazily after authentication — never blocks login.
- *
- * Usage:
- *   const { isActive, hasFeature, isPastDue } = useSubscription();
- *   if (!hasFeature("loyalty_program")) showUpgradePrompt();
- */
 export function useSubscription() {
   const session = useAuthStore((s) => s.session);
   const user = useAuthStore((s) => s.user);
@@ -21,57 +13,96 @@ export function useSubscription() {
   const subscriptionInfo = useAuthStore((s) => s.subscriptionInfo);
   const setSubscriptionInfo = useAuthStore((s) => s.setSubscriptionInfo);
 
-  // Lazy-load subscription info after authentication
+  const subStore = useSubscriptionStore();
+
+  const tenantId = (user as any)?.tenantId ?? (user as any)?.tenant_id ?? null;
+  const tenantSlug = (user as any)?.tenantSlug ?? (user as any)?.tenant_slug ?? null;
+  const isPlatformOwner = !!(user as any)?.isPlatformOwner || !!(user as any)?.is_platform_owner || tenantSlug === "codevertex";
+  const isServiceCharge = (user as any)?.billing_mode === "service_charge";
+  const isDemo = !!(user as any)?.is_demo || tenantSlug === "codevertex-demo";
+
+  // Hydrate store from IDB on auth
+  useEffect(() => {
+    if (status !== "authenticated" || !tenantSlug) return;
+    useSubscriptionStore.getState().loadFromIDB(tenantSlug);
+  }, [status, tenantSlug]);
+
+  // Fetch from API once per session
   useEffect(() => {
     if (status !== "authenticated" || !session?.accessToken || !user) return;
-    if (subscriptionInfo !== undefined) return; // already loaded or loading
-
-    // Mark as loading (null = loading, undefined = not started)
+    if (subscriptionInfo !== undefined) return;
     setSubscriptionInfo(null);
 
-    const tenantId = user.tenantId;
-    const tenantSlug = user.tenantSlug;
-
-    if (!tenantId || tenantSlug === "codevertex") {
-      // Platform owner — always full access
-      setSubscriptionInfo({
-        status: "active",
-        planCode: "enterprise",
-        planName: "Enterprise",
-        features: [],
-        limits: {},
-      } as any);
+    if (!tenantId || isPlatformOwner) {
+      const platformRaw = { plan: "ENTERPRISE", status: "ACTIVE", features: [], limits: {} };
+      setSubscriptionInfo({ status: "active", planCode: "enterprise", planName: "Enterprise", features: [], limits: {} } as any);
+      useSubscriptionStore.getState().setFromRaw(platformRaw, tenantSlug ?? "");
       return;
     }
 
     fetchSubscriptionInfo(tenantId, tenantSlug ?? "", session.accessToken)
-      .then((info) => setSubscriptionInfo((info ?? { status: "none", planCode: "", planName: "", features: [], limits: {} }) as any))
+      .then((info) => {
+        const resolved = info ?? { status: "none", planCode: "", planName: "", features: [], limits: {} };
+        setSubscriptionInfo(resolved as any);
+        useSubscriptionStore.getState().setFromRaw(
+          {
+            plan: resolved.planCode || null,
+            status: resolved.status || null,
+            expiresAt: (resolved as any).currentPeriodEnd ?? (resolved as any).trialEndsAt ?? null,
+            features: resolved.features,
+            limits: resolved.limits,
+          },
+          tenantSlug ?? "",
+        );
+      })
       .catch(() => setSubscriptionInfo({ status: "none", planCode: "", planName: "", features: [], limits: {} } as any));
-  }, [status, session?.accessToken, user, subscriptionInfo, setSubscriptionInfo]);
+  }, [status, session?.accessToken, user, subscriptionInfo, setSubscriptionInfo, tenantId, tenantSlug, isPlatformOwner]);
+
+  // Re-fetch when tab becomes visible (user returned from renewal/billing tab)
+  const lastHiddenAt = useRef<number | null>(null);
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const REFRESH_AFTER_MS = 5 * 60 * 1000;
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") { lastHiddenAt.current = Date.now(); return; }
+      if (document.visibilityState === "visible" && lastHiddenAt.current !== null) {
+        const awayMs = Date.now() - lastHiddenAt.current;
+        lastHiddenAt.current = null;
+        if (awayMs >= REFRESH_AFTER_MS && tenantId && tenantSlug && session?.accessToken) {
+          fetchSubscriptionInfo(tenantId, tenantSlug, session.accessToken)
+            .then((info) => {
+              if (!info) return;
+              setSubscriptionInfo(info as any);
+              useSubscriptionStore.getState().setFromRaw(
+                { plan: info.planCode || null, status: info.status || null, expiresAt: info.currentPeriodEnd ?? info.trialEndsAt ?? null, features: info.features, limits: info.limits },
+                tenantSlug,
+              );
+            })
+            .catch(() => {});
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [tenantId, tenantSlug, session?.accessToken, setSubscriptionInfo]);
 
   const info = subscriptionInfo as SubscriptionInfo | null | undefined;
   const subStatus = info?.status ?? null;
 
   return {
-    /** Raw subscription info (null = loading, undefined = not started) */
     info,
-    /** Subscription status string */
     status: subStatus,
-    /** Plan code (e.g. "starter", "growth", "professional") */
     plan: info?.planCode ?? null,
-    /** Whether subscription is active (active or trial) */
-    isActive: subStatus === "active" || subStatus === "trial",
-    /** Whether the subscription is in a warning state */
+    isActive: subStatus === "active" || subStatus === "trial" || isServiceCharge || isDemo,
     isPastDue: subStatus === "past_due" || subStatus === "suspended",
-    /** Whether the subscription has expired */
     isExpired: subStatus === "expired" || subStatus === "cancelled",
-    /** Whether no subscription exists */
-    needsSubscription: subStatus === "none",
-    /** Whether subscription info is still loading */
+    needsSubscription: subStatus === "none" && !isServiceCharge && !isDemo,
     isLoading: subscriptionInfo === null || subscriptionInfo === undefined,
-    /** Check if a specific feature is available */
+    isPlatformOwner,
+    isServiceCharge,
+    isDemo,
     hasFeature: (code: string) => info?.features?.includes(code) ?? false,
-    /** Get a usage limit value (defaults to Infinity if not set) */
     getLimit: (key: string) => info?.limits?.[key] ?? Infinity,
+    store: subStore,
   };
 }
