@@ -1,4 +1,4 @@
-# TruLoad Notifications UI
+﻿# TruLoad Notifications UI
 
 Premium, multi-tenant notification management dashboard built with Next.js 16.1.6, React 19, and Tailwind CSS 4.0.
 
@@ -49,4 +49,4 @@ pnpm start
 - [Sprint History](./docs/sprints/)
 
 ## License
-MIT License - Copyright (c) 2026 Codevertex IT Solutions
+MIT License - Copyright (c) 2026 Codevertex Africa Limited
