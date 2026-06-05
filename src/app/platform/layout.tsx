@@ -1,10 +1,12 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { ArrowLeft, Globe, Server, Settings2, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useMe } from '@/hooks/useMe';
+import { isPlatformOwnerOrSuperuser } from '@/lib/auth/permissions';
 
 const platformNav = [
     { label: 'Providers', href: '/platform/providers', icon: Server },
@@ -14,6 +16,23 @@ const platformNav = [
 
 export default function PlatformLayout({ children }: { children: ReactNode }) {
     const pathname = usePathname();
+    const router = useRouter();
+    const { user } = useMe();
+
+    // Platform configuration (provider credentials, service configs) is platform-admin
+    // only. Gate the ENTIRE /platform/* section — not just the sidebar nav — so a tenant
+    // admin cannot reach these pages by navigating directly. Defense-in-depth: the API
+    // also enforces RoleSuperAdmin on /platform routes.
+    const allowed = isPlatformOwnerOrSuperuser(user ?? null);
+    useEffect(() => {
+        if (user && !allowed) {
+            router.replace('/unauthorized');
+        }
+    }, [user, allowed, router]);
+
+    if (!user || !allowed) {
+        return null; // don't render platform config to non-admins while the redirect runs
+    }
 
     return (
         <div className="flex flex-1 min-h-0 overflow-hidden">
