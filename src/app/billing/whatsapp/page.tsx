@@ -95,7 +95,7 @@ export default function WhatsAppBillingPage() {
     const user = useAuthStore((s) => s.user);
     const queryClient = useQueryClient();
 
-    const { data: plansData, isLoading: plansLoading } = useWhatsAppPlans();
+    const { data: plansData, isLoading: plansLoading, isError: plansError, refetch: refetchPlans } = useWhatsAppPlans();
     const { data: subData, isLoading: subLoading } = useWhatsAppSubscription();
     const cancelMutation = useCancelWhatsApp();
 
@@ -256,6 +256,15 @@ export default function WhatsAppBillingPage() {
                         <div className="flex items-center gap-2 text-muted-foreground">
                             <Loader2 className="h-4 w-4 animate-spin" />
                             <span>Loading plans...</span>
+                        </div>
+                    ) : plansError ? (
+                        <div className="rounded-2xl border border-destructive/50 bg-destructive/5 p-4 flex items-center justify-between">
+                            <p className="text-sm text-destructive">Failed to load plans.</p>
+                            <button onClick={() => refetchPlans()} className="text-sm font-medium text-primary hover:underline">Retry</button>
+                        </div>
+                    ) : plans.length === 0 ? (
+                        <div className="rounded-2xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+                            No plans available at the moment.
                         </div>
                     ) : (
                         <div className="grid md:grid-cols-3 gap-6">

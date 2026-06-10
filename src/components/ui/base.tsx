@@ -23,13 +23,18 @@ export function Button({
     children,
     className,
     variant = 'primary',
+    size,
     ...props
 }: {
     children: ReactNode;
     className?: string;
     variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive';
+    // `size` is consumed here so it is not forwarded to the DOM <button> (invalid HTML attribute).
+    // Call sites that pass size="sm" already supply their own sizing via className, so behavior is unchanged.
+    size?: 'sm' | 'md' | 'lg' | 'icon';
     [key: string]: any;
 }) {
+    void size;
     const variants = {
         primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
         secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
