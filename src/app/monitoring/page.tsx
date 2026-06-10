@@ -246,7 +246,7 @@ export default function MonitoringPage() {
                                                 <div className="text-right">
                                                     <p className="text-[10px] text-muted-foreground">{new Date(log.timestamp).toLocaleString()}</p>
                                                 </div>
-                                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-all">
+                                                <Button variant="ghost" size="sm" aria-label="View delivery details" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-all">
                                                     <ArrowUpRight className="h-4 w-4" />
                                                 </Button>
                                             </div>

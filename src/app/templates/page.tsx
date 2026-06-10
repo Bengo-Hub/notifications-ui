@@ -136,7 +136,7 @@ export default function TemplatesPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card className="md:col-span-2">
                     <CardHeader className="flex flex-col space-y-4 py-4 md:py-6">
-                        <div className="flex flex-row items-center justify-between gap-4">
+                        <div className="flex flex-row flex-wrap items-center justify-between gap-4">
                             <div className="relative w-full max-w-sm group">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                                 <input
@@ -225,7 +225,7 @@ export default function TemplatesPage() {
                                     <div className="flex items-center gap-6">
                                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                             {canManage && (
-                                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={(e: React.MouseEvent) => { e.stopPropagation(); router.push(`/templates/${template.filePath?.replace(/\.[^.]+$/, '').replace(/^[^/]+\//, '') ?? template.name}?channel=${template.channel}`); }}>
+                                                <Button variant="ghost" size="sm" aria-label={`Edit ${template.name}`} className="h-8 w-8 p-0" onClick={(e: React.MouseEvent) => { e.stopPropagation(); router.push(`/templates/${template.filePath?.replace(/\.[^.]+$/, '').replace(/^[^/]+\//, '') ?? template.name}?channel=${template.channel}`); }}>
                                                     <Edit2 className="h-3.5 w-3.5" />
                                                 </Button>
                                             )}

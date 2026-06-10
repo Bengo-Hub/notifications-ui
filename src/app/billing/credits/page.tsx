@@ -57,7 +57,7 @@ export default function CreditsPage() {
 
     const { data: smsBalance, isLoading: smsLoading } = useCreditBalance('SMS');
     const { data: whatsappBalance, isLoading: whatsappLoading } = useCreditBalance('WHATSAPP');
-    const { data: txData, isLoading: txLoading } = useCreditTransactions({ limit: 10 });
+    const { data: txData, isLoading: txLoading, isError: txError, refetch: refetchTx } = useCreditTransactions({ limit: 10 });
 
     const transactions = txData?.data ?? [];
 
@@ -289,6 +289,13 @@ export default function CreditsPage() {
                                         <tr>
                                             <td colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
                                                 <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                                            </td>
+                                        </tr>
+                                    ) : txError ? (
+                                        <tr>
+                                            <td colSpan={5} className="py-8 text-center text-sm">
+                                                <span className="text-destructive">Failed to load transactions. </span>
+                                                <button onClick={() => refetchTx()} className="font-medium text-primary hover:underline">Retry</button>
                                             </td>
                                         </tr>
                                     ) : transactions.length === 0 ? (

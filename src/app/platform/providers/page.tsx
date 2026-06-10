@@ -167,7 +167,7 @@ function ProviderConfigForm({ channelId, providerName, onConfigured }: {
 }
 
 export default function PlatformProvidersPage() {
-    const { data: providers = [], isLoading: loading, refetch } = usePlatformProviders();
+    const { data: providers = [], isLoading: loading, isError, refetch } = usePlatformProviders();
     const testMutation = useTestPlatformProvider();
     const queryClient = useQueryClient();
     const [expandedProvider, setExpandedProvider] = useState<string | null>(null);
@@ -217,6 +217,13 @@ export default function PlatformProvidersPage() {
                     Refresh
                 </Button>
             </div>
+
+            {isError && (
+                <div className="rounded-2xl border border-destructive/50 bg-destructive/5 p-4 flex items-center justify-between">
+                    <p className="text-sm text-destructive">Failed to load platform providers.</p>
+                    <button onClick={() => refetch()} className="text-sm font-medium text-primary hover:underline">Retry</button>
+                </div>
+            )}
 
             <div className="grid gap-6">
                 {CHANNELS.map(({ id: channelId, name, icon: Icon, color, providers: channelProviders }) => (
