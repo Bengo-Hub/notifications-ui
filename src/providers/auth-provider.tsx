@@ -1,5 +1,6 @@
 'use client';
 
+import { OfflineBar } from '@bengo-hub/shared-ui-lib/offline';
 import { useMe } from '@/hooks/useMe';
 import { isPlatformOwnerOrSuperuser } from '@/lib/auth/permissions';
 import { useAuthStore } from '@/store/auth';
@@ -63,5 +64,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         );
     }
 
-    return <>{children}</>;
+    return (
+        <>
+            <OfflineBar availableOffline={['View cached notifications']} disabledOffline={['Sending', 'Edits']} />
+            {children}
+        </>
+    );
 }
