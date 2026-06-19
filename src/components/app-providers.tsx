@@ -49,8 +49,8 @@ export function AppProviders({ children }: { children: ReactNode }) {
         <QueryClientProvider client={queryClient}>
             <ThemeProvider
                 attribute="class"
-                defaultTheme="dark"
-                enableSystem
+                defaultTheme="light"
+                enableSystem={false}
                 disableTransitionOnChange
             >
                 <AuthProvider>

@@ -79,4 +79,17 @@ export const settingsApi = {
 
     getSecuritySettings: () =>
         apiClient.get<{ webhook_secret: string }>('/api/v1/settings/security'),
+
+    getEncryptionKey: () =>
+        apiClient.get<EncryptionKeyStatus>('/api/v1/platform/encryption-key'),
+
+    updateEncryptionKey: (body: { generate?: boolean; key?: string }) =>
+        apiClient.put<EncryptionKeyStatus>('/api/v1/platform/encryption-key', body),
 };
+
+export interface EncryptionKeyStatus {
+    configured: boolean;
+    source: 'db' | 'env';
+    key_fingerprint: string;
+    updated_at: string | null;
+}
