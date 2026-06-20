@@ -1,5 +1,5 @@
 import { apiClient } from '@/lib/api/client';
-import { buildAuthorizeUrl, buildLogoutUrl, exchangeCodeForTokens, fetchProfile } from '@/lib/auth/api';
+import { buildAuthorizeUrl, buildLogoutUrl, exchangeCodeForTokens, fetchProfile, revokeServerSession } from '@/lib/auth/api';
 import {
     consumeVerifier,
     generateCodeChallenge,
@@ -162,6 +162,11 @@ export const useAuthStore = create<AuthState>()(
             },
 
             logout: async () => {
+                // Revoke the backend session (Redis session_token keys + DB sessions)
+                // while the access token is still available.
+                const token = get().session?.accessToken;
+                await revokeServerSession(token);
+
                 get().syncTenantToStorage(null);
                 set({ status: 'unauthenticated', user: null, session: null, isAuthenticated: false, lastAuthenticatedAt: null });
                 apiClient.setAccessToken(null);
@@ -170,11 +175,9 @@ export const useAuthStore = create<AuthState>()(
                 try { localStorage.removeItem('notifications-auth-storage'); } catch { /* no-op */ }
                 try { sessionStorage.clear(); } catch { /* no-op */ }
 
-                // Redirect to SSO logout which clears the session cookie, then SSO
-                // redirects to accounts login page. We do NOT redirect back to
-                // notifications because the AuthProvider would immediately re-trigger
-                // SSO login (no unauthenticated landing page exists).
-                window.location.href = buildLogoutUrl('https://accounts.codevertexitsolutions.com');
+                // Redirect to the SSO login page with a return_to back to this service.
+                const returnTo = encodeURIComponent(window.location.origin);
+                window.location.href = buildLogoutUrl(`https://accounts.codevertexitsolutions.com/login?return_to=${returnTo}`);
             },
 
             fetchUser: async () => {
