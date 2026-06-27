@@ -9,6 +9,26 @@ export function setOn401(cb: (() => void) | null) {
     on401Callback = cb;
 }
 
+/**
+ * Platform-scope toggle (platform owners only).
+ *
+ * notifications-ui is BOTH a per-tenant app (own dashboard/billing/settings) AND a
+ * platform tool (/platform/*). The platform owner (codevertex) is a real business
+ * tenant that must default to managing its OWN notifications, with cross-tenant /
+ * platform-wide access confined to the dedicated /platform section.
+ *
+ * `platformScope` is kept in sync with the route by `PlatformScopeSync` in the shell:
+ *  - true  => under /platform/* — omit tenant headers so the backend resolves
+ *             platform-wide scope from the owner's JWT claims (cockpit behaviour).
+ *  - false => everywhere else — send the owner's OWN tenant headers (codevertex),
+ *             so business pages show the owner's own data by default.
+ * For regular tenants this flag is irrelevant; they always send their own headers.
+ */
+let platformScope = false;
+export function setPlatformScope(isPlatform: boolean) {
+    platformScope = isPlatform;
+}
+
 class ApiClient {
     private instance: AxiosInstance;
     private accessToken: string | null = null;
@@ -31,12 +51,15 @@ class ApiClient {
             config.headers.Authorization = `Bearer ${this.accessToken}`;
         }
 
-        // Tenant Identification Headers — only for tenant-scoped users.
-        // Platform owners have access to all tenants and must NOT send
-        // tenant headers; the backend resolves scope from JWT claims.
+        // Tenant Identification Headers.
+        // Regular tenants always send their own tenant headers.
+        // Platform owners default to their OWN tenant (codevertex) on business pages,
+        // and only go platform-wide (omit headers → backend resolves from JWT claims)
+        // when drilled into the dedicated /platform section (platformScope=true).
         const isPlatformOwner = localStorage.getItem('is_platform_owner') === 'true';
+        const goPlatformWide = isPlatformOwner && platformScope;
 
-        if (!isPlatformOwner) {
+        if (!goPlatformWide) {
             const tenantId = localStorage.getItem('tenant_id');
             const tenantSlug = localStorage.getItem('tenant_slug');
             if (tenantId) {

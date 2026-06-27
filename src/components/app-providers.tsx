@@ -2,6 +2,7 @@
 
 import { Footer } from '@/components/footer';
 import { Header } from '@/components/header';
+import { PlatformScopeSync } from '@/components/platform-scope-sync';
 import { Sidebar } from '@/components/sidebar';
 import { setOn401 } from '@/lib/api/client';
 import { AuthProvider } from '@/providers/auth-provider';
@@ -54,6 +55,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
                 disableTransitionOnChange
             >
                 <AuthProvider>
+                    <PlatformScopeSync />
                     <BrandingProvider>
                         <div className="flex h-screen overflow-hidden bg-background">
                             <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
