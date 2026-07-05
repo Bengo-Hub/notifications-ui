@@ -7,6 +7,7 @@ import { Sidebar } from '@/components/sidebar';
 import { setOn401 } from '@/lib/api/client';
 import { AuthProvider } from '@/providers/auth-provider';
 import { BrandingProvider } from '@/providers/branding-provider';
+import { SubscriptionEntitlementsProvider } from '@/providers/subscription-entitlements-provider';
 import { useAuthStore } from '@/store/auth';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@/components/theme-provider';
@@ -56,6 +57,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
             >
                 <AuthProvider>
                     <PlatformScopeSync />
+                    <SubscriptionEntitlementsProvider>
                     <BrandingProvider>
                         <div className="flex h-screen overflow-hidden bg-background">
                             <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -71,6 +73,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
                             </div>
                         </div>
                     </BrandingProvider>
+                    </SubscriptionEntitlementsProvider>
                 </AuthProvider>
                 <Toaster richColors position="top-right" />
             </ThemeProvider>
