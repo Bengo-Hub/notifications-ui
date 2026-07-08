@@ -18,7 +18,7 @@
 
 ## Hard Deadline Constraints
 
-- **March 17**: All BengoBox services go live; notifications-ui must be accessible for tenant admins
+- **March 17**: All Codevertex services go live; notifications-ui must be accessible for tenant admins
 - **Tenant**: `urban-loft` only (The Urban Loft Cafe)
 - **Outlet**: Busia only
 - **Scope**: Template management, delivery monitoring, provider configuration (Tier 2), branding. Advanced analytics deferred.

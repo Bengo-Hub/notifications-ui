@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-**System Purpose**: Central hub for managing notification channels, templates, and delivery across the BengoBox ecosystem. Provides platform admins with tools to configure SMS/Email/Push providers, create/manage notification templates, and monitor delivery status.
+**System Purpose**: Central hub for managing notification channels, templates, and delivery across the Codevertex ecosystem. Provides platform admins with tools to configure SMS/Email/Push providers, create/manage notification templates, and monitor delivery status.
 
 **Key Capabilities**:
 - **Provider Management**: Configure SMS (Twilio, Africast), Email (SendGrid, AWS SES), Push (Firebase, OneSignal), WhatsApp providers
