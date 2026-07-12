@@ -93,6 +93,7 @@ export function useSubscription() {
     info,
     status: subStatus,
     plan: info?.planCode ?? null,
+    tierOrder: info?.tierOrder ?? null,
     isActive: subStatus === "active" || subStatus === "trial" || isServiceCharge || isDemo,
     isPastDue: subStatus === "past_due" || subStatus === "suspended",
     isExpired: subStatus === "expired" || subStatus === "cancelled",

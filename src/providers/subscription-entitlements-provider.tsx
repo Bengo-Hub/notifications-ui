@@ -18,6 +18,7 @@ interface CatalogItem {
     serviceTag?: string;
     minPlanCode?: string;
     minTierLabel?: string;
+    minTierOrder?: number;
 }
 
 /**
@@ -53,6 +54,7 @@ export function SubscriptionEntitlementsProvider({ children }: { children: React
             map[f.featureCode] = {
                 minPlanCode: f.minPlanCode,
                 minTierLabel: f.minTierLabel,
+                minTierOrder: f.minTierOrder,
                 serviceTag: f.serviceTag,
                 label: f.label,
             };
@@ -68,10 +70,11 @@ export function SubscriptionEntitlementsProvider({ children }: { children: React
             status: sub.status,
             isLoading: sub.isLoading,
             planCode: sub.plan,
+            tierOrder: sub.tierOrder,
             catalog,
             upgradeBaseUrl: UPGRADE_BASE,
         }),
-        [sub.info?.features, sub.info?.limits, isExempt, sub.status, sub.isLoading, sub.plan, catalog]
+        [sub.info?.features, sub.info?.limits, isExempt, sub.status, sub.isLoading, sub.plan, sub.tierOrder, catalog]
     );
 
     return <SubscriptionProvider value={value}>{children}</SubscriptionProvider>;
