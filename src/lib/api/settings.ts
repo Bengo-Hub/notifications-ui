@@ -85,7 +85,25 @@ export const settingsApi = {
 
     updateEncryptionKey: (body: { generate?: boolean; key?: string }) =>
         apiClient.put<EncryptionKeyStatus>('/api/v1/platform/encryption-key', body),
+
+    // Per-tenant notification-type toggles (feed the worker's dispatch gate).
+    listNotificationPreferences: () =>
+        apiClient.get<{ data: NotificationPreference[]; total: number }>('/api/v1/notification-preferences'),
+
+    updateNotificationPreference: (body: { key: string; enabled: boolean }) =>
+        apiClient.put<{ key: string; enabled: boolean }>('/api/v1/notification-preferences', body),
 };
+
+export interface NotificationPreference {
+    key: string;
+    label: string;
+    group: string;
+    /** locked = security-critical, always on; essential = default on; optional = default off */
+    class: 'locked' | 'essential' | 'optional';
+    default: boolean;
+    enabled: boolean;
+    overridden: boolean;
+}
 
 export interface EncryptionKeyStatus {
     configured: boolean;
