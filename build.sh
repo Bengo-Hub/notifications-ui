@@ -44,7 +44,7 @@ fi
 KUBE_CONFIG=${KUBE_CONFIG:-${KUBE_CONFIG_B64:-}}
 
 # NEXT_PUBLIC_API_URL can be overridden
-NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-"https://notificationsapi.codevertexitsolutions.com"}
+NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-"https://notificationsapi.codevertexafrica.com"}
 
 info "Building ${APP_NAME}:${GIT_COMMIT_ID}"
 
