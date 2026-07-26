@@ -23,7 +23,7 @@ export async function fetchSubscriptionInfo(
 ): Promise<SubscriptionInfo | null> {
   const baseUrl =
     process.env.NEXT_PUBLIC_SUBSCRIPTIONS_API_URL ||
-    "https://pricingapi.codevertexitsolutions.com";
+    "https://pricingapi.codevertexafrica.com";
 
   try {
     const controller = new AbortController();

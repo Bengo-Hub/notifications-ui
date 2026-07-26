@@ -19,7 +19,7 @@ Local runs open the browser (headed). Set `CI=true` for headless. Env vars:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `BASE_URL` | Notifications UI origin | `https://notifications.codevertexitsolutions.com` |
+| `BASE_URL` | Notifications UI origin | `https://notifications.codevertexafrica.com` |
 | `E2E_LOGIN_EMAIL` | SSO login email | `demo@bengobox.dev` |
 | `E2E_LOGIN_PASSWORD` | SSO login password | (set in env) |
 

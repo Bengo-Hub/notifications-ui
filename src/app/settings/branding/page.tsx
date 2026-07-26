@@ -5,7 +5,7 @@ import { ExternalLink, Palette } from 'lucide-react';
 
 const AUTH_UI_URL =
     process.env.NEXT_PUBLIC_AUTH_UI_URL ||
-    'https://accounts.codevertexitsolutions.com';
+    'https://accounts.codevertexafrica.com';
 
 export default function BrandingPage() {
     return (

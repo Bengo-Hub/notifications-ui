@@ -1,6 +1,6 @@
 import type { Permission, UserProfile, UserRole } from './types';
 
-const SSO_BASE_URL = process.env.NEXT_PUBLIC_SSO_URL || 'https://sso.codevertexitsolutions.com';
+const SSO_BASE_URL = process.env.NEXT_PUBLIC_SSO_URL || 'https://sso.codevertexafrica.com';
 const SSO_CLIENT_ID = process.env.NEXT_PUBLIC_SSO_CLIENT_ID || 'notifications-ui';
 
 export interface AuthorizeParams {

@@ -7,8 +7,8 @@ import { toast } from 'sonner';
 import { settingsApi } from '@/lib/api/settings';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-const AUTH_API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || 'https://sso.codevertexitsolutions.com';
-const NOTIFICATIONS_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://notificationsapi.codevertexitsolutions.com';
+const AUTH_API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || 'https://sso.codevertexafrica.com';
+const NOTIFICATIONS_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://notificationsapi.codevertexafrica.com';
 
 export default function IntegrationsSettingsPage() {
     const qc = useQueryClient();

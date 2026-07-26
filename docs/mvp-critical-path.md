@@ -9,7 +9,7 @@
 
 | Item | Status |
 |------|--------|
-| **Production domain** | `notifications.codevertexitsolutions.com` |
+| **Production domain** | `notifications.codevertexafrica.com` |
 | **Auth-ui redirect** | `/dashboard/platform/notifications` → notifications-ui (templates/providers owned here) |
 | **SSO** | OIDC/PKCE via auth-ui; GET /me for roles (admin, super_admin for platform) |
 | **Templates / providers** | Implemented in notifications-api; UI in notifications-ui |

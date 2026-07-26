@@ -177,7 +177,7 @@ export const useAuthStore = create<AuthState>()(
 
                 // Redirect to the SSO login page with a return_to back to this service.
                 const returnTo = encodeURIComponent(window.location.origin);
-                window.location.href = buildLogoutUrl(`https://accounts.codevertexitsolutions.com/login?return_to=${returnTo}`);
+                window.location.href = buildLogoutUrl(`https://accounts.codevertexafrica.com/login?return_to=${returnTo}`);
             },
 
             fetchUser: async () => {

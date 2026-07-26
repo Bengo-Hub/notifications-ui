@@ -1,7 +1,7 @@
 # Notifications UI - UX/UI Specification
 
 **Last Updated**: March 2026  
-**Purpose**: User-facing flows, layouts, and interaction patterns for notifications management at `notifications.codevertexitsolutions.com`.
+**Purpose**: User-facing flows, layouts, and interaction patterns for notifications management at `notifications.codevertexafrica.com`.
 
 ---
 

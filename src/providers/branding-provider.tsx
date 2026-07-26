@@ -20,7 +20,7 @@ const CODEVERTEX_BRAND = {
     secondaryColor: '#ea8022',
 };
 
-const SSO_BASE_URL = process.env.NEXT_PUBLIC_SSO_URL || 'https://sso.codevertexitsolutions.com';
+const SSO_BASE_URL = process.env.NEXT_PUBLIC_SSO_URL || 'https://sso.codevertexafrica.com';
 
 interface TenantBrandingResponse {
     logo_url?: string;

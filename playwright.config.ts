@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const base = process.env.BASE_URL || 'https://notifications.codevertexitsolutions.com';
+const base = process.env.BASE_URL || 'https://notifications.codevertexafrica.com';
 
 /**
  * Playwright E2E config for notifications-ui.

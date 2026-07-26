@@ -6,7 +6,7 @@
 
 **Duration**: March 6 -- March 17, 2026 (10 working days)
 **Status**: In Progress
-**Goal**: Ship a production-ready notifications management UI at `notifications.codevertexitsolutions.com` enabling `urban-loft` tenant admins to manage templates, view delivery logs, and configure branding.
+**Goal**: Ship a production-ready notifications management UI at `notifications.codevertexafrica.com` enabling `urban-loft` tenant admins to manage templates, view delivery logs, and configure branding.
 
 ### Fixes applied (March 6)
 - **API paths**: UI now calls `/api/v1/{orgSlug}/templates` (was `/api/v1/templates/{orgSlug}`) and `/api/v1/{orgSlug}/providers/available`; platform providers at `/api/v1/platform/providers`. Fixes 401 on templates and 404 on settings/providers when backend routes are under tenantId.
@@ -32,7 +32,7 @@
 **Priority**: P0 -- blocks all authenticated pages
 **Owner**: Frontend
 
-- [x] Verify OIDC PKCE flow redirects to `auth.codevertexitsolutions.com/login`
+- [x] Verify OIDC PKCE flow redirects to `auth.codevertexafrica.com/login`
 - [x] Verify callback at `/{orgSlug}/auth/callback` exchanges code for tokens
 - [x] Verify tokens are stored in session and used for API calls
 - [x] Verify unauthenticated users are redirected to login
@@ -163,7 +163,7 @@
 ### Pre-Launch (March 14-16)
 
 - [ ] Verify environment variables in K8s ConfigMap/Secrets:
-  - `NEXT_PUBLIC_API_BASE_URL` -> `https://notificationsapi.codevertexitsolutions.com`
+  - `NEXT_PUBLIC_API_BASE_URL` -> `https://notificationsapi.codevertexafrica.com`
   - SSO client ID, redirect URI
 - [ ] Verify OAuth client `notifications-ui` registered in auth-service
 - [ ] Build production Docker image and push to registry
@@ -173,7 +173,7 @@
 ### Launch Day (March 17)
 
 - [ ] Deploy final image via ArgoCD
-- [ ] Verify landing page loads at `https://notifications.codevertexitsolutions.com`
+- [ ] Verify landing page loads at `https://notifications.codevertexafrica.com`
 - [ ] Verify SSO login works
 - [ ] Verify `/urban-loft/dashboard` shows real data
 - [ ] Verify `/urban-loft/templates` lists MVP templates
