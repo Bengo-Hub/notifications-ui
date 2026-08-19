@@ -176,8 +176,8 @@ export default function TemplateEditorPage() {
   :root { --primary: ${sampleData['.brand_primary_color']}; --secondary: ${sampleData['.brand_secondary_color']}; }
   body { font-family: Arial, sans-serif; background:#f6f9fc; color:#111827; margin:0; padding:0; }
   .container { max-width:600px; margin:0 auto; background:#ffffff; }
-  .header { background: var(--primary); color:#ffffff; padding:16px 24px; display:flex; align-items:center; }
-  .brand-logo { height:32px; width:auto; margin-right:12px; }
+  .header { background: #FBF3E7; border-bottom: 4px solid var(--primary); color:#1f2937; padding:20px 24px; display:flex; align-items:center; }
+  .brand-logo { height:40px; max-width:180px; width:auto; margin-right:12px; }
   .brand-name { font-size:18px; font-weight:700; }
   .content { padding:24px; }
   .footer { background:#f3f4f6; color:#4b5563; padding:16px 24px; font-size:12px; }
