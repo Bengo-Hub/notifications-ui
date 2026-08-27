@@ -96,6 +96,7 @@ export interface NotificationPreference {
     default: boolean;
     enabled: boolean;
     overridden: boolean;
+    channels: ('email' | 'sms' | 'whatsapp' | 'push')[];
 }
 
 export interface TestProviderResult {
