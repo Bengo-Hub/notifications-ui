@@ -18,10 +18,6 @@ const PROVIDER_FIELDS: Record<string, { key: string; label: string; type: string
         { key: 'from', label: 'From Address', type: 'text', placeholder: 'no-reply@yourcompany.com' },
         { key: 'start_tls', label: 'Start TLS', type: 'switch', placeholder: '' },
     ],
-    sendgrid: [
-        { key: 'api_key', label: 'API Key', type: 'password', placeholder: 'Leave empty to keep current value' },
-        { key: 'from', label: 'From Address', type: 'text', placeholder: 'no-reply@yourcompany.com' },
-    ],
     brevo: [
         { key: 'api_key', label: 'API Key', type: 'password', placeholder: 'Leave empty to keep current value' },
         { key: 'sender_email', label: 'Sender Email', type: 'text', placeholder: 'no-reply@yourcompany.com' },
@@ -32,21 +28,6 @@ const PROVIDER_FIELDS: Record<string, { key: string; label: string; type: string
         { key: 'api_key', label: 'API Key', type: 'password', placeholder: 'Leave empty to keep current value' },
         { key: 'from', label: 'Sender ID', type: 'text', placeholder: 'YOURAPP' },
     ],
-    twilio: [
-        { key: 'account_sid', label: 'Account SID', type: 'text', placeholder: 'ACxxxx' },
-        { key: 'auth_token', label: 'Auth Token', type: 'password', placeholder: 'Leave empty to keep current value' },
-        { key: 'from', label: 'From Number', type: 'text', placeholder: '+1234567890' },
-    ],
-    vonage: [
-        { key: 'api_key', label: 'API Key', type: 'text', placeholder: 'xxxx' },
-        { key: 'api_secret', label: 'API Secret', type: 'password', placeholder: 'Leave empty to keep current value' },
-        { key: 'from', label: 'From', type: 'text', placeholder: 'YourApp' },
-    ],
-    plivo: [
-        { key: 'auth_id', label: 'Auth ID', type: 'text', placeholder: 'xxxx' },
-        { key: 'auth_token', label: 'Auth Token', type: 'password', placeholder: 'Leave empty to keep current value' },
-        { key: 'from', label: 'From Number', type: 'text', placeholder: '+1234567890' },
-    ],
     fcm: [
         { key: 'service_account', label: 'Service Account JSON', type: 'text', placeholder: 'Paste FCM service account JSON' },
     ],
@@ -54,10 +35,6 @@ const PROVIDER_FIELDS: Record<string, { key: string; label: string; type: string
         { key: 'phone_number_id', label: 'Phone Number ID', type: 'text', placeholder: 'e.g. 1262404020292374' },
         { key: 'access_token', label: 'Access Token', type: 'password', placeholder: 'Leave empty to keep current value' },
         { key: 'api_version', label: 'API Version', type: 'text', placeholder: 'v21.0' },
-    ],
-    apiwap: [
-        { key: 'instance_id', label: 'Instance ID', type: 'text', placeholder: 'Your apiwap instance ID' },
-        { key: 'api_key', label: 'API Key', type: 'password', placeholder: 'Leave empty to keep current value' },
     ],
 };
 
@@ -79,7 +56,6 @@ const CHANNELS = [
         id: 'email', name: 'Email', icon: Mail, color: 'blue',
         providers: [
             { name: 'smtp', label: 'SMTP' },
-            { name: 'sendgrid', label: 'SendGrid' },
             { name: 'brevo', label: 'Brevo' },
         ],
     },
@@ -87,16 +63,12 @@ const CHANNELS = [
         id: 'sms', name: 'SMS', icon: MessageSquare, color: 'green',
         providers: [
             { name: 'africastalking', label: "Africa's Talking" },
-            { name: 'twilio', label: 'Twilio' },
-            { name: 'vonage', label: 'Vonage' },
-            { name: 'plivo', label: 'Plivo' },
         ],
     },
     {
         id: 'whatsapp', name: 'WhatsApp', icon: MessageCircle, color: 'emerald',
         providers: [
             { name: 'meta_cloud', label: 'Meta Cloud API' },
-            { name: 'apiwap', label: 'apiwap' },
         ],
     },
     {

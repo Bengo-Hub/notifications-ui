@@ -3,7 +3,7 @@
 import { cn } from '@/lib/utils';
 import { userCanAccess } from '@/lib/auth/permissions';
 import { useAuthStore } from '@/store/auth';
-import { Bell, Cloud, Link2, Palette, ShieldCheck, CreditCard, Users } from 'lucide-react';
+import { Bell, Cloud, Link2, Palette, ShieldCheck, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ReactNode } from 'react';
@@ -19,7 +19,6 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
         { name: 'Branding', href: '/settings/branding', icon: Palette },
         { name: 'Integrations', href: '/settings/integrations', icon: Link2 },
         { name: 'Security', href: '/settings/security', icon: ShieldCheck },
-        { name: 'Billing', href: '/billing/credits', icon: CreditCard },
         ...(canManageUsers ? [{ name: 'Users & Roles', href: '/settings/users', icon: Users }] : []),
     ];
 

@@ -10,10 +10,10 @@ import { AlertCircle, Check, CheckCircle2, ChevronDown, Copy, ExternalLink, Glob
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-const EMAIL_PROVIDERS = ['smtp', 'sendgrid', 'brevo'];
-const SMS_PROVIDERS = ['twilio', 'africastalking', 'vonage', 'plivo'];
-// meta_cloud (official Meta WhatsApp Cloud API) is preferred; apiwap is a fallback aggregator.
-const WHATSAPP_PROVIDERS = ['meta_cloud', 'apiwap'];
+const EMAIL_PROVIDERS = ['smtp', 'brevo'];
+const SMS_PROVIDERS = ['africastalking'];
+// meta_cloud (official Meta WhatsApp Cloud API) is the only supported WhatsApp provider.
+const WHATSAPP_PROVIDERS = ['meta_cloud'];
 // Push (FCM) is platform-level only — configured at /platform/providers, not per-tenant
 const PUSH_PROVIDERS: string[] = [];
 
@@ -275,11 +275,11 @@ export default function ProvidersPage() {
 
     // Push (FCM) is platform-level — managed at /platform/providers by superadmin
     const channels = [
-        { id: 'email', name: 'Email', icon: Mail, description: 'SMTP, SendGrid, Brevo, or AWS SES', color: 'blue' },
-        { id: 'sms', name: 'SMS', icon: MessageSquare, description: 'Twilio, Infobip, or AfricasTalking', color: 'green' },
+        { id: 'email', name: 'Email', icon: Mail, description: 'SMTP or Brevo', color: 'blue' },
+        { id: 'sms', name: 'SMS', icon: MessageSquare, description: 'Africa\'s Talking', color: 'green' },
         {
             id: 'whatsapp', name: 'WhatsApp', icon: MessageCircle,
-            description: 'Add your own WhatsApp Business phone number (Meta Cloud API or apiwap). Optional — without one, sends use the platform\'s shared number.',
+            description: 'Add your own WhatsApp Business phone number (Meta Cloud API). Optional — without one, sends use the platform\'s shared number.',
             color: 'green',
         },
     ];
@@ -314,34 +314,15 @@ export default function ProvidersPage() {
             { key: 'from', label: 'From Address', type: 'text', placeholder: 'no-reply@yourcompany.com' },
             { key: 'start_tls', label: 'Start TLS', type: 'switch', placeholder: 'Enable for port 587. Disable for port 465 (SSL).' },
         ],
-        sendgrid: [
-            { key: 'api_key', label: 'API Key', type: 'password', placeholder: 'Leave empty to keep current value' },
-            { key: 'from', label: 'From Address', type: 'text', placeholder: 'no-reply@yourcompany.com' },
-        ],
         brevo: [
             { key: 'api_key', label: 'API Key', type: 'password', placeholder: 'Leave empty to keep current value' },
             { key: 'sender_email', label: 'Sender Email', type: 'text', placeholder: 'no-reply@yourcompany.com' },
             { key: 'sender_name', label: 'Sender Name', type: 'text', placeholder: 'Your Company' },
         ],
-        twilio: [
-            { key: 'account_sid', label: 'Account SID', type: 'text', placeholder: 'ACxxxx' },
-            { key: 'auth_token', label: 'Auth Token', type: 'password', placeholder: 'Leave empty to keep current value' },
-            { key: 'from', label: 'From Number', type: 'text', placeholder: '+1234567890' },
-        ],
         africastalking: [
             { key: 'username', label: 'Username', type: 'text', placeholder: 'sandbox' },
             { key: 'api_key', label: 'API Key', type: 'password', placeholder: 'Leave empty to keep current value' },
             { key: 'from', label: 'Sender ID', type: 'text', placeholder: 'YOURAPP' },
-        ],
-        vonage: [
-            { key: 'api_key', label: 'API Key', type: 'text', placeholder: 'xxxx' },
-            { key: 'api_secret', label: 'API Secret', type: 'password', placeholder: 'Leave empty to keep current value' },
-            { key: 'from', label: 'From', type: 'text', placeholder: 'YourApp' },
-        ],
-        plivo: [
-            { key: 'auth_id', label: 'Auth ID', type: 'text', placeholder: 'xxxx' },
-            { key: 'auth_token', label: 'Auth Token', type: 'password', placeholder: 'Leave empty to keep current value' },
-            { key: 'from', label: 'From Number', type: 'text', placeholder: '+1234567890' },
         ],
         fcm: [
             { key: 'service_account', label: 'Service Account JSON', type: 'text', placeholder: 'Paste FCM service account JSON' },
@@ -349,10 +330,6 @@ export default function ProvidersPage() {
         meta_cloud: [
             { key: '_meta_guide', label: 'Manual Setup', type: 'banner', placeholder: 'If Connect above isn’t available yet, our team can set your number up manually — paste the Phone Number ID they give you below.' },
             { key: 'phone_number_id', label: 'Phone Number ID', type: 'text', placeholder: 'e.g. 1262404020292374' },
-        ],
-        apiwap: [
-            { key: 'instance_id', label: 'Instance ID', type: 'text', placeholder: 'Your apiwap instance ID' },
-            { key: 'api_key', label: 'API Key', type: 'password', placeholder: 'Leave empty to keep current value' },
         ],
     };
 
