@@ -2,10 +2,11 @@
 
 import { Badge, Button, Card, CardContent, Switch } from '@/components/ui/base';
 import { useTenantProviders, useTestTenantProvider, useWebhookConfig } from '@/hooks/use-settings';
+import { useWhatsAppEmbeddedSignup } from '@/hooks/use-whatsapp-embedded-signup';
 import { settingsApi } from '@/lib/api/settings';
 import { cn } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, Check, CheckCircle2, ChevronDown, Copy, Globe, Loader2, Lock, Mail, MessageCircle, MessageSquare, PlugZap, Save, Webhook, XCircle } from 'lucide-react';
+import { AlertCircle, Check, CheckCircle2, ChevronDown, Copy, ExternalLink, Globe, Loader2, Lock, Mail, MessageCircle, MessageSquare, PlugZap, Save, Webhook, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -213,6 +214,51 @@ function WebhookConfigCard({ kind }: { kind: 'whatsapp' | 'sms' }) {
                     </div>
                 </div>
             ))}
+        </div>
+    );
+}
+
+function WhatsAppConnectButton() {
+    const { configured, missing, launchSignup, status, isCompleting, completeError, completeSuccess } = useWhatsAppEmbeddedSignup();
+
+    useEffect(() => {
+        if (completeSuccess) toast.success('WhatsApp number connected');
+        if (completeError) toast.error((completeError as any)?.response?.data?.error ?? 'Failed to complete WhatsApp connection');
+    }, [completeSuccess, completeError]);
+
+    const busy = status === 'loading-sdk' || status === 'awaiting-popup' || isCompleting;
+
+    return (
+        <div className="mb-4 p-4 rounded-lg bg-emerald-500/5 border border-emerald-500/20 space-y-3">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                    <h4 className="text-sm font-bold flex items-center gap-1.5">
+                        <MessageCircle className="h-4 w-4 text-emerald-600" /> Connect via WhatsApp
+                    </h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                        Register your own WhatsApp number in a few clicks — no need to visit Meta yourself.
+                    </p>
+                </div>
+                <Button
+                    type="button"
+                    size="sm"
+                    className="gap-1.5 shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white"
+                    disabled={!configured || busy}
+                    onClick={launchSignup}
+                >
+                    {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
+                    {status === 'completing' || isCompleting ? 'Finishing setup…' : 'Connect WhatsApp Number'}
+                </Button>
+            </div>
+            {!configured && (
+                <p className="text-[11px] text-muted-foreground">
+                    Not yet available — waiting on Meta to approve CodeVertex for Embedded Signup (business
+                    verification + app review). Use the Phone Number ID field below in the meantime.
+                    {process.env.NODE_ENV !== 'production' && missing.length > 0 && (
+                        <> Missing: <code className="font-mono">{missing.join(', ')}</code>.</>
+                    )}
+                </p>
+            )}
         </div>
     );
 }
@@ -441,6 +487,7 @@ export default function ProvidersPage() {
                                                 )}
 
                                                 {!isChanging && <>
+                                                    {config.provider_name === 'meta_cloud' && <WhatsAppConnectButton />}
                                                     {config.provider_name === 'meta_cloud' && <WebhookConfigCard kind="whatsapp" />}
                                                     {config.provider_name === 'africastalking' && <WebhookConfigCard kind="sms" />}
                                                     <ProviderSettingsForm
