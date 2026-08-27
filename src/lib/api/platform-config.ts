@@ -41,6 +41,25 @@ export interface BackupDestinationTestResult {
     error?: string;
 }
 
+export interface SMSMarginSummary {
+    revenue: number;
+    provider_cost: number;
+    margin: number;
+    transaction_count: number;
+}
+
+export interface WhatsAppMarginSummary {
+    revenue: number;
+    provider_cost: number;
+    margin: number;
+    active_subscriptions: number;
+}
+
+export interface MarginSummary {
+    sms: SMSMarginSummary;
+    whatsapp: WhatsAppMarginSummary;
+}
+
 export interface PlatformBillingSettings {
     cost_per_sms?: number;
     provider_cost_per_sms?: number;
@@ -81,4 +100,12 @@ export const platformConfigApi = {
 
     updatePlatformBilling: (body: PlatformBillingSettings) =>
         apiClient.post<PlatformBillingSettings>('/api/v1/platform/billing', body),
+
+    getMargin: (params?: { from?: string; to?: string }) => {
+        const q = new URLSearchParams();
+        if (params?.from) q.set('from', params.from);
+        if (params?.to) q.set('to', params.to);
+        const qs = q.toString();
+        return apiClient.get<MarginSummary>(`/api/v1/platform/billing/margin${qs ? `?${qs}` : ''}`);
+    },
 };

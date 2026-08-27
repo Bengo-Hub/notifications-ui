@@ -88,3 +88,11 @@ export function useUpdatePlatformBilling() {
         onSuccess: () => qc.invalidateQueries({ queryKey: platformConfigKeys.billing() }),
     });
 }
+
+export function useBillingMargin() {
+    return useQuery({
+        queryKey: ['platform-config', 'margin'] as const,
+        queryFn: () => platformConfigApi.getMargin(),
+        staleTime: STALE_MS,
+    });
+}

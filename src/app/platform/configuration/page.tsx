@@ -3,6 +3,7 @@
 import { BackupDestinationForm } from '@/components/backup-destination-form';
 import { Badge, Button, Card, CardContent, CardHeader } from '@/components/ui/base';
 import {
+    useBillingMargin,
     usePlatformBackupDestination,
     usePlatformBilling,
     usePlatformSettings,
@@ -12,7 +13,7 @@ import {
     useUpsertPlatformSetting,
 } from '@/hooks/use-platform-config';
 import type { UpsertBackupDestination } from '@/lib/api/platform-config';
-import { CreditCard, KeyRound, Loader2, Lock, Save, Settings2 } from 'lucide-react';
+import { CreditCard, KeyRound, Loader2, Lock, Save, Settings2, TrendingUp } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -99,6 +100,55 @@ function ServiceConfigEditor() {
                                 </div>
                             );
                         })}
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
+function MarginCard() {
+    const { data, isLoading } = useBillingMargin();
+    const fmt = (n: number) => `KES ${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+
+    return (
+        <Card>
+            <CardHeader className="border-b border-border/50 py-4">
+                <div className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-primary" />
+                    <h3 className="font-bold text-sm uppercase tracking-tight">Realized Margin</h3>
+                </div>
+            </CardHeader>
+            <CardContent className="p-6 space-y-6">
+                <p className="text-xs text-muted-foreground">
+                    What tenants are charged vs. the platform&apos;s real provider cost. SMS is summed across all
+                    deductions ever recorded; WhatsApp is a live snapshot of currently-active subscriptions
+                    (plan price vs. plan&apos;s estimated monthly provider cost).
+                </p>
+                {isLoading ? (
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm py-4">
+                        <Loader2 className="h-4 w-4 animate-spin" /> Loading...
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="p-4 rounded-lg border border-border bg-card space-y-2">
+                            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">SMS</h4>
+                            <div className="text-sm space-y-1">
+                                <div className="flex justify-between"><span className="text-muted-foreground">Revenue</span><span className="font-mono">{fmt(data?.sms.revenue ?? 0)}</span></div>
+                                <div className="flex justify-between"><span className="text-muted-foreground">Provider cost</span><span className="font-mono">{fmt(data?.sms.provider_cost ?? 0)}</span></div>
+                                <div className="flex justify-between font-bold pt-1 border-t border-border/50"><span>Margin</span><span className="font-mono text-primary">{fmt(data?.sms.margin ?? 0)}</span></div>
+                                <div className="text-[11px] text-muted-foreground pt-1">{data?.sms.transaction_count ?? 0} deductions</div>
+                            </div>
+                        </div>
+                        <div className="p-4 rounded-lg border border-border bg-card space-y-2">
+                            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">WhatsApp</h4>
+                            <div className="text-sm space-y-1">
+                                <div className="flex justify-between"><span className="text-muted-foreground">Revenue / mo</span><span className="font-mono">{fmt(data?.whatsapp.revenue ?? 0)}</span></div>
+                                <div className="flex justify-between"><span className="text-muted-foreground">Provider cost / mo</span><span className="font-mono">{fmt(data?.whatsapp.provider_cost ?? 0)}</span></div>
+                                <div className="flex justify-between font-bold pt-1 border-t border-border/50"><span>Margin / mo</span><span className="font-mono text-primary">{fmt(data?.whatsapp.margin ?? 0)}</span></div>
+                                <div className="text-[11px] text-muted-foreground pt-1">{data?.whatsapp.active_subscriptions ?? 0} active subscriptions</div>
+                            </div>
+                        </div>
                     </div>
                 )}
             </CardContent>
@@ -240,6 +290,8 @@ export default function PlatformConfigurationPage() {
             />
 
             <PlatformBillingCard />
+
+            <MarginCard />
         </div>
     );
 }
