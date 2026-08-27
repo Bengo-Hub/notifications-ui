@@ -2,20 +2,14 @@
 
 import { useState } from 'react';
 import { Button, Card, CardContent } from '@/components/ui/base';
-import { Globe, Link2, Loader2, Save } from 'lucide-react';
-import { toast } from 'sonner';
-import { settingsApi } from '@/lib/api/settings';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Globe, Link2, Loader2 } from 'lucide-react';
 
 const AUTH_API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || 'https://sso.codevertexafrica.com';
 const NOTIFICATIONS_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://notificationsapi.codevertexafrica.com';
 
 export default function IntegrationsSettingsPage() {
-    const qc = useQueryClient();
-    const [authApiUrl, setAuthApiUrl] = useState(AUTH_API_URL);
-    const [allowedOrigins, setAllowedOrigins] = useState('');
+    const [authApiUrl] = useState(AUTH_API_URL);
     const [testStatus, setTestStatus] = useState<'idle' | 'loading' | 'ok' | 'fail'>('idle');
-    const [saving, setSaving] = useState(false);
 
     const inputClass = 'w-full bg-accent/10 border border-border rounded-lg py-2 px-3 text-sm focus:ring-1 focus:ring-primary outline-none';
 
@@ -26,23 +20,6 @@ export default function IntegrationsSettingsPage() {
             setTestStatus(res.ok ? 'ok' : 'fail');
         } catch {
             setTestStatus('fail');
-        }
-    };
-
-    const handleSave = async () => {
-        setSaving(true);
-        try {
-            await settingsApi.saveProviderSettings({
-                provider_type: 'system',
-                provider_name: 'cors',
-                settings: { allowed_origins: allowedOrigins },
-            });
-            toast.success('Integrations settings saved');
-            qc.invalidateQueries({ queryKey: ['settings'] });
-        } catch {
-            toast.error('Failed to save settings');
-        } finally {
-            setSaving(false);
         }
     };
 
@@ -69,8 +46,8 @@ export default function IntegrationsSettingsPage() {
                         <div className="flex gap-3">
                             <input
                                 value={authApiUrl}
-                                onChange={(e) => setAuthApiUrl(e.target.value)}
-                                className={`${inputClass} flex-1`}
+                                readOnly
+                                className={`${inputClass} flex-1 opacity-60 cursor-not-allowed`}
                             />
                             <Button
                                 size="sm"
@@ -92,6 +69,9 @@ export default function IntegrationsSettingsPage() {
                         {testStatus === 'fail' && (
                             <p className="text-xs text-red-600 font-medium">Connection failed — check the URL</p>
                         )}
+                        <p className="text-xs text-muted-foreground">
+                            Set via NEXT_PUBLIC_AUTH_API_URL environment variable.
+                        </p>
                     </div>
                 </CardContent>
             </Card>
@@ -130,30 +110,10 @@ export default function IntegrationsSettingsPage() {
                         <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                             Allowed Origins
                         </label>
-                        <input
-                            value={allowedOrigins}
-                            onChange={(e) => setAllowedOrigins(e.target.value)}
-                            placeholder="https://app.example.com, https://admin.example.com"
-                            className={inputClass}
-                        />
                         <p className="text-xs text-muted-foreground">
-                            Comma-separated list of allowed CORS origins.
+                            Set via the <code className="text-[11px] bg-accent/20 px-1 py-0.5 rounded">HTTP_ALLOWED_ORIGINS</code> environment
+                            variable on this service — not editable here. Contact platform engineering to add an origin.
                         </p>
-                    </div>
-                    <div className="flex justify-end pt-2">
-                        <Button
-                            size="sm"
-                            className="gap-2"
-                            disabled={saving}
-                            onClick={handleSave}
-                        >
-                            {saving ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                                <Save className="h-3.5 w-3.5" />
-                            )}
-                            Save
-                        </Button>
                     </div>
                 </CardContent>
             </Card>

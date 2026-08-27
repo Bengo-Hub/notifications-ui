@@ -1,7 +1,7 @@
 'use client';
 
 import { Badge, Button, Card, CardContent, CardHeader, Switch } from '@/components/ui/base';
-import { AlertTriangle, Copy, DatabaseBackup, KeyRound, RefreshCw, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { Copy, DatabaseBackup, KeyRound, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { settingsApi, type EncryptionKeyStatus } from '@/lib/api/settings';
@@ -351,62 +351,12 @@ export default function SecuritySettingsPage() {
                         </div>
                         <Badge variant="default">Always On</Badge>
                     </div>
-
-                    <div className="flex items-center justify-between p-4 rounded-xl bg-orange-500/5 border border-orange-500/20">
-                        <div className="flex items-center gap-4">
-                            <div className="h-10 w-10 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-500">
-                                <AlertTriangle className="h-5 w-5" />
-                            </div>
-                            <div className="space-y-0.5">
-                                <h4 className="text-sm font-bold text-orange-600">IP Whitelisting</h4>
-                                <p className="text-xs text-orange-600/70">Restrict provider API access to specific IP ranges.</p>
-                            </div>
-                        </div>
-                        <Button size="sm" variant="outline" className="border-orange-500/30 text-orange-600 hover:bg-orange-500/10">Configure</Button>
-                    </div>
-
-                    <div className="space-y-4 pt-4 border-t border-border/50">
-                        <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Access Logs</h4>
-                        <div className="space-y-2">
-                            {[
-                                { event: 'Provider Key Updated', user: 'Admin', time: '2 hours ago' },
-                                { event: 'Branding Changed', user: 'Design Team', time: '5 hours ago' },
-                                { event: 'Security Policy Toggle', user: 'Admin', time: '1 day ago' },
-                            ].map((log, i) => (
-                                <div key={i} className="flex items-center justify-between py-2 text-xs">
-                                    <span className="font-semibold">{log.event}</span>
-                                    <div className="flex items-center gap-3 text-muted-foreground">
-                                        <span>{log.user}</span>
-                                        <span>•</span>
-                                        <span>{log.time}</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
                 </CardContent>
             </Card>
 
             <AutoBackupCard />
 
             {isPlatformAdmin && <CredentialEncryptionKeyCard />}
-
-            <Card className="border-destructive/20 bg-destructive/5">
-                <CardContent className="p-6">
-                    <div className="flex items-start gap-4">
-                        <div className="h-8 w-8 rounded-full bg-destructive/20 flex items-center justify-center shrink-0">
-                            <ShieldAlert className="h-4 w-4 text-destructive" />
-                        </div>
-                        <div className="space-y-1">
-                            <h4 className="text-sm font-bold text-destructive uppercase tracking-tight">Danger Zone</h4>
-                            <p className="text-xs text-destructive/70 leading-relaxed mb-4">
-                                Purging an organization will permanently delete all templates, provider configurations, and historical delivery logs. This action cannot be undone.
-                            </p>
-                            <Button size="sm" variant="destructive" className="px-6">Purge Organization Data</Button>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
         </div>
     );
 }

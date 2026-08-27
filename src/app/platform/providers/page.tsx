@@ -5,7 +5,7 @@ import { usePlatformProviders, useTestPlatformProvider } from '@/hooks/use-setti
 import { settingsApi } from '@/lib/api/settings';
 import { cn } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
-import { ChevronDown, Globe, Loader2, Lock, Mail, MessageSquare, RefreshCw, Save, Server, Settings2, Shield } from 'lucide-react';
+import { Bell, ChevronDown, Globe, Loader2, Lock, Mail, MessageCircle, MessageSquare, RefreshCw, Save, Server, Settings2, Shield } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -50,6 +50,22 @@ const PROVIDER_FIELDS: Record<string, { key: string; label: string; type: string
     fcm: [
         { key: 'service_account', label: 'Service Account JSON', type: 'text', placeholder: 'Paste FCM service account JSON' },
     ],
+    meta_cloud: [
+        { key: 'phone_number_id', label: 'Phone Number ID', type: 'text', placeholder: 'e.g. 1262404020292374' },
+        { key: 'access_token', label: 'Access Token', type: 'password', placeholder: 'Leave empty to keep current value' },
+        { key: 'api_version', label: 'API Version', type: 'text', placeholder: 'v21.0' },
+    ],
+    apiwap: [
+        { key: 'instance_id', label: 'Instance ID', type: 'text', placeholder: 'Your apiwap instance ID' },
+        { key: 'api_key', label: 'API Key', type: 'password', placeholder: 'Leave empty to keep current value' },
+    ],
+};
+
+const CHANNEL_COLOR_CLASSES: Record<string, string> = {
+    blue: 'bg-blue-500/10 text-blue-500',
+    green: 'bg-green-500/10 text-green-500',
+    emerald: 'bg-emerald-500/10 text-emerald-500',
+    orange: 'bg-orange-500/10 text-orange-500',
 };
 
 const FIELD_DEFAULTS: Record<string, string> = {
@@ -74,6 +90,19 @@ const CHANNELS = [
             { name: 'twilio', label: 'Twilio' },
             { name: 'vonage', label: 'Vonage' },
             { name: 'plivo', label: 'Plivo' },
+        ],
+    },
+    {
+        id: 'whatsapp', name: 'WhatsApp', icon: MessageCircle, color: 'emerald',
+        providers: [
+            { name: 'meta_cloud', label: 'Meta Cloud API' },
+            { name: 'apiwap', label: 'apiwap' },
+        ],
+    },
+    {
+        id: 'push', name: 'Push', icon: Bell, color: 'orange',
+        providers: [
+            { name: 'fcm', label: 'Firebase Cloud Messaging' },
         ],
     },
 ];
@@ -232,7 +261,7 @@ export default function PlatformProvidersPage() {
                             <div className="flex items-center gap-3 mb-5">
                                 <div className={cn(
                                     "h-10 w-10 rounded-xl flex items-center justify-center border border-border shadow-sm",
-                                    color === 'blue' ? "bg-blue-500/10 text-blue-500" : "bg-green-500/10 text-green-500"
+                                    CHANNEL_COLOR_CLASSES[color] ?? CHANNEL_COLOR_CLASSES.blue
                                 )}>
                                     <Icon className="h-5 w-5" />
                                 </div>
@@ -260,7 +289,7 @@ export default function PlatformProvidersPage() {
                                                     </Badge>
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    {p && pid != null && (
+                                                    {p && pid != null && channelId !== 'push' && (
                                                         <>
                                                             {isTestModal ? (
                                                                 <div className="flex items-center gap-2">

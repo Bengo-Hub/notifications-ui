@@ -1,11 +1,11 @@
 'use client';
 
 import { Badge, Button, Card, CardContent, Switch } from '@/components/ui/base';
-import { useTenantProviders } from '@/hooks/use-settings';
+import { useTenantProviders, useTestTenantProvider, useWebhookConfig } from '@/hooks/use-settings';
 import { settingsApi } from '@/lib/api/settings';
 import { cn } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, Check, ChevronDown, ExternalLink, Globe, Loader2, Lock, Mail, MessageCircle, MessageSquare, Save } from 'lucide-react';
+import { AlertCircle, Check, CheckCircle2, ChevronDown, Copy, Globe, Loader2, Lock, Mail, MessageCircle, MessageSquare, PlugZap, Save, Webhook, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -98,6 +98,121 @@ function ProviderSettingsForm({ fields, settings, savedSettings, isLoading, isSa
                     {isSaving ? 'Saving...' : 'Save Settings'}
                 </Button>
             </div>
+        </div>
+    );
+}
+
+function TestConnectionSection({ channelId, providerName }: { channelId: string; providerName: string }) {
+    const [to, setTo] = useState('');
+    const testMutation = useTestTenantProvider();
+    const requiresTo = channelId === 'email';
+
+    const handleTest = () => {
+        testMutation.mutate({ provider_type: channelId, provider_name: providerName, to: to.trim() || undefined });
+    };
+
+    const result = testMutation.data;
+
+    return (
+        <div className="pt-4 mt-2 border-t border-border/50 space-y-3">
+            <div className="flex items-center gap-2">
+                <PlugZap className="h-3.5 w-3.5 text-primary" />
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Test Connection</h4>
+            </div>
+            <div className="flex gap-2">
+                <input
+                    type="text"
+                    value={to}
+                    onChange={(e) => setTo(e.target.value)}
+                    placeholder={requiresTo ? 'Email address to send a test message to' : 'Optional — phone number/recipient for a real test send'}
+                    className="flex-1 bg-accent/20 p-2.5 rounded-lg border border-border text-sm focus:ring-1 focus:ring-primary outline-none"
+                />
+                <Button
+                    size="sm"
+                    variant="outline"
+                    className="shrink-0 gap-1.5"
+                    disabled={testMutation.isPending || (requiresTo && !to.trim())}
+                    onClick={handleTest}
+                >
+                    {testMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PlugZap className="h-3.5 w-3.5" />}
+                    Test
+                </Button>
+            </div>
+            {!requiresTo && (
+                <p className="text-[11px] text-muted-foreground">
+                    Leave the recipient blank to just verify the credentials (account balance / number status) without sending a real message, where supported.
+                </p>
+            )}
+            {result && (
+                <div className={cn(
+                    "flex items-start gap-2 p-3 rounded-lg border text-xs",
+                    result.success ? "bg-green-500/5 border-green-500/20 text-green-700 dark:text-green-400" : "bg-destructive/5 border-destructive/20 text-destructive"
+                )}>
+                    {result.success ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5" /> : <XCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />}
+                    <div className="space-y-1">
+                        <p className="font-semibold">{result.success ? (result.message ?? 'Connection verified') : (result.error ?? 'Test failed')}</p>
+                        {result.info && (
+                            <div className="font-mono text-[11px] opacity-80 space-y-0.5">
+                                {Object.entries(result.info).map(([k, v]) => (
+                                    <div key={k}>{k}: {String(v)}</div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+            {testMutation.isError && !result && (
+                <div className="flex items-start gap-2 p-3 rounded-lg border bg-destructive/5 border-destructive/20 text-destructive text-xs">
+                    <XCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                    <span>{(testMutation.error as any)?.response?.data?.error ?? 'Test connection failed'}</span>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function WebhookConfigCard({ kind }: { kind: 'whatsapp' | 'sms' }) {
+    const { data, isLoading } = useWebhookConfig();
+
+    const copy = async (value: string) => {
+        try {
+            await navigator.clipboard.writeText(value);
+            toast.success('Copied to clipboard');
+        } catch {
+            toast.error('Failed to copy');
+        }
+    };
+
+    if (isLoading || !data) return null;
+
+    const rows = kind === 'whatsapp'
+        ? [
+            { label: 'Callback URL', value: data.whatsapp_callback_url },
+            { label: 'Verify Token', value: data.whatsapp_verify_token },
+        ]
+        : [
+            { label: 'Delivery Report Callback URL', value: data.africastalking_dlr_callback_url },
+        ];
+
+    return (
+        <div className="mb-4 p-4 rounded-lg bg-accent/10 border border-border space-y-3">
+            <div className="flex items-center gap-2">
+                <Webhook className="h-3.5 w-3.5 text-primary" />
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                    Webhook Configuration — paste into {kind === 'whatsapp' ? "Meta's WhatsApp Manager" : "Africa's Talking dashboard"}
+                </h4>
+            </div>
+            {rows.map((row) => (
+                <div key={row.label} className="space-y-1">
+                    <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{row.label}</label>
+                    <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-card p-2 rounded-lg border border-border text-xs font-mono truncate">{row.value}</div>
+                        <Button type="button" variant="outline" size="sm" className="shrink-0 gap-1.5" onClick={() => copy(row.value)}>
+                            <Copy className="h-3 w-3" />
+                        </Button>
+                    </div>
+                </div>
+            ))}
         </div>
     );
 }
@@ -285,13 +400,6 @@ export default function ProvidersPage() {
                                             </div>
                                         </div>
                                         <p className="text-sm text-muted-foreground leading-relaxed">{channel.description}</p>
-
-                                        <div className="mt-8">
-                                            <Button variant="outline" size="sm" className="w-full gap-2">
-                                                <ExternalLink className="h-3 w-3" />
-                                                Documentation
-                                            </Button>
-                                        </div>
                                     </div>
 
                                     <div className="p-6 flex-1 bg-card">
@@ -334,15 +442,20 @@ export default function ProvidersPage() {
                                                     </div>
                                                 )}
 
-                                                {!isChanging && <ProviderSettingsForm
-                                                    fields={PROVIDER_FIELDS[config.provider_name] ?? []}
-                                                    settings={providerSettings[`${channel.id}:${config.provider_name}`] ?? {}}
-                                                    savedSettings={savedProviderSettings[`${channel.id}:${config.provider_name}`]}
-                                                    isLoading={loadingSettings === `${channel.id}:${config.provider_name}`}
-                                                    isSaving={savingSettings === `${channel.id}:${config.provider_name}`}
-                                                    onFieldChange={(key, value) => updateSettingField(channel.id, config.provider_name, key, value)}
-                                                    onSave={() => handleSaveSettings(channel.id, config.provider_name)}
-                                                />}
+                                                {!isChanging && <>
+                                                    {config.provider_name === 'meta_cloud' && <WebhookConfigCard kind="whatsapp" />}
+                                                    {config.provider_name === 'africastalking' && <WebhookConfigCard kind="sms" />}
+                                                    <ProviderSettingsForm
+                                                        fields={PROVIDER_FIELDS[config.provider_name] ?? []}
+                                                        settings={providerSettings[`${channel.id}:${config.provider_name}`] ?? {}}
+                                                        savedSettings={savedProviderSettings[`${channel.id}:${config.provider_name}`]}
+                                                        isLoading={loadingSettings === `${channel.id}:${config.provider_name}`}
+                                                        isSaving={savingSettings === `${channel.id}:${config.provider_name}`}
+                                                        onFieldChange={(key, value) => updateSettingField(channel.id, config.provider_name, key, value)}
+                                                        onSave={() => handleSaveSettings(channel.id, config.provider_name)}
+                                                    />
+                                                    <TestConnectionSection channelId={channel.id} providerName={config.provider_name} />
+                                                </>}
                                             </div>
                                         ) : (
                                             <div className="h-full flex flex-col items-center justify-center p-8 space-y-4 text-center">

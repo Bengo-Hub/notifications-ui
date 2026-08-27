@@ -9,7 +9,6 @@ export const settingsKeys = {
   platformTenants: () => ['settings', 'platform', 'tenants'] as const,
   platformProviders: () => ['settings', 'platform', 'providers'] as const,
   tenantProviders: () => ['settings', 'current', 'providers'] as const,
-  branding: () => ['settings', 'current', 'branding'] as const,
 };
 
 export function usePlatformTenants(enabled = true) {
@@ -81,14 +80,6 @@ export function useTenantProviders() {
   });
 }
 
-export function useBranding() {
-  return useQuery({
-    queryKey: settingsKeys.branding(),
-    queryFn: () => settingsApi.getBranding(),
-    staleTime: STALE_MS,
-  });
-}
-
 export function useTestPlatformProvider() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -97,5 +88,20 @@ export function useTestPlatformProvider() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: settingsKeys.platformProviders() });
     },
+  });
+}
+
+export function useTestTenantProvider() {
+  return useMutation({
+    mutationFn: (body: { provider_type: string; provider_name: string; to?: string }) =>
+      settingsApi.testProvider(body),
+  });
+}
+
+export function useWebhookConfig() {
+  return useQuery({
+    queryKey: ['settings', 'current', 'webhooks'] as const,
+    queryFn: () => settingsApi.getWebhookConfig(),
+    staleTime: STALE_MS,
   });
 }

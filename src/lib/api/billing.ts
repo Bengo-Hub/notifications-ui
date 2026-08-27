@@ -35,7 +35,8 @@ export interface TopUpResult {
 }
 
 export const billingApi = {
-    getBalance: (type: 'SMS' | 'WHATSAPP') =>
+    // Credits are an SMS-only wallet — WhatsApp is billed via subscription plans (see use-whatsapp.ts).
+    getBalance: (type: 'SMS') =>
         apiClient.get<CreditBalance>(`/api/v1/billing/balance?type=${type}`),
 
     getTransactions: (params?: { type?: string; limit?: number; offset?: number }) => {

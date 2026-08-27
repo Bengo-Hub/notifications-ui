@@ -16,16 +16,6 @@ export interface ProviderSetting {
     status: 'active' | 'inactive' | 'error';
 }
 
-export interface TenantBranding {
-    tenant_id: string;
-    logo_url?: string;
-    primary_color?: string;
-    secondary_color?: string;
-    font_family?: string;
-    custom_css?: string;
-    metadata?: Record<string, any>;
-}
-
 export interface TenantListItem {
     id: string;
     name: string;
@@ -74,8 +64,11 @@ export const settingsApi = {
     saveProviderSettings: (body: { provider_type: string; provider_name: string; settings: Record<string, string> }) =>
         apiClient.post<{ message: string }>('/api/v1/providers/settings', body),
 
-    getBranding: () =>
-        apiClient.get<TenantBranding>('/api/v1/branding'),
+    testProvider: (body: { provider_type: string; provider_name: string; to?: string }) =>
+        apiClient.post<TestProviderResult>('/api/v1/providers/test', body),
+
+    getWebhookConfig: () =>
+        apiClient.get<WebhookConfig>('/api/v1/settings/webhooks'),
 
     getSecuritySettings: () =>
         apiClient.get<{ webhook_secret: string }>('/api/v1/settings/security'),
@@ -103,6 +96,21 @@ export interface NotificationPreference {
     default: boolean;
     enabled: boolean;
     overridden: boolean;
+}
+
+export interface TestProviderResult {
+    success: boolean;
+    provider_type: string;
+    provider_name: string;
+    message?: string;
+    error?: string;
+    info?: Record<string, unknown> | null;
+}
+
+export interface WebhookConfig {
+    whatsapp_callback_url: string;
+    whatsapp_verify_token: string;
+    africastalking_dlr_callback_url: string;
 }
 
 export interface EncryptionKeyStatus {
