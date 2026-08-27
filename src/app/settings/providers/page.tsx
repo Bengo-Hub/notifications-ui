@@ -58,8 +58,8 @@ function ProviderSettingsForm({ fields, settings, savedSettings, isLoading, isSa
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {fields.map((field) => field.type === 'banner' ? (
-                        <div key={field.key} className="md:col-span-2 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-3 text-xs text-blue-700 dark:text-blue-300">
-                            <span className="font-bold">ℹ️ SMTP Guide:</span> {field.placeholder}
+                        <div key={field.key} className="md:col-span-2 rounded-lg bg-primary/10 border border-primary/30 p-3 text-xs text-foreground leading-relaxed">
+                            <span className="font-bold text-primary">ℹ️ {field.label || 'Guide'}:</span> {field.placeholder}
                         </div>
                     ) : (
                         <div key={field.key} className="space-y-1.5">
@@ -260,7 +260,7 @@ export default function ProvidersPage() {
 
     const PROVIDER_FIELDS: Record<string, { key: string; label: string; type: string; placeholder: string }[]> = {
         smtp: [
-            { key: '_smtp_guide', label: '', type: 'banner', placeholder: 'Port 465 → SSL/TLS (implicit encryption). Port 587 → STARTTLS (upgrade to TLS). Port 25 → Unencrypted (not recommended). Most providers (Gmail, Zoho, Outlook) use port 465 (SSL) or 587 (STARTTLS).' },
+            { key: '_smtp_guide', label: 'SMTP Guide', type: 'banner', placeholder: 'Port 465 → SSL/TLS (implicit encryption). Port 587 → STARTTLS (upgrade to TLS). Port 25 → Unencrypted (not recommended). Most providers (Gmail, Zoho, Outlook) use port 465 (SSL) or 587 (STARTTLS).' },
             { key: 'host', label: 'SMTP Host', type: 'text', placeholder: 'smtp.gmail.com' },
             { key: 'port', label: 'Port', type: 'text', placeholder: '587' },
             { key: 'username', label: 'Username', type: 'text', placeholder: 'user@example.com' },
@@ -301,10 +301,8 @@ export default function ProvidersPage() {
             { key: 'service_account', label: 'Service Account JSON', type: 'text', placeholder: 'Paste FCM service account JSON' },
         ],
         meta_cloud: [
-            { key: '_meta_guide', label: '', type: 'banner', placeholder: 'From Meta Business Manager → WhatsApp Manager → API Setup: register your own phone number, generate a permanent access token (a System User token, not the 24h test token), and copy its Phone Number ID here. Business-initiated messages require a Meta-approved message template.' },
+            { key: '_meta_guide', label: 'Connect WhatsApp', type: 'banner', placeholder: 'Self-serve connection is coming soon. Until then, our team can set up your number for you — once done, paste the Phone Number ID they give you below.' },
             { key: 'phone_number_id', label: 'Phone Number ID', type: 'text', placeholder: 'e.g. 1262404020292374' },
-            { key: 'access_token', label: 'Access Token', type: 'password', placeholder: 'Leave empty to keep current value' },
-            { key: 'api_version', label: 'API Version', type: 'text', placeholder: 'v21.0' },
         ],
         apiwap: [
             { key: 'instance_id', label: 'Instance ID', type: 'text', placeholder: 'Your apiwap instance ID' },
