@@ -1,8 +1,9 @@
 'use client';
 
 import { Badge, Button, Card, CardContent, CardHeader } from '@/components/ui/base';
-import { useAssignRole, useAssignments, usePermissions, useRevokeRole, useRoles } from '@/hooks/use-rbac';
-import { AlertCircle, Loader2, Shield, ShieldCheck, Trash2, UserPlus, Users } from 'lucide-react';
+import { useAssignRole, useAssignments, usePermissions, useRevokeRole, useRoles, useTenantUsers } from '@/hooks/use-rbac';
+import { SearchableCombobox, type ComboboxOption } from '@bengo-hub/shared-ui-lib/combobox';
+import { Loader2, Shield, ShieldCheck, Trash2, UserPlus, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -10,6 +11,7 @@ export default function UsersAndRolesPage() {
     const { data: roles = [], isLoading: rolesLoading, isError: rolesError, refetch: refetchRoles } = useRoles();
     const { data: permissions = [], isLoading: permsLoading } = usePermissions();
     const { data: assignments = [], isLoading: assignmentsLoading, isError: assignmentsError, refetch: refetchAssignments } = useAssignments();
+    const { data: tenantUsers = [], isLoading: usersLoading } = useTenantUsers();
     const assignRole = useAssignRole();
     const revokeRole = useRevokeRole();
 
@@ -17,6 +19,12 @@ export default function UsersAndRolesPage() {
     const [roleId, setRoleId] = useState('');
 
     const roleById = useMemo(() => new Map(roles.map((r) => [r.ID, r])), [roles]);
+    const userById = useMemo(() => new Map(tenantUsers.map((u) => [u.id, u])), [tenantUsers]);
+
+    const userOptions = useMemo<ComboboxOption[]>(
+        () => tenantUsers.map((u) => ({ value: u.id, label: u.full_name || u.email, hint: u.full_name ? u.email : undefined })),
+        [tenantUsers]
+    );
 
     const permissionsByModule = useMemo(() => {
         const map = new Map<string, typeof permissions>();
@@ -62,18 +70,6 @@ export default function UsersAndRolesPage() {
                 </p>
             </div>
 
-            <Card className="bg-primary/5 border-primary/20">
-                <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                        <AlertCircle className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                        <p className="text-xs text-muted-foreground leading-relaxed">
-                            Assigning a role requires the target user&apos;s User ID (from your identity provider) — there is no user
-                            directory in this service to search by name or email yet.
-                        </p>
-                    </div>
-                </CardContent>
-            </Card>
-
             <Card>
                 <CardHeader className="border-b border-border/50 py-4">
                     <div className="flex items-center gap-2">
@@ -83,12 +79,18 @@ export default function UsersAndRolesPage() {
                 </CardHeader>
                 <CardContent className="p-6">
                     <div className="flex flex-col sm:flex-row gap-3">
-                        <input
-                            value={userId}
-                            onChange={(e) => setUserId(e.target.value)}
-                            placeholder="User ID (UUID)"
-                            className="flex-1 bg-accent/20 p-2.5 rounded-lg border border-border text-sm font-mono focus:ring-1 focus:ring-primary outline-none"
-                        />
+                        <div className="flex-1">
+                            <SearchableCombobox
+                                options={userOptions}
+                                value={userId}
+                                onChange={(v) => setUserId(v)}
+                                placeholder={usersLoading ? 'Loading users...' : 'Select a user...'}
+                                searchPlaceholder="Search by name or email..."
+                                emptyText="No matching users"
+                                disabled={usersLoading}
+                                clearable
+                            />
+                        </div>
                         <select
                             value={roleId}
                             onChange={(e) => setRoleId(e.target.value)}
@@ -132,7 +134,11 @@ export default function UsersAndRolesPage() {
                             {assignments.map((a) => (
                                 <div key={a.ID} className="flex items-center justify-between px-4 py-3">
                                     <div className="space-y-0.5">
-                                        <p className="text-sm font-mono">{a.UserID}</p>
+                                        <p className="text-sm font-medium">
+                                            {userById.get(a.UserID)?.full_name || userById.get(a.UserID)?.email || (
+                                                <span className="font-mono text-muted-foreground">{a.UserID}</span>
+                                            )}
+                                        </p>
                                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                             <Badge variant="outline" className="text-[10px]">{roleById.get(a.RoleID)?.Name ?? a.RoleID}</Badge>
                                             <span>assigned {new Date(a.AssignedAt).toLocaleDateString()}</span>

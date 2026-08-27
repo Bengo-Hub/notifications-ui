@@ -347,7 +347,7 @@ export default function ProvidersPage() {
             { key: 'service_account', label: 'Service Account JSON', type: 'text', placeholder: 'Paste FCM service account JSON' },
         ],
         meta_cloud: [
-            { key: '_meta_guide', label: 'Connect WhatsApp', type: 'banner', placeholder: 'Self-serve connection is coming soon. Until then, our team can set up your number for you — once done, paste the Phone Number ID they give you below.' },
+            { key: '_meta_guide', label: 'Manual Setup', type: 'banner', placeholder: 'If Connect above isn’t available yet, our team can set your number up manually — paste the Phone Number ID they give you below.' },
             { key: 'phone_number_id', label: 'Phone Number ID', type: 'text', placeholder: 'e.g. 1262404020292374' },
         ],
         apiwap: [

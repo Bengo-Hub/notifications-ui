@@ -35,9 +35,18 @@ export interface UserRoleAssignment {
     ExpiresAt?: string | null;
 }
 
+export interface TenantUser {
+    id: string;
+    email: string;
+    full_name: string;
+}
+
 export const rbacApi = {
     listRoles: () =>
         apiClient.get<{ roles: NotificationRole[] }>('/api/v1/rbac/roles'),
+
+    listTenantUsers: () =>
+        apiClient.get<{ users: TenantUser[] }>('/api/v1/rbac/users'),
 
     listPermissions: (params?: { module?: string; action?: string }) => {
         const q = new URLSearchParams();

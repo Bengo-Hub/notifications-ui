@@ -11,6 +11,14 @@ export const rbacKeys = {
     assignments: () => ['rbac', 'assignments'] as const,
 };
 
+export function useTenantUsers() {
+    return useQuery({
+        queryKey: ['rbac', 'users'] as const,
+        queryFn: async () => (await rbacApi.listTenantUsers()).users,
+        staleTime: STALE_MS,
+    });
+}
+
 export function useRoles() {
     return useQuery({
         queryKey: rbacKeys.roles(),
