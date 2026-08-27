@@ -2,16 +2,18 @@
 
 import { Card, CardContent } from '@/components/ui/base';
 import { cn } from '@/lib/utils';
-import { Bell, Mail, MessageCircle, MessageSquare, RefreshCw, Smartphone } from 'lucide-react';
+import { Bell, Mail, MessageCircle, MessageSquare, RefreshCw, RotateCcw, Smartphone } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { DataTable, cellText, compareValues, type FilterMap, type SortState } from '@bengo-hub/shared-ui-lib/data-table';
 import type { NotificationPreference } from '@/lib/api/settings';
 import {
     useNotificationPreferences,
+    useResetNotificationPreference,
     useUpdateNotificationPreference,
 } from '@/hooks/use-notification-preferences';
 import { buildNotificationPreferenceColumns } from './notification-preferences-columns';
+import { ChannelSelectionModal } from './channel-selection-modal';
 
 type ChannelFilter = 'all' | 'email' | 'sms' | 'whatsapp' | 'push';
 
@@ -26,16 +28,23 @@ const CHANNEL_TABS: { value: ChannelFilter; label: string; icon: typeof Bell }[]
 export default function NotificationPreferencesPage() {
     const { data, isLoading, isError, refetch } = useNotificationPreferences();
     const update = useUpdateNotificationPreference();
+    const resetPref = useResetNotificationPreference();
     const [channel, setChannel] = useState<ChannelFilter>('all');
     const [pendingKey, setPendingKey] = useState<string | null>(null);
+    const [resettingKey, setResettingKey] = useState<string | null>(null);
+    const [editingPref, setEditingPref] = useState<NotificationPreference | null>(null);
     const [pageSize, setPageSize] = useState(15);
     const [page, setPage] = useState(1);
 
-    // Defensive: normalize channels to an array even if a stale cached response (or a backend
-    // hiccup) ever serializes it as null — every consumer below iterates/joins/includes()'s this
-    // field unconditionally.
+    // Defensive: normalize array fields to [] even if a stale cached response (or a backend
+    // hiccup) ever serializes one as null — every consumer below iterates/joins/includes()'s
+    // these fields unconditionally.
     const rows = useMemo(
-        () => (data?.data ?? []).map((p) => ({ ...p, channels: p.channels ?? [] })),
+        () => (data?.data ?? []).map((p) => ({
+            ...p,
+            channels: p.channels ?? [],
+            enabledChannels: p.enabledChannels ?? p.channels ?? [],
+        })),
         [data]
     );
 
@@ -69,14 +78,37 @@ export default function NotificationPreferencesPage() {
         }
     }, [update]);
 
+    const handleSaveChannels = useCallback(async (key: string, channels: string[]) => {
+        const pref = rows.find((p) => p.key === key);
+        try {
+            await update.mutateAsync({ key, channels });
+            toast.success(`${pref?.label ?? key} channels updated`);
+            setEditingPref(null);
+        } catch {
+            toast.error(`Failed to update ${pref?.label ?? key} channels`);
+        }
+    }, [update, rows]);
+
+    const handleReset = useCallback(async (pref: NotificationPreference) => {
+        setResettingKey(pref.key);
+        try {
+            await resetPref.mutateAsync(pref.key);
+            toast.success(`${pref.label} reset to default`);
+        } catch {
+            toast.error(`Failed to reset ${pref.label}`);
+        } finally {
+            setResettingKey(null);
+        }
+    }, [resetPref]);
+
     const groupOptions = useMemo(
         () => [...new Set(rows.map((p) => p.group))].sort(),
         [rows]
     );
 
     const columns = useMemo(
-        () => buildNotificationPreferenceColumns(handleToggle, pendingKey, groupOptions),
-        [handleToggle, pendingKey, groupOptions]
+        () => buildNotificationPreferenceColumns(handleToggle, pendingKey, groupOptions, setEditingPref, handleReset, resettingKey),
+        [handleToggle, pendingKey, groupOptions, handleReset, resettingKey]
     );
 
     const filtered = useMemo(() => {
@@ -127,6 +159,22 @@ export default function NotificationPreferencesPage() {
         [filtered, page, pageSize]
     );
 
+    const overriddenKeys = useMemo(
+        () => rows.filter((p) => p.overridden || p.channelsOverridden).map((p) => p.key),
+        [rows]
+    );
+
+    const handleResetAll = async () => {
+        if (overriddenKeys.length === 0) return;
+        if (!confirm(`Reset all ${overriddenKeys.length} customized notification(s) back to their defaults?`)) return;
+        try {
+            await Promise.all(overriddenKeys.map((key) => resetPref.mutateAsync(key)));
+            toast.success('All customizations reset to defaults');
+        } catch {
+            toast.error('Some notifications failed to reset — try again');
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex items-start justify-between gap-4">
@@ -140,12 +188,22 @@ export default function NotificationPreferencesPage() {
                         notifications are on by default; optional ones stay off until you enable them.
                     </p>
                 </div>
-                <button
-                    onClick={() => refetch()}
-                    className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0"
-                >
-                    <RefreshCw className="h-3.5 w-3.5" /> Refresh
-                </button>
+                <div className="flex items-center gap-4 shrink-0">
+                    {overriddenKeys.length > 0 && (
+                        <button
+                            onClick={handleResetAll}
+                            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                            <RotateCcw className="h-3.5 w-3.5" /> Reset all ({overriddenKeys.length})
+                        </button>
+                    )}
+                    <button
+                        onClick={() => refetch()}
+                        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                        <RefreshCw className="h-3.5 w-3.5" /> Refresh
+                    </button>
+                </div>
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -208,6 +266,13 @@ export default function NotificationPreferencesPage() {
                     }
                 />
             )}
+
+            <ChannelSelectionModal
+                pref={editingPref}
+                onClose={() => setEditingPref(null)}
+                onSave={handleSaveChannels}
+                saving={update.isPending}
+            />
         </div>
     );
 }

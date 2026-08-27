@@ -83,8 +83,13 @@ export const settingsApi = {
     listNotificationPreferences: () =>
         apiClient.get<{ data: NotificationPreference[]; total: number }>('/api/v1/notification-preferences'),
 
-    updateNotificationPreference: (body: { key: string; enabled: boolean }) =>
-        apiClient.put<{ key: string; enabled: boolean }>('/api/v1/notification-preferences', body),
+    updateNotificationPreference: (body: { key: string; enabled?: boolean; channels?: string[] }) =>
+        apiClient.put<{ key: string; enabled: boolean | null; channels: string[] | null }>('/api/v1/notification-preferences', body),
+
+    // key contains a literal "/" (e.g. "finance/payment_success") — pass it raw, unencoded, so it
+    // matches the backend's chi wildcard route rather than being escaped into a single segment.
+    resetNotificationPreference: (key: string) =>
+        apiClient.delete<{ key: string; label: string; status: string }>(`/api/v1/notification-preferences/${key}`),
 };
 
 export interface NotificationPreference {
@@ -96,7 +101,12 @@ export interface NotificationPreference {
     default: boolean;
     enabled: boolean;
     overridden: boolean;
+    /** Every channel this type HAS a template for (the maximum possible). */
     channels: ('email' | 'sms' | 'whatsapp' | 'push')[];
+    /** The tenant's chosen SUBSET of `channels` actually in use — defaults to all of `channels`
+     *  until customized via the channel-selection modal. */
+    enabledChannels: ('email' | 'sms' | 'whatsapp' | 'push')[];
+    channelsOverridden: boolean;
 }
 
 export interface TestProviderResult {

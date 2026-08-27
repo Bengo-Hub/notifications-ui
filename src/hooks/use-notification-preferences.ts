@@ -20,7 +20,7 @@ export function useNotificationPreferences() {
 export function useUpdateNotificationPreference() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: { key: string; enabled: boolean }) =>
+    mutationFn: (body: { key: string; enabled?: boolean; channels?: string[] }) =>
       settingsApi.updateNotificationPreference(body),
     // Optimistic toggle so the switch feels instant; rolled back on error.
     onMutate: async (body) => {
@@ -31,9 +31,19 @@ export function useUpdateNotificationPreference() {
       if (previous) {
         queryClient.setQueryData(notificationPreferenceKeys.list(), {
           ...previous,
-          data: previous.data.map((p) =>
-            p.key === body.key ? { ...p, enabled: body.enabled, overridden: true } : p
-          ),
+          data: previous.data.map((p) => {
+            if (p.key !== body.key) return p;
+            const next = { ...p };
+            if (body.enabled !== undefined) {
+              next.enabled = body.enabled;
+              next.overridden = true;
+            }
+            if (body.channels !== undefined) {
+              next.enabledChannels = body.channels as NotificationPreference['enabledChannels'];
+              next.channelsOverridden = true;
+            }
+            return next;
+          }),
         });
       }
       return { previous };
@@ -44,6 +54,16 @@ export function useUpdateNotificationPreference() {
       }
     },
     onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: notificationPreferenceKeys.list() });
+    },
+  });
+}
+
+export function useResetNotificationPreference() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (key: string) => settingsApi.resetNotificationPreference(key),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: notificationPreferenceKeys.list() });
     },
   });
