@@ -4,7 +4,7 @@ import { useMe } from '@/hooks/useMe';
 import { useActivityLogs, useDeliveryStats } from '@/hooks/use-analytics';
 import { useTemplates } from '@/hooks/use-templates';
 import { isPlatformOwnerOrSuperuser } from '@/lib/auth/permissions';
-import { Activity, Mail, MessageSquare, Smartphone } from 'lucide-react';
+import { Activity, Mail, MessageCircle, MessageSquare, Smartphone } from 'lucide-react';
 
 export default function DashboardPage() {
     const { user } = useMe();
@@ -12,7 +12,8 @@ export default function DashboardPage() {
 
     const { data: stats, isLoading: statsLoading, isError: statsError, refetch: refetchStats } = useDeliveryStats();
     const { data: templates, isLoading: templatesLoading, isError: templatesError, refetch: refetchTemplates } = useTemplates({ enabled: isPlatformUser });
-    const { data: activityLogs = [], isLoading: logsLoading, isError: logsError, refetch: refetchLogs } = useActivityLogs(10);
+    const { data: activityLogsPage, isLoading: logsLoading, isError: logsError, refetch: refetchLogs } = useActivityLogs(10);
+    const activityLogs = activityLogsPage?.logs ?? [];
 
     const loading = statsLoading || (isPlatformUser && templatesLoading) || logsLoading;
     const hasError = statsError || (isPlatformUser && templatesError) || logsError;
@@ -114,6 +115,7 @@ export default function DashboardPage() {
                                 <li key={log.id} className="py-2 flex items-center gap-3 text-sm">
                                     {log.channel === 'email' && <Mail className="h-4 w-4 text-muted-foreground" />}
                                     {log.channel === 'sms' && <MessageSquare className="h-4 w-4 text-muted-foreground" />}
+                                    {log.channel === 'whatsapp' && <MessageCircle className="h-4 w-4 text-muted-foreground" />}
                                     {log.channel === 'push' && <Smartphone className="h-4 w-4 text-muted-foreground" />}
                                     <span className="font-medium">{log.templateName}</span>
                                     <span className="text-muted-foreground">&rarr; {log.recipient}</span>

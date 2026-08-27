@@ -6,9 +6,21 @@ import { useActivityLogs, useDeliveryStats } from '@/hooks/use-analytics';
 import type { ActivityLog } from '@/lib/api/analytics';
 import { isPlatformOwnerOrSuperuser } from '@/lib/auth/permissions';
 import { cn } from '@/lib/utils';
-import { Activity, AlertCircle, ArrowDownRight, ArrowUpRight, BarChart3, CheckCircle2, Clock, Filter, Mail, MessageSquare, Smartphone, Zap } from 'lucide-react';
+import { DataTable, type DataTableColumn } from '@bengo-hub/shared-ui-lib/data-table';
+import { Activity, AlertCircle, ArrowDownRight, ArrowUpRight, BarChart3, CheckCircle2, Clock, Filter, Mail, MessageCircle, MessageSquare, Smartphone, Zap } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+
+const CHANNEL_META: Record<string, { label: string; icon: typeof Mail; text: string; bg: string; bar: string }> = {
+    email: { label: 'Email', icon: Mail, text: 'text-blue-500', bg: 'bg-blue-500/5', bar: 'bg-blue-500' },
+    sms: { label: 'SMS', icon: MessageSquare, text: 'text-green-500', bg: 'bg-green-500/5', bar: 'bg-green-500' },
+    whatsapp: { label: 'WhatsApp', icon: MessageCircle, text: 'text-emerald-500', bg: 'bg-emerald-500/5', bar: 'bg-emerald-500' },
+    push: { label: 'Push', icon: Smartphone, text: 'text-orange-500', bg: 'bg-orange-500/5', bar: 'bg-orange-500' },
+};
+
+function channelMeta(channel: string) {
+    return CHANNEL_META[channel] ?? { label: channel, icon: Smartphone, text: 'text-muted-foreground', bg: 'bg-accent/20', bar: 'bg-muted-foreground' };
+}
 
 export default function MonitoringPage() {
     const { user } = useMe();
@@ -24,14 +36,25 @@ export default function MonitoringPage() {
     const [channelFilter, setChannelFilter] = useState<string>('');
     const [statusFilter, setStatusFilter] = useState<string>('');
     const [selectedLog, setSelectedLog] = useState<ActivityLog | null>(null);
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(15);
+
+    useEffect(() => {
+        setPage(1);
+    }, [channelFilter, statusFilter, pageSize]);
 
     const filters = useMemo(() => ({
+        offset: (page - 1) * pageSize,
         channel: channelFilter || undefined,
         status: statusFilter || undefined,
-    }), [channelFilter, statusFilter]);
+    }), [page, pageSize, channelFilter, statusFilter]);
 
     const { data: stats, isLoading: statsLoading, isError: statsError, refetch: refetchStats } = useDeliveryStats(range);
-    const { data: logs = [], isLoading: logsLoading, isError: logsError, refetch: refetchLogs } = useActivityLogs(50, filters);
+    const { data: logsPage, isLoading: logsLoading, isError: logsError, refetch: refetchLogs } = useActivityLogs(pageSize, filters);
+
+    const logs = logsPage?.logs ?? [];
+    const total = logsPage?.total ?? 0;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
     const loading = statsLoading || logsLoading;
     const hasError = statsError || logsError;
@@ -48,6 +71,74 @@ export default function MonitoringPage() {
     ];
 
     const maxSeries = Math.max(1, ...(stats?.timeSeries?.map((d) => Math.max(d.sent, d.delivered)) ?? [1]));
+
+    const columns = useMemo<DataTableColumn<ActivityLog>[]>(() => [
+        {
+            key: 'templateName',
+            header: 'Notification',
+            primary: true,
+            sortable: true,
+            filterable: true,
+            accessor: (log) => log.templateName,
+            render: (log) => {
+                const meta = channelMeta(log.channel);
+                const Icon = meta.icon;
+                return (
+                    <div className="flex items-center gap-3">
+                        <div className={cn('h-8 w-8 rounded-lg flex items-center justify-center border border-border/50 shadow-sm shrink-0', meta.text, meta.bg)}>
+                            <Icon className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                            <span className="text-xs font-bold block truncate">{log.templateName}</span>
+                            <p className="text-[10px] text-muted-foreground font-mono truncate">{log.recipient}</p>
+                        </div>
+                    </div>
+                );
+            },
+        },
+        {
+            key: 'channel',
+            header: 'Channel',
+            sortable: true,
+            filterable: true,
+            filterOptions: Object.entries(CHANNEL_META).map(([value, meta]) => ({ value, label: meta.label })),
+            accessor: (log) => log.channel,
+            render: (log) => {
+                const meta = channelMeta(log.channel);
+                return <span className={cn('text-xs font-medium uppercase', meta.text)}>{meta.label}</span>;
+            },
+        },
+        {
+            key: 'status',
+            header: 'Status',
+            sortable: true,
+            filterable: true,
+            filterOptions: [{ value: 'sent' }, { value: 'delivered' }, { value: 'failed' }],
+            accessor: (log) => log.status,
+            render: (log) => (
+                <Badge variant="default" className="text-[10px] py-0 px-1.5 leading-tight uppercase">
+                    {log.status}
+                </Badge>
+            ),
+        },
+        {
+            key: 'timestamp',
+            header: 'Time',
+            sortable: true,
+            align: 'right',
+            accessor: (log) => log.timestamp,
+            render: (log) => <span className="text-[11px] text-muted-foreground">{new Date(log.timestamp).toLocaleString()}</span>,
+        },
+        {
+            key: 'actions',
+            header: '',
+            render: (log) => (
+                <Button variant="ghost" size="sm" aria-label="View delivery details" className="h-8 w-8 p-0" onClick={() => setSelectedLog(log)}>
+                    <ArrowUpRight className="h-4 w-4" />
+                </Button>
+            ),
+        },
+    ], []);
 
     return (
         <div className="p-8 space-y-8 max-w-7xl mx-auto">
@@ -119,13 +210,13 @@ export default function MonitoringPage() {
                                     <Badge variant={range === '7d' ? 'default' : 'outline'} className="cursor-pointer" onClick={() => setRange('7d')}>7D</Badge>
                                 </div>
                             </CardHeader>
-                            <CardContent className="p-8 h-[300px] flex items-end justify-between gap-2">
+                            <CardContent className="p-8 h-75 flex items-end justify-between gap-2">
                                 {(stats?.timeSeries?.length ?? 0) === 0 ? (
                                     <p className="text-muted-foreground text-sm w-full text-center">No time series data yet.</p>
                                 ) : (
                                     stats?.timeSeries.map((d, i) => (
                                         <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
-                                            <div className="w-full flex flex-col justify-end gap-1 h-[200px]">
+                                            <div className="w-full flex flex-col justify-end gap-1 h-50">
                                                 <div
                                                     className="w-full bg-primary/20 rounded-t-sm group-hover:bg-primary/40 transition-colors"
                                                     style={{ height: `${(d.sent / maxSeries) * 100}%` }}
@@ -150,28 +241,27 @@ export default function MonitoringPage() {
                                 </div>
                             </CardHeader>
                             <CardContent className="p-6 space-y-6">
-                                {Object.entries(stats?.channelBreakdown || {}).map(([channel, count]) => (
-                                    <div key={channel} className="space-y-2">
-                                        <div className="flex justify-between items-center text-xs">
-                                            <div className="flex items-center gap-2 uppercase font-bold tracking-widest text-muted-foreground">
-                                                {channel === 'email' && <Mail className="h-3 w-3" />}
-                                                {channel === 'sms' && <MessageSquare className="h-3 w-3" />}
-                                                {channel === 'push' && <Smartphone className="h-3 w-3" />}
-                                                {channel}
+                                {Object.entries(stats?.channelBreakdown || {}).map(([channel, count]) => {
+                                    const meta = channelMeta(channel);
+                                    const Icon = meta.icon;
+                                    return (
+                                        <div key={channel} className="space-y-2">
+                                            <div className="flex justify-between items-center text-xs">
+                                                <div className="flex items-center gap-2 uppercase font-bold tracking-widest text-muted-foreground">
+                                                    <Icon className="h-3 w-3" />
+                                                    {meta.label}
+                                                </div>
+                                                <span className="font-bold">{count}</span>
                                             </div>
-                                            <span className="font-bold">{count}</span>
+                                            <div className="h-2 w-full bg-accent/30 rounded-full overflow-hidden">
+                                                <div
+                                                    className={cn("h-full rounded-full shadow-[0_0_10px_-2px_rgba(0,0,0,0.1)]", meta.bar)}
+                                                    style={{ width: `${(count / (stats?.totalSent || 1)) * 100}%` }}
+                                                />
+                                            </div>
                                         </div>
-                                        <div className="h-2 w-full bg-accent/30 rounded-full overflow-hidden">
-                                            <div
-                                                className={cn(
-                                                    "h-full rounded-full shadow-[0_0_10px_-2px_rgba(0,0,0,0.1)]",
-                                                    channel === 'email' ? "bg-blue-500" : channel === 'sms' ? "bg-green-500" : "bg-orange-500"
-                                                )}
-                                                style={{ width: `${(count / (stats?.totalSent || 1)) * 100}%` }}
-                                            />
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                                 {(!stats?.channelBreakdown || Object.keys(stats.channelBreakdown).length === 0) && (
                                     <p className="text-muted-foreground text-xs">No channel data yet.</p>
                                 )}
@@ -194,9 +284,9 @@ export default function MonitoringPage() {
                                         className="bg-accent/30 border border-border rounded-lg py-1.5 pl-8 pr-8 text-xs focus:ring-1 focus:ring-primary outline-none"
                                     >
                                         <option value="">All channels</option>
-                                        <option value="email">Email</option>
-                                        <option value="sms">SMS</option>
-                                        <option value="push">Push</option>
+                                        {Object.entries(CHANNEL_META).map(([value, meta]) => (
+                                            <option key={value} value={value}>{meta.label}</option>
+                                        ))}
                                     </select>
                                 </div>
                                 <select
@@ -211,52 +301,29 @@ export default function MonitoringPage() {
                                 </select>
                             </div>
                         </CardHeader>
-                        <CardContent className="p-0">
-                            <div className="overflow-x-auto">
-                                <div className="divide-y divide-border min-w-[500px]">
-                                    {logs.map((log) => (
-                                        <div
-                                            key={log.id}
-                                            role="button"
-                                            tabIndex={0}
-                                            onClick={() => setSelectedLog(log)}
-                                            onKeyDown={(e) => e.key === 'Enter' && setSelectedLog(log)}
-                                            className="p-4 flex items-center justify-between hover:bg-accent/5 transition-all group cursor-pointer"
-                                        >
-                                            <div className="flex items-center gap-4">
-                                                <div className={cn(
-                                                    "h-8 w-8 rounded-lg flex items-center justify-center border border-border/50 shadow-sm",
-                                                    log.channel === 'email' ? "text-blue-500 bg-blue-500/5" :
-                                                        log.channel === 'sms' ? "text-green-500 bg-green-500/5" : "text-orange-500 bg-orange-500/5"
-                                                )}>
-                                                    {log.channel === 'email' ? <Mail className="h-4 w-4" /> :
-                                                        log.channel === 'sms' ? <MessageSquare className="h-4 w-4" /> : <Smartphone className="h-4 w-4" />}
-                                                </div>
-                                                <div>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-xs font-bold">{log.templateName}</span>
-                                                        <Badge variant="default" className="text-[10px] py-0 px-1.5 leading-tight uppercase scale-90">
-                                                            {log.status}
-                                                        </Badge>
-                                                    </div>
-                                                    <p className="text-[10px] text-muted-foreground font-mono mt-0.5">{log.recipient}</p>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-6">
-                                                <div className="text-right">
-                                                    <p className="text-[10px] text-muted-foreground">{new Date(log.timestamp).toLocaleString()}</p>
-                                                </div>
-                                                <Button variant="ghost" size="sm" aria-label="View delivery details" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-all">
-                                                    <ArrowUpRight className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {logs.length === 0 && (
-                                        <div className="p-12 text-center text-muted-foreground italic">No recent activity detected.</div>
-                                    )}
-                                </div>
-                            </div>
+                        <CardContent className="p-4">
+                            <DataTable
+                                columns={columns}
+                                rows={logs}
+                                rowKey={(log) => log.id}
+                                loading={logsLoading}
+                                loadingRows={8}
+                                storageKey="monitoring-activity-feed-col-prefs"
+                                onRowClick={(log) => setSelectedLog(log)}
+                                pageSize={pageSize}
+                                onPageSizeChange={setPageSize}
+                                pageSizeOptions={[10, 15, 25, 50]}
+                                page={page}
+                                totalPages={totalPages}
+                                onPageChange={setPage}
+                                total={total}
+                                emptyState={
+                                    <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground py-6">
+                                        <Clock className="h-10 w-10 opacity-30" />
+                                        <p className="font-medium">No recent activity detected.</p>
+                                    </div>
+                                }
+                            />
                         </CardContent>
                     </Card>
 

@@ -4,11 +4,9 @@ export interface DeliveryStats {
     totalSent: number;
     deliveryRate: number;
     errorRate: number;
-    channelBreakdown: {
-        email: number;
-        sms: number;
-        push: number;
-    };
+    // Record, not a fixed shape — the backend seeds email/sms/whatsapp/push at zero but a new
+    // channel added later shouldn't need a type change here to show up.
+    channelBreakdown: Record<string, number>;
     timeSeries: {
         date: string;
         sent: number;
@@ -23,6 +21,11 @@ export interface ActivityLog {
     recipient: string;
     status: 'sent' | 'delivered' | 'failed';
     timestamp: string;
+}
+
+export interface ActivityLogsPage {
+    logs: ActivityLog[];
+    total: number;
 }
 
 export interface ActivityLogFilters {
@@ -42,6 +45,6 @@ export const analyticsApi = {
         if (filters?.channel) params.set('channel', filters.channel);
         if (filters?.status) params.set('status', filters.status);
         const baseUrl = '/api/v1/analytics/logs';
-        return apiClient.get<ActivityLog[]>(`${baseUrl}?${params.toString()}`);
+        return apiClient.get<ActivityLogsPage>(`${baseUrl}?${params.toString()}`);
     },
 };

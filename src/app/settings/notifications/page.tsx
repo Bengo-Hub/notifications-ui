@@ -3,9 +3,9 @@
 import { Card, CardContent } from '@/components/ui/base';
 import { cn } from '@/lib/utils';
 import { Bell, Mail, MessageCircle, MessageSquare, RefreshCw, Smartphone } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { DataTable } from '@bengo-hub/shared-ui-lib/data-table';
+import { DataTable, cellText, compareValues, type FilterMap, type SortState } from '@bengo-hub/shared-ui-lib/data-table';
 import type { NotificationPreference } from '@/lib/api/settings';
 import {
     useNotificationPreferences,
@@ -29,6 +29,7 @@ export default function NotificationPreferencesPage() {
     const [channel, setChannel] = useState<ChannelFilter>('all');
     const [pendingKey, setPendingKey] = useState<string | null>(null);
     const [pageSize, setPageSize] = useState(15);
+    const [page, setPage] = useState(1);
 
     // Defensive: normalize channels to an array even if a stale cached response (or a backend
     // hiccup) ever serializes it as null — every consumer below iterates/joins/includes()'s this
@@ -48,10 +49,13 @@ export default function NotificationPreferencesPage() {
         return c;
     }, [rows]);
 
-    const filtered = useMemo(() => {
-        if (channel === 'all') return rows;
-        return rows.filter((p) => p.channels.includes(channel));
-    }, [rows, channel]);
+    // DataTable's own funnel-filter/sort state, taken over (controlled) rather than left
+    // internal — the shared component only ever paginates the rows it's handed, so once this
+    // page needs real pagination (see below), the host has to run the exact same funnel/sort
+    // pass DataTable normally does internally BEFORE slicing to a page, or a search/sort
+    // interacting with the channel tabs would silently only ever see the current page's rows.
+    const [filters, setFilters] = useState<FilterMap>({});
+    const [sort, setSort] = useState<SortState | null>(null);
 
     const handleToggle = useCallback(async (pref: NotificationPreference, enabled: boolean) => {
         setPendingKey(pref.key);
@@ -65,7 +69,63 @@ export default function NotificationPreferencesPage() {
         }
     }, [update]);
 
-    const columns = useMemo(() => buildNotificationPreferenceColumns(handleToggle, pendingKey), [handleToggle, pendingKey]);
+    const groupOptions = useMemo(
+        () => [...new Set(rows.map((p) => p.group))].sort(),
+        [rows]
+    );
+
+    const columns = useMemo(
+        () => buildNotificationPreferenceColumns(handleToggle, pendingKey, groupOptions),
+        [handleToggle, pendingKey, groupOptions]
+    );
+
+    const filtered = useMemo(() => {
+        let out = channel === 'all' ? rows : rows.filter((p) => p.channels.includes(channel));
+
+        // Mirrors DataTable's own internal funnel-filter matching exactly (values-checklist +
+        // free-text query per column), reusing its exported cellText so this can't drift from
+        // what the funnel icon's checklist/search box actually promises.
+        const active = Object.entries(filters).filter(([, st]) => st && ((st.values?.length ?? 0) > 0 || st.query?.trim()));
+        if (active.length > 0) {
+            out = out.filter((row) =>
+                active.every(([key, st]) => {
+                    const col = columns.find((c) => c.key === key);
+                    if (!col) return true;
+                    const text = cellText((col.accessor ?? ((r: NotificationPreference) => (r as unknown as Record<string, unknown>)[key]))(row));
+                    if (st.values?.length && !st.values.includes(text)) return false;
+                    if (st.query?.trim() && !text.toLowerCase().includes(st.query.trim().toLowerCase())) return false;
+                    return true;
+                })
+            );
+        }
+
+        if (sort) {
+            const col = columns.find((c) => c.key === sort.key);
+            if (col) {
+                const acc = col.accessor ?? ((r: NotificationPreference) => (r as unknown as Record<string, unknown>)[sort.key]);
+                out = [...out].sort((a, b) => (sort.dir === 'asc' ? 1 : -1) * compareValues(acc(a), acc(b)));
+            }
+        }
+
+        return out;
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- `columns` is stable per [handleToggle, pendingKey, groupOptions] and re-declaring it here would just re-derive the same array on every filtered/sort computation
+    }, [rows, channel, filters, sort]);
+
+    // The shared DataTable only slices/paginates rows when the host drives page state itself
+    // (its footer renders solely off page/totalPages/onPageChange) — without this, "Show N
+    // entries" is decorative and every row renders in one continuous list, which is also why
+    // switching channel tabs looked like a no-op: the top of an unpaginated list barely changes
+    // when only later rows get filtered out. Reset to page 1 whenever the visible set changes
+    // shape so a filter/page-size change can never strand the view on a now-empty page.
+    useEffect(() => {
+        setPage(1);
+    }, [channel, filters, sort, pageSize]);
+
+    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+    const paginated = useMemo(
+        () => filtered.slice((page - 1) * pageSize, page * pageSize),
+        [filtered, page, pageSize]
+    );
 
     return (
         <div className="space-y-6">
@@ -124,14 +184,22 @@ export default function NotificationPreferencesPage() {
             ) : (
                 <DataTable
                     columns={columns}
-                    rows={filtered}
+                    rows={paginated}
                     rowKey={(p) => p.key}
                     loading={isLoading}
                     loadingRows={8}
                     storageKey="notification-preferences-col-prefs"
+                    sort={sort}
+                    onSortChange={setSort}
+                    filters={filters}
+                    onFiltersChange={setFilters}
                     pageSize={pageSize}
                     onPageSizeChange={setPageSize}
                     pageSizeOptions={[10, 15, 25, 50]}
+                    page={page}
+                    totalPages={totalPages}
+                    onPageChange={setPage}
+                    total={filtered.length}
                     emptyState={
                         <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground py-6">
                             <Bell className="h-10 w-10 opacity-30" />

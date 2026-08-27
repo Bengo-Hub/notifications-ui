@@ -53,6 +53,11 @@ function ClassBadge({ pref }: { pref: NotificationPreference }) {
 export function buildNotificationPreferenceColumns(
     onToggle: (pref: NotificationPreference, enabled: boolean) => void,
     pendingKey: string | null,
+    // Explicit, derived from the FULL unpaginated dataset — the host now slices rows to the
+    // current page before handing them to DataTable, and DataTable's own funnel-option
+    // auto-derivation only ever sees whatever `rows` it's given, so without this the Category
+    // checklist would silently shrink to whatever happens to be on the visible page.
+    groupOptions: string[] = [],
 ): DataTableColumn<NotificationPreference>[] {
     return [
         {
@@ -87,6 +92,7 @@ export function buildNotificationPreferenceColumns(
             header: 'Category',
             sortable: true,
             filterable: true,
+            filterOptions: groupOptions.map((g) => ({ value: g })),
             hideBelow: 'md',
             accessor: (p) => p.group,
             render: (p) => <span className="text-sm text-muted-foreground">{p.group}</span>,

@@ -1,6 +1,6 @@
 'use client';
 
-import { analyticsApi, type ActivityLog, type ActivityLogFilters } from '@/lib/api/analytics';
+import { analyticsApi, type ActivityLogFilters, type ActivityLogsPage } from '@/lib/api/analytics';
 import { useQuery } from '@tanstack/react-query';
 
 const STALE_MS = 2 * 60 * 1000;
@@ -19,13 +19,13 @@ export function useDeliveryStats(range = '24h') {
   });
 }
 
+/** Real server pagination (limit/offset) — the backend now returns {logs, total} instead of a
+ *  bare array, so the UI can show a genuine page count instead of guessing from a capped page. */
 export function useActivityLogs(limit = 20, filters?: ActivityLogFilters) {
-  return useQuery({
+  return useQuery<ActivityLogsPage>({
     queryKey: analyticsKeys.activityLogs(limit, filters),
-    queryFn: async () => {
-      const res = await analyticsApi.getActivityLogs(limit, filters);
-      return (Array.isArray(res) ? res : (res as { logs?: ActivityLog[] })?.logs ?? []) as ActivityLog[];
-    },
+    queryFn: () => analyticsApi.getActivityLogs(limit, filters),
     staleTime: STALE_MS,
+    placeholderData: (prev) => prev,
   });
 }
