@@ -30,7 +30,13 @@ export default function NotificationPreferencesPage() {
     const [pendingKey, setPendingKey] = useState<string | null>(null);
     const [pageSize, setPageSize] = useState(15);
 
-    const rows = useMemo(() => data?.data ?? [], [data]);
+    // Defensive: normalize channels to an array even if a stale cached response (or a backend
+    // hiccup) ever serializes it as null — every consumer below iterates/joins/includes()'s this
+    // field unconditionally.
+    const rows = useMemo(
+        () => (data?.data ?? []).map((p) => ({ ...p, channels: p.channels ?? [] })),
+        [data]
+    );
 
     const counts = useMemo(() => {
         const c: Record<ChannelFilter, number> = { all: rows.length, email: 0, sms: 0, whatsapp: 0, push: 0 };
