@@ -24,14 +24,14 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
     ];
 
     return (
-        <div className="p-8 space-y-8 max-w-7xl mx-auto">
+        <div className="p-8 space-y-6 max-w-7xl mx-auto">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight">Organization Settings</h1>
                 <p className="text-muted-foreground mt-1">Manage global configurations for your notification ecosystem.</p>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-8">
-                <aside className="w-full md:w-64 space-y-1">
+            <nav className="border-b border-border overflow-x-auto">
+                <div className="flex items-center gap-1 min-w-max">
                     {tabs.map((tab) => {
                         const isActive = pathname === tab.href;
                         return (
@@ -39,10 +39,10 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
                                 key={tab.name}
                                 href={tab.href}
                                 className={cn(
-                                    "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all",
+                                    "flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap",
                                     isActive
-                                        ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
-                                        : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                                        ? "border-primary text-primary"
+                                        : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
                                 )}
                             >
                                 <tab.icon className="h-4 w-4" />
@@ -50,11 +50,11 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
                             </Link>
                         );
                     })}
-                </aside>
-
-                <div className="flex-1 min-w-0">
-                    {children}
                 </div>
+            </nav>
+
+            <div className="min-w-0">
+                {children}
             </div>
         </div>
     );
