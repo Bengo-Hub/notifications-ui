@@ -1,13 +1,17 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { Bell, Cloud, Link2, Palette, ShieldCheck, CreditCard } from 'lucide-react';
+import { userCanAccess } from '@/lib/auth/permissions';
+import { useAuthStore } from '@/store/auth';
+import { Bell, Cloud, Link2, Palette, ShieldCheck, CreditCard, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ReactNode } from 'react';
 
 export default function SettingsLayout({ children }: { children: ReactNode }) {
     const pathname = usePathname();
+    const user = useAuthStore((state) => state.user);
+    const canManageUsers = userCanAccess(user, { permissions: ['notifications.users.manage'] });
 
     const tabs = [
         { name: 'Providers', href: '/settings/providers', icon: Cloud },
@@ -16,6 +20,7 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
         { name: 'Integrations', href: '/settings/integrations', icon: Link2 },
         { name: 'Security', href: '/settings/security', icon: ShieldCheck },
         { name: 'Billing', href: '/billing/credits', icon: CreditCard },
+        ...(canManageUsers ? [{ name: 'Users & Roles', href: '/settings/users', icon: Users }] : []),
     ];
 
     return (

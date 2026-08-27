@@ -1,11 +1,18 @@
 'use client';
 
 import { Badge, Button, Card, CardContent, CardHeader, Switch } from '@/components/ui/base';
+import { BackupDestinationForm } from '@/components/backup-destination-form';
 import { Copy, DatabaseBackup, KeyRound, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { settingsApi, type EncryptionKeyStatus } from '@/lib/api/settings';
 import { useBackupSettings, useUpdateBackupSettings } from '@/hooks/use-backup-settings';
+import {
+    useTenantBackupDestination,
+    useTestTenantBackupDestination,
+    useUpdateTenantBackupDestination,
+} from '@/hooks/use-platform-config';
+import type { UpsertBackupDestination } from '@/lib/api/platform-config';
 import { useMe } from '@/hooks/useMe';
 import { isPlatformOwnerOrSuperuser } from '@/lib/auth/permissions';
 
@@ -121,6 +128,35 @@ function AutoBackupCard() {
                 </div>
             </CardContent>
         </Card>
+    );
+}
+
+function TenantBackupDestinationCard() {
+    const { data, isLoading } = useTenantBackupDestination();
+    const update = useUpdateTenantBackupDestination();
+    const test = useTestTenantBackupDestination();
+
+    const handleSave = async (body: UpsertBackupDestination) => {
+        try {
+            await update.mutateAsync(body);
+            toast.success('Backup destination saved');
+        } catch (e: any) {
+            toast.error(e?.response?.data?.error ?? 'Failed to save backup destination');
+        }
+    };
+
+    return (
+        <BackupDestinationForm
+            title="Backup Destination Override"
+            description="Optional. Overrides the platform default remote mirror destination for this organization's backups only."
+            data={data}
+            isLoading={isLoading}
+            onSave={handleSave}
+            saving={update.isPending}
+            onTest={(body) => test.mutate(body)}
+            testing={test.isPending}
+            testResult={test.data}
+        />
     );
 }
 
@@ -355,6 +391,8 @@ export default function SecuritySettingsPage() {
             </Card>
 
             <AutoBackupCard />
+
+            <TenantBackupDestinationCard />
 
             {isPlatformAdmin && <CredentialEncryptionKeyCard />}
         </div>
