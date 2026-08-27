@@ -14,6 +14,7 @@ import {
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
+import { useTenantFilterStore } from '@/store/tenant-filter';
 import { isPlatformOwnerOrSuperuser } from '@/lib/auth/permissions';
 
 interface SidebarProps {
@@ -26,6 +27,9 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
     const { user } = useMe();
     const isPlatformOwner = isPlatformOwnerOrSuperuser(user ?? null);
     const logout = useAuthStore((s) => s.logout);
+    const selectedTenant = useTenantFilterStore((s) => s.selectedTenant);
+    const actingLabel = selectedTenant?.name ?? user?.tenantSlug ?? 'Codevertex';
+    const actingInitial = (selectedTenant?.name ?? user?.tenantSlug ?? 'C')[0]?.toUpperCase();
 
     const routes = [
         {
@@ -134,11 +138,13 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                     <div className="p-3 border-t border-border">
                         <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-accent/50">
                             <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center text-xs font-bold text-primary shrink-0">
-                                {user?.tenantSlug?.[0]?.toUpperCase() || 'C'}
+                                {actingInitial || 'C'}
                             </div>
                             <div className="flex flex-col min-w-0 flex-1">
-                                <span className="text-xs font-semibold text-foreground truncate">{user?.tenantSlug || 'Codevertex'}</span>
-                                <span className="text-[10px] text-muted-foreground">Notifications</span>
+                                <span className="text-xs font-semibold text-foreground truncate">{actingLabel}</span>
+                                <span className="text-[10px] text-muted-foreground">
+                                    {selectedTenant ? 'Acting on behalf of' : 'Notifications'}
+                                </span>
                             </div>
                             <button
                                 onClick={() => logout()}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuthStore } from '@/store/auth';
+import { TenantFilter } from './tenant-filter';
 import { Bell, ChevronDown, Menu, Search, Settings, User } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -52,6 +53,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                 <button type="button" onClick={onMenuClick} className="md:hidden p-2 rounded-xl hover:bg-accent transition-colors" aria-label="Open menu">
                     <Menu className="h-5 w-5 text-muted-foreground" />
                 </button>
+                <TenantFilter className="hidden md:block" />
                 <div className="hidden lg:flex relative w-72 max-w-full group">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 group-focus-within:text-primary transition-colors" />
                     <input

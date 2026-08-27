@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+import { useTenantFilterStore } from '@/store/tenant-filter';
 
 // Must point to notifications API host (not the UI host). NEXT_PUBLIC_* are inlined at build time.
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://notificationsapi.codevertexafrica.com';
@@ -53,15 +54,30 @@ class ApiClient {
 
         // Tenant Identification Headers.
         // Regular tenants always send their own tenant headers.
-        // Platform owners default to their OWN tenant (codevertex) on business pages,
-        // and only go platform-wide (omit headers → backend resolves from JWT claims)
-        // when drilled into the dedicated /platform section (platformScope=true).
+        // Platform owners default to their OWN tenant (codevertex) on business pages, and only
+        // go platform-wide (omit headers → backend resolves from JWT claims) when drilled into
+        // the dedicated /platform section (platformScope=true).
+        //
+        // On ordinary (non-/platform) pages, a platform owner can additionally pick a specific
+        // tenant from the top-nav TenantFilter (src/store/tenant-filter.ts) to act on that
+        // tenant's behalf across billing/providers/settings/etc — mirrors subscriptions-ui's
+        // identical mechanism. That selection takes priority over the owner's own tenant when
+        // present.
         const isPlatformOwner = localStorage.getItem('is_platform_owner') === 'true';
         const goPlatformWide = isPlatformOwner && platformScope;
 
         if (!goPlatformWide) {
-            const tenantId = localStorage.getItem('tenant_id');
-            const tenantSlug = localStorage.getItem('tenant_slug');
+            let tenantId = localStorage.getItem('tenant_id');
+            let tenantSlug = localStorage.getItem('tenant_slug');
+
+            if (isPlatformOwner && !platformScope) {
+                const selected = useTenantFilterStore.getState().selectedTenant;
+                if (selected) {
+                    tenantId = selected.id;
+                    tenantSlug = selected.slug;
+                }
+            }
+
             if (tenantId) {
                 config.headers['X-Tenant-ID'] = tenantId;
             }
