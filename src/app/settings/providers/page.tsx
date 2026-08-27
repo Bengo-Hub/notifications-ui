@@ -5,12 +5,14 @@ import { useTenantProviders } from '@/hooks/use-settings';
 import { settingsApi } from '@/lib/api/settings';
 import { cn } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, Check, ChevronDown, ExternalLink, Globe, Loader2, Lock, Mail, MessageSquare, Save } from 'lucide-react';
+import { AlertCircle, Check, ChevronDown, ExternalLink, Globe, Loader2, Lock, Mail, MessageCircle, MessageSquare, Save } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 const EMAIL_PROVIDERS = ['smtp', 'sendgrid', 'brevo'];
 const SMS_PROVIDERS = ['twilio', 'africastalking', 'vonage', 'plivo'];
+// meta_cloud (official Meta WhatsApp Cloud API) is preferred; apiwap is a fallback aggregator.
+const WHATSAPP_PROVIDERS = ['meta_cloud', 'apiwap'];
 // Push (FCM) is platform-level only — configured at /platform/providers, not per-tenant
 const PUSH_PROVIDERS: string[] = [];
 
@@ -18,6 +20,7 @@ function getProvidersForChannel(channelId: string): string[] {
     switch (channelId) {
         case 'email': return EMAIL_PROVIDERS;
         case 'sms': return SMS_PROVIDERS;
+        case 'whatsapp': return WHATSAPP_PROVIDERS;
         case 'push': return PUSH_PROVIDERS;
         default: return [];
     }
@@ -113,6 +116,11 @@ export default function ProvidersPage() {
     const channels = [
         { id: 'email', name: 'Email', icon: Mail, description: 'SMTP, SendGrid, Brevo, or AWS SES', color: 'blue' },
         { id: 'sms', name: 'SMS', icon: MessageSquare, description: 'Twilio, Infobip, or AfricasTalking', color: 'green' },
+        {
+            id: 'whatsapp', name: 'WhatsApp', icon: MessageCircle,
+            description: 'Add your own WhatsApp Business phone number (Meta Cloud API or apiwap). Optional — without one, sends use the platform\'s shared number.',
+            color: 'green',
+        },
     ];
 
     const handleSelectProvider = async (channelId: string, providerName: string) => {
@@ -176,6 +184,16 @@ export default function ProvidersPage() {
         ],
         fcm: [
             { key: 'service_account', label: 'Service Account JSON', type: 'text', placeholder: 'Paste FCM service account JSON' },
+        ],
+        meta_cloud: [
+            { key: '_meta_guide', label: '', type: 'banner', placeholder: 'From Meta Business Manager → WhatsApp Manager → API Setup: register your own phone number, generate a permanent access token (a System User token, not the 24h test token), and copy its Phone Number ID here. Business-initiated messages require a Meta-approved message template.' },
+            { key: 'phone_number_id', label: 'Phone Number ID', type: 'text', placeholder: 'e.g. 1262404020292374' },
+            { key: 'access_token', label: 'Access Token', type: 'password', placeholder: 'Leave empty to keep current value' },
+            { key: 'api_version', label: 'API Version', type: 'text', placeholder: 'v21.0' },
+        ],
+        apiwap: [
+            { key: 'instance_id', label: 'Instance ID', type: 'text', placeholder: 'Your apiwap instance ID' },
+            { key: 'api_key', label: 'API Key', type: 'password', placeholder: 'Leave empty to keep current value' },
         ],
     };
 

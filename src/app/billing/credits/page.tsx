@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
 import { billingApi } from '@/lib/api/billing';
 import { billingKeys, useCreditBalance, useCreditTransactions } from '@/hooks/use-billing';
@@ -13,7 +14,6 @@ import {
     History,
     AlertCircle,
     ArrowRight,
-    CheckCircle2,
     Loader2
 } from 'lucide-react';
 
@@ -42,12 +42,17 @@ function formatRelativeTime(dateStr: string) {
     return `${days} day${days > 1 ? 's' : ''} ago`;
 }
 
+// Credits are an SMS-only, pay-per-message wallet (KES/SMS, deducted on every send). WhatsApp
+// is billed entirely differently — a monthly subscription plan with a bundled message quota, no
+// per-message wallet — see /billing/whatsapp. There used to be a parallel "WhatsApp Credits" tile
+// here backed by the same TenantCredit wallet mechanism; it was never actually charged against
+// (WhatsApp sends are gated by subscription+quota only) and has been removed rather than left as a
+// second, unused billing surface a tenant could be misled into topping up.
 export default function CreditsPage() {
     const user = useAuthStore((s) => s.user);
     const queryClient = useQueryClient();
 
     const [topUpAmount, setTopUpAmount] = useState<string>('');
-    const [selectedType, setSelectedType] = useState<'SMS' | 'WHATSAPP'>('SMS');
     const [isInitiating, setIsInitiating] = useState(false);
 
     const [paymentOpen, setPaymentOpen] = useState(false);
@@ -56,7 +61,6 @@ export default function CreditsPage() {
     const [pendingAmount, setPendingAmount] = useState(0);
 
     const { data: smsBalance, isLoading: smsLoading } = useCreditBalance('SMS');
-    const { data: whatsappBalance, isLoading: whatsappLoading } = useCreditBalance('WHATSAPP');
     const { data: txData, isLoading: txLoading, isError: txError, refetch: refetchTx } = useCreditTransactions({ limit: 10 });
 
     const transactions = txData?.data ?? [];
@@ -67,7 +71,7 @@ export default function CreditsPage() {
         setIsInitiating(true);
         try {
             const result = await billingApi.initiateTopUp({
-                credit_type: selectedType,
+                credit_type: 'SMS',
                 amount: Number(topUpAmount),
                 return_url: `${window.location.origin}/billing/credits?status=success`,
             });
@@ -110,7 +114,6 @@ export default function CreditsPage() {
                         setPaymentOpen(false);
                         setTopUpAmount('');
                         queryClient.invalidateQueries({ queryKey: billingKeys.balance('SMS') });
-                        queryClient.invalidateQueries({ queryKey: billingKeys.balance('WHATSAPP') });
                         queryClient.invalidateQueries({ queryKey: ['billing', 'transactions'] });
                     }}
                     onPaymentFailed={() => {
@@ -121,8 +124,8 @@ export default function CreditsPage() {
 
             <div className="p-6 max-w-7xl mx-auto space-y-8">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Credit Management</h1>
-                    <p className="text-muted-foreground mt-1">Monitor and top up your messaging units.</p>
+                    <h1 className="text-3xl font-bold tracking-tight">SMS Credits</h1>
+                    <p className="text-muted-foreground mt-1">Monitor and top up your SMS messaging units.</p>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
@@ -161,17 +164,11 @@ export default function CreditsPage() {
                                     </div>
                                     <Button variant="ghost" className="text-xs text-primary font-semibold h-auto p-0 hover:bg-transparent">ENABLE</Button>
                                 </div>
-                                <Button
-                                    className="w-full h-12 rounded-xl font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm mt-2"
-                                    onClick={() => { setSelectedType('SMS'); setTopUpAmount(''); }}
-                                >
-                                    Buy SMS Units
-                                </Button>
                             </div>
                         </CardContent>
                     </Card>
 
-                    {/* WhatsApp Credits */}
+                    {/* WhatsApp is subscription-billed, not credit-billed — point to its own page. */}
                     <Card className="overflow-hidden">
                         <div className="p-6 border-b border-border bg-green-500/5">
                             <div className="flex items-center justify-between">
@@ -180,39 +177,22 @@ export default function CreditsPage() {
                                         <MessageCircle className="h-5 w-5 text-green-500" />
                                     </div>
                                     <div>
-                                        <h3 className="text-lg font-bold">WhatsApp Credits</h3>
-                                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mt-0.5">Template & Session</p>
+                                        <h3 className="text-lg font-bold">WhatsApp</h3>
+                                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mt-0.5">Monthly subscription plan</p>
                                     </div>
                                 </div>
-                                <Badge variant="outline" className="rounded-full border-green-500/30 text-green-600 dark:text-green-400 bg-green-500/10 font-semibold px-3 py-1 text-[10px]">ACTIVE</Badge>
                             </div>
                         </div>
                         <CardContent className="p-6">
-                            <div className="mb-6 text-center">
-                                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1">Available Units</p>
-                                <span className={`text-5xl font-bold ${getStatusColor(whatsappBalance?.balance || 0)}`}>
-                                    {whatsappLoading ? '...' : (whatsappBalance?.balance || 0).toLocaleString()}
-                                </span>
-                            </div>
-
-                            <div className="space-y-3">
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="text-muted-foreground">Standard Rate</span>
-                                    <span className="font-medium text-foreground">KES 2.00 / Msg</span>
-                                </div>
-                                <div className="p-3 rounded-xl bg-accent/50 border border-border flex items-center justify-between">
-                                    <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
-                                        <CheckCircle2 className="h-4 w-4" /> Verification active
-                                    </div>
-                                    <Badge className="bg-green-500/10 text-green-600 dark:text-green-400 border-none font-semibold text-[10px]">META OK</Badge>
-                                </div>
-                                <Button
-                                    className="w-full h-12 rounded-xl font-semibold bg-green-600 hover:bg-green-700 text-white shadow-sm mt-2"
-                                    onClick={() => { setSelectedType('WHATSAPP'); setTopUpAmount(''); }}
-                                >
-                                    Buy WhatsApp Units
+                            <p className="text-sm text-muted-foreground mb-6">
+                                WhatsApp messaging is billed as a monthly subscription with a bundled message
+                                quota, not a per-message credit wallet — manage your plan on its own page.
+                            </p>
+                            <Link href="../whatsapp">
+                                <Button className="w-full h-12 rounded-xl font-semibold bg-green-600 hover:bg-green-700 text-white shadow-sm">
+                                    Manage WhatsApp Subscription <ArrowRight className="h-4 w-4 ml-2" />
                                 </Button>
-                            </div>
+                            </Link>
                         </CardContent>
                     </Card>
                 </div>
@@ -222,22 +202,10 @@ export default function CreditsPage() {
                     <CardContent className="p-8">
                         <div className="grid md:grid-cols-3 gap-6 items-center">
                             <div className="md:col-span-1">
-                                <h3 className="text-xl font-bold mb-2">Buy Extra Units</h3>
+                                <h3 className="text-xl font-bold mb-2">Buy Extra SMS Units</h3>
                                 <p className="text-sm text-muted-foreground">
-                                    Top up <span className="font-semibold">{selectedType}</span> credits. Added instantly upon payment.
+                                    Added instantly upon payment.
                                 </p>
-                                <div className="flex gap-2 mt-3">
-                                    {(['SMS', 'WHATSAPP'] as const).map((t) => (
-                                        <Button
-                                            key={t}
-                                            size="sm"
-                                            variant={selectedType === t ? 'primary' : 'outline'}
-                                            onClick={() => setSelectedType(t)}
-                                        >
-                                            {t}
-                                        </Button>
-                                    ))}
-                                </div>
                             </div>
                             <div className="md:col-span-2 flex flex-col sm:flex-row gap-4">
                                 <div className="flex-1 relative">

@@ -11,7 +11,9 @@ export const billingKeys = {
         ['billing', 'transactions', params] as const,
 };
 
-export function useCreditBalance(type: 'SMS' | 'WHATSAPP') {
+// Credits are an SMS-only wallet — WhatsApp is billed via subscription plans instead (see
+// use-whatsapp.ts / /billing/whatsapp), never a per-message credit balance.
+export function useCreditBalance(type: 'SMS') {
     return useQuery<CreditBalance>({
         queryKey: billingKeys.balance(type),
         queryFn: () => billingApi.getBalance(type),
