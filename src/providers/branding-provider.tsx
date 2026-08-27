@@ -3,6 +3,7 @@
 import React, { createContext, ReactNode, useContext, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth';
+import { useTenantFilterStore } from '@/store/tenant-filter';
 
 interface BrandingContextType {
     logoUrl: string;
@@ -43,7 +44,11 @@ async function fetchTenantBranding(accessToken: string, tenantSlug: string): Pro
 export function BrandingProvider({ children }: { children: ReactNode }) {
     const session = useAuthStore((s) => s.session);
     const user = useAuthStore((s) => s.user);
-    const tenantSlug = user?.tenantSlug || '';
+    // A platform owner acting on a selected tenant (top-nav TenantFilter) sees THAT tenant's
+    // branding instead of their own — explicit product decision (differs from subscriptions-ui's
+    // own branding provider, which never follows its equivalent switcher).
+    const selectedTenant = useTenantFilterStore((s) => s.selectedTenant);
+    const tenantSlug = selectedTenant?.slug || user?.tenantSlug || '';
 
     const { data: remoteBranding, isLoading } = useQuery({
         queryKey: ['tenant-branding', tenantSlug],
