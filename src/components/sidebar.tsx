@@ -115,8 +115,11 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                                 />
                             ) : (
                                 <svg width="200" height="60" viewBox="0 0 200 60" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-9 w-auto transition-transform duration-300 group-hover:scale-105">
-                                    <circle cx="90" cy="30" r="18" stroke="#722F5F" strokeWidth="3"/>
-                                    <path d="M82 30L87 35L98 24" stroke="#722F5F" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                                    {/* Brand mark uses the app's own --primary token (orange), not a hardcoded
+                                        color — was #722F5F (purple), mismatched against every other brand token
+                                        in globals.css and inconsistent between light/dark. */}
+                                    <circle cx="90" cy="30" r="18" style={{ stroke: 'hsl(var(--primary))' }} strokeWidth="3"/>
+                                    <path d="M82 30L87 35L98 24" style={{ stroke: 'hsl(var(--primary))' }} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
                                     <text x="10" y="38" fill="currentColor" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '24px' }}>Code</text>
                                     <text x="115" y="38" fill="currentColor" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '24px' }}>ertex</text>
                                     <text x="70" y="52" fill="currentColor" opacity="0.5" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: '8px', letterSpacing: '2px' }}>IT SOLUTIONS</text>
