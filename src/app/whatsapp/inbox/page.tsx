@@ -59,6 +59,7 @@ export default function WhatsAppInboxPage() {
                         loading={isLoading}
                         loadingRows={6}
                         onRowClick={(c) => router.push(`/whatsapp/inbox/${c.id}`)}
+                        storageKey="whatsapp-inbox-col-prefs"
                         page={page}
                         totalPages={totalPages}
                         onPageChange={setPage}

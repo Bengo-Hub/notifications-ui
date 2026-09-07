@@ -2,14 +2,16 @@
 
 import { Badge, Button, Card, CardContent, CardHeader } from '@/components/ui/base';
 import { useMe } from '@/hooks/useMe';
-import { Pagination } from '@/components/ui/pagination';
 import { useTemplates } from '@/hooks/use-templates';
 import { isPlatformOwnerOrSuperuser } from '@/lib/auth/permissions';
 import { cn } from '@/lib/utils';
-import { Edit2, Hash, Mail, MessageCircle, MessageSquare, Plus, Search, Send, Smartphone, Tag, Zap } from 'lucide-react';
+import { DataTable } from '@bengo-hub/shared-ui-lib/data-table';
+import { Mail, MessageCircle, MessageSquare, Plus, Search, Send, Smartphone, Zap } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { WhatsAppSyncModal } from './whatsapp-sync-modal';
+import { buildTemplateColumns } from './template-columns';
+import type { NotificationTemplate } from '@/lib/api/templates';
 
 const CHANNELS = ['all', 'email', 'sms', 'push', 'whatsapp'] as const;
 type Channel = (typeof CHANNELS)[number];
@@ -38,7 +40,6 @@ export default function TemplatesPage() {
 
     const templates = result?.data ?? [];
     const total = result?.total ?? 0;
-    const hasMore = result?.hasMore ?? false;
     const limit = result?.limit ?? 20;
 
     // Collect unique categories: start with common ones, add those from current page
@@ -84,6 +85,13 @@ export default function TemplatesPage() {
         setCategoryFilter(prev => prev === cat ? '' : cat);
         setPage(1);
     };
+
+    const goToTemplate = (template: NotificationTemplate) => {
+        router.push(`/templates/${template.filePath?.replace(/\.[^.]+$/, '').replace(/^[^/]+\//, '') ?? template.name}?channel=${template.channel}`);
+    };
+
+    const columns = useMemo(() => buildTemplateColumns(canManage, goToTemplate), [canManage]);
+    const totalPages = Math.max(1, Math.ceil(total / limit));
 
     return (
         <div className="p-8 space-y-8 max-w-7xl mx-auto">
@@ -172,28 +180,22 @@ export default function TemplatesPage() {
                             </div>
                         </div>
 
-                        {/* Top Pagination */}
-                        {total > limit && (
-                            <div className="flex items-center justify-between border-t border-border/50 pt-4">
-                                <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                                    Displaying {templates.length} of {total}
-                                </span>
-                                <Pagination
-                                    page={page}
-                                    total={total}
-                                    limit={limit}
-                                    hasMore={hasMore}
-                                    onPageChange={setPage}
-                                    variant="compact"
-                                />
-                            </div>
-                        )}
                     </CardHeader>
                     <CardContent className="p-0">
-                        <div className="divide-y divide-border overflow-x-auto max-h-[600px] overflow-y-auto custom-scrollbar">
-                            {loading ? (
-                                <div className="p-12 text-center text-muted-foreground">Loading templates...</div>
-                            ) : templates.length === 0 ? (
+                        <DataTable<NotificationTemplate>
+                            columns={columns}
+                            rows={templates}
+                            rowKey={(t) => `${t.channel}-${t.name}`}
+                            loading={loading}
+                            loadingRows={8}
+                            storageKey="templates-col-prefs"
+                            onRowClick={goToTemplate}
+                            maxBodyHeight="600px"
+                            page={page}
+                            totalPages={totalPages}
+                            onPageChange={setPage}
+                            total={total}
+                            emptyState={
                                 <div className="p-12 text-center">
                                     <p className="text-muted-foreground">
                                         {total === 0 && !searchQuery && !categoryFilter
@@ -201,61 +203,8 @@ export default function TemplatesPage() {
                                             : 'No templates match your filters.'}
                                     </p>
                                 </div>
-                            ) : templates.map((template) => (
-                                <div
-                                    key={`${template.channel}-${template.name}`}
-                                    className="p-4 flex items-center justify-between hover:bg-accent/5 transition-colors group cursor-pointer"
-                                    onClick={() => router.push(`/templates/${template.filePath?.replace(/\.[^.]+$/, '').replace(/^[^/]+\//, '') ?? template.name}?channel=${template.channel}`)}
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className={cn(
-                                            "h-10 w-10 rounded-lg flex items-center justify-center border border-border shadow-sm",
-                                            template.channel === 'email' ? "bg-blue-500/10 text-blue-500" :
-                                                template.channel === 'sms' ? "bg-green-500/10 text-green-500" :
-                                                    template.channel === 'whatsapp' ? "bg-emerald-500/10 text-emerald-500" :
-                                                        "bg-orange-500/10 text-orange-500"
-                                        )}>
-                                            {getTypeIcon(template.channel)}
-                                        </div>
-                                        <div>
-                                            <h4 className="text-sm font-bold group-hover:text-primary transition-colors">{template.name}</h4>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 capitalize">{template.channel}</Badge>
-                                                <Badge variant="default" className="text-[10px] px-1.5 py-0">
-                                                    <Tag className="h-2.5 w-2.5 mr-1" />{template.category}
-                                                </Badge>
-                                                {template.variables?.length > 0 && (
-                                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary">
-                                                        <Hash className="h-2.5 w-2.5 mr-0.5" />{template.variables.length} vars
-                                                    </Badge>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-6">
-                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            {canManage && (
-                                                <Button variant="ghost" size="sm" aria-label={`Edit ${template.name}`} className="h-8 w-8 p-0" onClick={(e: React.MouseEvent) => { e.stopPropagation(); router.push(`/templates/${template.filePath?.replace(/\.[^.]+$/, '').replace(/^[^/]+\//, '') ?? template.name}?channel=${template.channel}`); }}>
-                                                    <Edit2 className="h-3.5 w-3.5" />
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                        {/* Pagination */}
-                        {total > 0 && (
-                            <div className="border-t border-border">
-                                <Pagination
-                                    page={page}
-                                    total={total}
-                                    limit={limit}
-                                    hasMore={hasMore}
-                                    onPageChange={setPage}
-                                />
-                            </div>
-                        )}
+                            }
+                        />
                     </CardContent>
                 </Card>
 
