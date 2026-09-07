@@ -39,6 +39,24 @@ export interface SubscribeResult {
     authorization_url?: string;
 }
 
+export interface WhatsAppSubscriptionAdminRow {
+    tenant_id: string;
+    tenant_name: string;
+    tenant_slug: string;
+    plan: WhatsAppPlan;
+    status: 'active' | 'cancelled' | 'expired' | 'trial';
+    started_at: string;
+    expires_at: string;
+    auto_renew: boolean;
+    messages_used: number;
+    payment_reference?: string;
+}
+
+export interface RecordPaymentResult {
+    message: string;
+    result: SubscribeResult;
+}
+
 export interface TemplateSyncResult {
     name: string;
     category: string;
@@ -65,6 +83,15 @@ export const whatsappApi = {
 
     cancel: () =>
         apiClient.post<{ message: string }>('/api/v1/billing/whatsapp/cancel', {}),
+
+    // Platform-admin only — cross-tenant subscription management table.
+    listAllSubscriptions: () =>
+        apiClient.get<{ data: WhatsAppSubscriptionAdminRow[]; total: number }>('/api/v1/platform/billing/whatsapp/subscriptions'),
+
+    // Reconciles a payment received outside the normal checkout flow (bank transfer, cash, till)
+    // for the given tenant — creates the payment intent and immediately confirms it as paid.
+    recordPayment: (tenantId: string, data: { plan_id: string; reference?: string }) =>
+        apiClient.post<RecordPaymentResult>(`/api/v1/platform/billing/whatsapp/subscriptions/${tenantId}/record-payment`, data),
 
     // syncTemplates idempotently syncs the drafted WhatsApp template set to Meta — dryRun (the
     // default everywhere this is called from the UI) previews with zero write calls to Meta.

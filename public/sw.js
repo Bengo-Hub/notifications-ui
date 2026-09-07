@@ -13,3 +13,27 @@ self.addEventListener('fetch', (event) => {
   if (request.mode === 'navigate') { event.respondWith((async () => { try { const fresh = await fetch(request); if (fresh && fresh.status === 200 && fresh.type === 'basic') { (await caches.open(DOC_CACHE)).put(request, fresh.clone()); } return fresh; } catch { const cache = await caches.open(DOC_CACHE); const exact = await cache.match(request, { ignoreSearch: true }); if (exact) return exact; const any = (await cache.keys())[0]; if (any) return cache.match(any); return new Response('<!doctype html><meta charset="utf-8"><title>Offline</title><body style="font-family:system-ui;padding:2rem">Offline — reopen when your connection returns.</body>', { headers: { 'Content-Type': 'text/html' }, status: 200 }); } })()); return; }
   if (isAsset(url)) { event.respondWith((async () => { const cache = await caches.open(ASSET_CACHE); const cached = await cache.match(request); if (cached) return cached; try { const fresh = await fetch(request); if (fresh && fresh.status === 200) cache.put(request, fresh.clone()); return fresh; } catch { return cached || Response.error(); } })()); }
 });
+
+// --- Web Push (FCM) — additive, does not touch the offline-cache handlers above ---
+self.addEventListener('push', (event) => {
+  if (!event.data) return;
+  let payload;
+  try { payload = event.data.json(); } catch { return; }
+  const title = (payload.notification && payload.notification.title) || 'New notification';
+  const body = (payload.notification && payload.notification.body) || '';
+  const data = payload.data || {};
+  event.waitUntil(self.registration.showNotification(title, { body, data }));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const conversationId = event.notification.data && event.notification.data.conversation_id;
+  const target = conversationId ? `/whatsapp/inbox/${conversationId}` : '/whatsapp/inbox';
+  event.waitUntil((async () => {
+    const allClients = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const c of allClients) {
+      if (c.url.includes('/whatsapp/inbox') && 'focus' in c) { c.navigate(target); return c.focus(); }
+    }
+    return clients.openWindow(target);
+  })());
+});

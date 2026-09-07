@@ -5,6 +5,7 @@ import { DataTable } from '@bengo-hub/shared-ui-lib/data-table';
 import { useMe } from '@/hooks/useMe';
 import { useConversations } from '@/hooks/use-whatsapp-inbox';
 import { useWhatsAppInboxStream } from '@/hooks/use-whatsapp-inbox-stream';
+import { PushPermissionPrompt } from '@/components/push-permission-prompt';
 import { buildConversationColumns } from './conversation-columns';
 import { MessageCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -44,6 +45,8 @@ export default function WhatsAppInboxPage() {
                     {total > 0 && <span className="ml-1 font-medium text-foreground">{total} conversations</span>}
                 </p>
             </div>
+
+            <PushPermissionPrompt />
 
             {isError && (
                 <div className="rounded-2xl border border-destructive/50 bg-destructive/5 p-4 flex items-center justify-between">

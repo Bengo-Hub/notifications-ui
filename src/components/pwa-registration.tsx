@@ -37,7 +37,7 @@ export function PWARegistration() {
         window.addEventListener('appinstalled', () => {
             setDeferredPrompt(null);
             setShowInstall(false);
-            toast.success('TruLoad Notifications installed successfully!');
+            toast.success('Codevertex Notifications installed successfully!');
         });
 
         // 2. Initialize Push Manager

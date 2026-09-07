@@ -1,51 +1,50 @@
+import { getToken } from 'firebase/messaging';
+import { firebaseVapidKey, getFirebaseMessaging, isFirebaseConfigured } from './firebase';
+
 export const pushManager = {
     async isSupported(): Promise<boolean> {
         return (
             typeof window !== 'undefined' &&
             'serviceWorker' in navigator &&
-            'PushManager' in window
+            'PushManager' in window &&
+            isFirebaseConfigured()
         );
     },
 
     async getPermissionState(): Promise<NotificationPermission> {
-        if (!this.isSupported()) return 'denied';
+        if (!(await this.isSupported())) return 'denied';
         return Notification.permission;
     },
 
     async requestPermission(): Promise<boolean> {
-        if (!this.isSupported()) return false;
+        if (!(await this.isSupported())) return false;
         const permission = await Notification.requestPermission();
         return permission === 'granted';
     },
 
-    async subscribeUser(vapidPublicKey: string): Promise<PushSubscription | null> {
-        if (!this.isSupported()) return null;
+    /**
+     * Registers the shared offline-shell service worker (public/sw.js — not auto-registered by
+     * next-pwa, which is disabled here) then asks Firebase for an FCM registration token scoped
+     * to it. Returns the token string, directly compatible with POST /push/tokens — NOT a raw
+     * PushSubscription object (the previous implementation here built one via
+     * registration.pushManager.subscribe(), which the FCM-based backend can't send to at all).
+     */
+    async subscribeUser(): Promise<string | null> {
+        if (!(await this.isSupported())) return null;
 
-        const registration = await navigator.serviceWorker.ready;
+        const registration = await navigator.serviceWorker.register('/sw.js');
+        await navigator.serviceWorker.ready;
 
-        // Check for existing subscription
-        const existingSubscription = await registration.pushManager.getSubscription();
-        if (existingSubscription) return existingSubscription;
+        const messaging = getFirebaseMessaging();
+        if (!messaging) return null;
 
-        // Create new subscription
-        return await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: this.urlBase64ToUint8Array(vapidPublicKey)
-        });
-    },
-
-    urlBase64ToUint8Array(base64String: string): ArrayBuffer {
-        const padding = '='.repeat((4 - base64String.length % 4) % 4);
-        const base64 = (base64String + padding)
-            .replace(/\-/g, '+')
-            .replace(/_/g, '/');
-
-        const rawData = window.atob(base64);
-        const outputArray = new Uint8Array(rawData.length);
-
-        for (let i = 0; i < rawData.length; ++i) {
-            outputArray[i] = rawData.charCodeAt(i);
+        try {
+            return await getToken(messaging, {
+                vapidKey: firebaseVapidKey,
+                serviceWorkerRegistration: registration,
+            });
+        } catch {
+            return null;
         }
-        return outputArray.buffer as ArrayBuffer;
-    }
+    },
 };

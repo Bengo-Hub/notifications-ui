@@ -1,13 +1,21 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { whatsappApi, type PlansResponse, type SubscriptionResponse, type SubscribeResult } from '@/lib/api/whatsapp';
+import {
+    whatsappApi,
+    type PlansResponse,
+    type SubscriptionResponse,
+    type SubscribeResult,
+    type WhatsAppSubscriptionAdminRow,
+    type RecordPaymentResult,
+} from '@/lib/api/whatsapp';
 
 const STALE_MS = 60 * 1000;
 
 export const whatsappKeys = {
     plans: () => ['whatsapp', 'plans'] as const,
     subscription: () => ['whatsapp', 'subscription'] as const,
+    allSubscriptions: () => ['whatsapp', 'subscriptions', 'all'] as const,
 };
 
 export function useWhatsAppPlans() {
@@ -42,6 +50,25 @@ export function useCancelWhatsApp() {
         mutationFn: () => whatsappApi.cancel(),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: whatsappKeys.subscription() });
+        },
+    });
+}
+
+// Platform-admin only — cross-tenant subscription management table.
+export function useAllWhatsAppSubscriptions() {
+    return useQuery<{ data: WhatsAppSubscriptionAdminRow[]; total: number }>({
+        queryKey: whatsappKeys.allSubscriptions(),
+        queryFn: () => whatsappApi.listAllSubscriptions(),
+        staleTime: STALE_MS,
+    });
+}
+
+export function useRecordWhatsAppPayment() {
+    const queryClient = useQueryClient();
+    return useMutation<RecordPaymentResult, Error, { tenantId: string; plan_id: string; reference?: string }>({
+        mutationFn: ({ tenantId, ...data }) => whatsappApi.recordPayment(tenantId, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: whatsappKeys.allSubscriptions() });
         },
     });
 }

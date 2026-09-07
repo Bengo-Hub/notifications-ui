@@ -102,16 +102,14 @@ export function buildNotificationPreferenceColumns(
             render: (p) => (
                 <div className="flex items-center gap-1.5">
                     <ChannelBadges channels={p.channels} enabledChannels={p.enabledChannels} />
-                    {p.channels.length > 1 && (
-                        <button
-                            type="button"
-                            title="Choose which channels to use"
-                            onClick={() => onEditChannels(p)}
-                            className="text-muted-foreground/60 hover:text-primary transition-colors shrink-0"
-                        >
-                            <SlidersHorizontal className="h-3.5 w-3.5" />
-                        </button>
-                    )}
+                    <button
+                        type="button"
+                        title="Choose which channels to use"
+                        onClick={() => onEditChannels(p)}
+                        className="text-muted-foreground/60 hover:text-primary transition-colors shrink-0"
+                    >
+                        <SlidersHorizontal className="h-3.5 w-3.5" />
+                    </button>
                 </div>
             ),
         },
