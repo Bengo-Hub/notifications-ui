@@ -8,6 +8,7 @@ import {
     LayoutDashboard,
     LogOut,
     Mail,
+    MessageCircle,
     Server,
     Settings,
 } from 'lucide-react';
@@ -25,7 +26,7 @@ interface SidebarProps {
 
 export function Sidebar({ open = false, onClose }: SidebarProps) {
     const pathname = usePathname();
-    const { user } = useMe();
+    const { user, hasPermission } = useMe();
     const isPlatformOwner = isPlatformOwnerOrSuperuser(user ?? null);
     const logout = useAuthStore((s) => s.logout);
     const selectedTenant = useTenantFilterStore((s) => s.selectedTenant);
@@ -55,6 +56,14 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                     active: pathname.startsWith('/monitoring'),
                 },
             ]
+            : []),
+        ...(hasPermission('notifications.whatsapp_inbox.view')
+            ? [{
+                label: 'WhatsApp Inbox',
+                icon: MessageCircle,
+                href: '/whatsapp/inbox',
+                active: pathname.startsWith('/whatsapp/inbox'),
+            }]
             : []),
         {
             label: 'Billing',

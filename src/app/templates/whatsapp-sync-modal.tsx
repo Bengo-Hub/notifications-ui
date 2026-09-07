@@ -86,7 +86,7 @@ export function WhatsAppSyncModal({ open, onClose }: { open: boolean; onClose: (
             <div className="space-y-4 overflow-y-auto">
                 {loadingPreview && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground py-8 justify-center">
-                        <Loader2 className="h-4 w-4 animate-spin" /> Checking what's already on Meta...
+                        <Loader2 className="h-4 w-4 animate-spin" /> Checking what&apos;s already on Meta...
                     </div>
                 )}
 
