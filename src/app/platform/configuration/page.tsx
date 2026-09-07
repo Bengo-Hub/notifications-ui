@@ -112,7 +112,7 @@ function ServiceConfigEditor() {
                     </div>
                 )}
                 {isError && (
-                    <div className="rounded-xl border border-destructive/50 bg-destructive/5 p-4 flex items-center justify-between">
+                    <div className="rounded-xl border border-destructive/50 bg-destructive/5 p-4 flex items-center justify-between gap-3 flex-wrap">
                         <p className="text-sm text-destructive">Failed to load platform settings.</p>
                         <button onClick={() => refetch()} className="text-sm font-medium text-primary hover:underline">Retry</button>
                     </div>

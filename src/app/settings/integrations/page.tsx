@@ -43,7 +43,7 @@ export default function IntegrationsSettingsPage() {
                         <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                             Auth-API URL
                         </label>
-                        <div className="flex gap-3">
+                        <div className="flex flex-col sm:flex-row gap-3">
                             <input
                                 value={authApiUrl}
                                 readOnly

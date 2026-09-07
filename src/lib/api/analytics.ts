@@ -33,6 +33,10 @@ export interface ActivityLogFilters {
     offset?: number;
     channel?: string;
     status?: string;
+    /** RFC3339 lower bound — pass the same cutoff used for getDeliveryStats' `range` so the
+     *  Live Activity Feed and the KPI cards above it reflect the same window instead of the
+     *  feed silently showing older history the cards don't count. */
+    from?: string;
 }
 
 export const analyticsApi = {
@@ -44,6 +48,7 @@ export const analyticsApi = {
         if (filters?.offset != null) params.set('offset', String(filters.offset));
         if (filters?.channel) params.set('channel', filters.channel);
         if (filters?.status) params.set('status', filters.status);
+        if (filters?.from) params.set('from', filters.from);
         const baseUrl = '/api/v1/analytics/logs';
         return apiClient.get<ActivityLogsPage>(`${baseUrl}?${params.toString()}`);
     },

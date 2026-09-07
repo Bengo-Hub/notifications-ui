@@ -132,9 +132,9 @@ export default function UsersAndRolesPage() {
                     {!assignmentsLoading && assignments.length > 0 && (
                         <div className="divide-y divide-border rounded-lg border border-border overflow-hidden">
                             {assignments.map((a) => (
-                                <div key={a.ID} className="flex items-center justify-between px-4 py-3">
-                                    <div className="space-y-0.5">
-                                        <p className="text-sm font-medium">
+                                <div key={a.ID} className="flex items-center justify-between gap-3 px-4 py-3">
+                                    <div className="space-y-0.5 min-w-0">
+                                        <p className="text-sm font-medium truncate">
                                             {userById.get(a.UserID)?.full_name || userById.get(a.UserID)?.email || (
                                                 <span className="font-mono text-muted-foreground">{a.UserID}</span>
                                             )}
@@ -147,7 +147,7 @@ export default function UsersAndRolesPage() {
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        className="text-destructive hover:bg-destructive/10 gap-1.5"
+                                        className="text-destructive hover:bg-destructive/10 gap-1.5 shrink-0"
                                         disabled={revokeRole.isPending}
                                         onClick={() => handleRevoke(a.ID)}
                                     >

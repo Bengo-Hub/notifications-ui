@@ -387,7 +387,7 @@ export default function ProvidersPage() {
     return (
         <div className="space-y-6">
             {isError && (
-                <div className="rounded-2xl border border-destructive/50 bg-destructive/5 p-4 flex items-center justify-between">
+                <div className="rounded-2xl border border-destructive/50 bg-destructive/5 p-4 flex items-center justify-between gap-3 flex-wrap">
                     <p className="text-sm text-destructive">Failed to load provider settings.</p>
                     <button onClick={() => refetch()} className="text-sm font-medium text-primary hover:underline">Retry</button>
                 </div>
@@ -426,15 +426,15 @@ export default function ProvidersPage() {
                                     <div className="p-6 flex-1 bg-card">
                                         {config ? (
                                             <div className="space-y-6">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                                                        <span className="text-sm font-semibold uppercase tracking-tight">Active: {config.provider_name}</span>
+                                                <div className="flex items-center justify-between gap-3 flex-wrap">
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse shrink-0" />
+                                                        <span className="text-sm font-semibold uppercase tracking-tight truncate">Active: {config.provider_name}</span>
                                                     </div>
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        className="text-primary hover:bg-primary/10 gap-1"
+                                                        className="text-primary hover:bg-primary/10 gap-1 shrink-0"
                                                         onClick={() => setChangingChannel(isChanging ? null : channel.id)}
                                                     >
                                                         Change Provider

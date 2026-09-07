@@ -95,7 +95,7 @@ export default function TemplatesPage() {
 
     return (
         <div className="p-8 space-y-8 max-w-7xl mx-auto">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Notification Templates</h1>
                     <p className="text-muted-foreground mt-1">
@@ -129,7 +129,7 @@ export default function TemplatesPage() {
                     )}
                 </div>
                 {canManage && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                         <Button variant="outline" className="gap-2" onClick={() => setSyncModalOpen(true)}>
                             <Send className="h-4 w-4" />
                             Sync WhatsApp to Meta
@@ -145,7 +145,7 @@ export default function TemplatesPage() {
             <WhatsAppSyncModal open={syncModalOpen} onClose={() => setSyncModalOpen(false)} />
 
             {isError && (
-                <div className="rounded-2xl border border-destructive/50 bg-destructive/5 p-4 flex items-center justify-between">
+                <div className="rounded-2xl border border-destructive/50 bg-destructive/5 p-4 flex items-center justify-between gap-3 flex-wrap">
                     <p className="text-sm text-destructive">Failed to load templates.</p>
                     <button onClick={() => refetch()} className="text-sm font-medium text-primary hover:underline">Retry</button>
                 </div>

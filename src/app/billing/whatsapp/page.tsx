@@ -224,9 +224,9 @@ export default function WhatsAppBillingPage() {
                                 {subscription.status === 'active' && (
                                     <div className="pt-2">
                                         {showCancelConfirm ? (
-                                            <div className="flex items-center gap-3 p-3 bg-red-500/10 rounded-lg border border-red-200 dark:border-red-900">
+                                            <div className="flex flex-wrap items-center gap-3 p-3 bg-red-500/10 rounded-lg border border-red-200 dark:border-red-900">
                                                 <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
-                                                <span className="text-sm flex-1">Cancel subscription? You&apos;ll retain access until {formatDate(subscription.expires_at)}.</span>
+                                                <span className="text-sm flex-1 min-w-50">Cancel subscription? You&apos;ll retain access until {formatDate(subscription.expires_at)}.</span>
                                                 <Button variant="destructive" onClick={handleCancel} disabled={cancelMutation.isPending}>
                                                     {cancelMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirm'}
                                                 </Button>

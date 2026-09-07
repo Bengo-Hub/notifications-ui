@@ -43,11 +43,19 @@ export default function MonitoringPage() {
         setPage(1);
     }, [channelFilter, statusFilter, pageSize]);
 
-    const filters = useMemo(() => ({
-        offset: (page - 1) * pageSize,
-        channel: channelFilter || undefined,
-        status: statusFilter || undefined,
-    }), [page, pageSize, channelFilter, statusFilter]);
+    // Same cutoff the KPI cards above use (useDeliveryStats' `range`) — without this the feed
+    // silently shows older history the cards don't count, making the two panels look
+    // inconsistent (0 in the cards next to real rows in the feed).
+    const filters = useMemo(() => {
+        const hours = range === '7d' ? 7 * 24 : 24;
+        const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+        return {
+            offset: (page - 1) * pageSize,
+            channel: channelFilter || undefined,
+            status: statusFilter || undefined,
+            from: since,
+        };
+    }, [page, pageSize, channelFilter, statusFilter, range]);
 
     const { data: stats, isLoading: statsLoading, isError: statsError, refetch: refetchStats } = useDeliveryStats(range);
     const { data: logsPage, isLoading: logsLoading, isError: logsError, refetch: refetchLogs } = useActivityLogs(pageSize, filters);

@@ -61,7 +61,7 @@ export default function DashboardPage() {
                 </div>
 
                 {hasError && (
-                    <div className="rounded-2xl border border-destructive/50 bg-destructive/5 p-4 flex items-center justify-between">
+                    <div className="rounded-2xl border border-destructive/50 bg-destructive/5 p-4 flex items-center justify-between gap-3 flex-wrap">
                         <p className="text-sm text-destructive">Failed to load dashboard data.</p>
                         <button
                             onClick={handleRetry}
@@ -113,13 +113,15 @@ export default function DashboardPage() {
                         <ul className="mt-4 space-y-2 divide-y divide-border">
                             {activityLogs.slice(0, 5).map((log) => (
                                 <li key={log.id} className="py-2 flex items-center gap-3 text-sm">
-                                    {log.channel === 'email' && <Mail className="h-4 w-4 text-muted-foreground" />}
-                                    {log.channel === 'sms' && <MessageSquare className="h-4 w-4 text-muted-foreground" />}
-                                    {log.channel === 'whatsapp' && <MessageCircle className="h-4 w-4 text-muted-foreground" />}
-                                    {log.channel === 'push' && <Smartphone className="h-4 w-4 text-muted-foreground" />}
-                                    <span className="font-medium">{log.templateName}</span>
-                                    <span className="text-muted-foreground">&rarr; {log.recipient}</span>
-                                    <span className="text-muted-foreground text-xs ml-auto">
+                                    {log.channel === 'email' && <Mail className="h-4 w-4 text-muted-foreground shrink-0" />}
+                                    {log.channel === 'sms' && <MessageSquare className="h-4 w-4 text-muted-foreground shrink-0" />}
+                                    {log.channel === 'whatsapp' && <MessageCircle className="h-4 w-4 text-muted-foreground shrink-0" />}
+                                    {log.channel === 'push' && <Smartphone className="h-4 w-4 text-muted-foreground shrink-0" />}
+                                    <span className="min-w-0 flex-1 truncate">
+                                        <span className="font-medium">{log.templateName}</span>{' '}
+                                        <span className="text-muted-foreground">&rarr; {log.recipient}</span>
+                                    </span>
+                                    <span className="text-muted-foreground text-xs ml-auto shrink-0">
                                         {new Date(log.timestamp).toLocaleString()}
                                     </span>
                                 </li>

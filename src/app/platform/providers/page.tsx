@@ -203,7 +203,7 @@ export default function PlatformProvidersPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
                 <div>
                     <h1 className="text-2xl font-bold flex items-center gap-2">
                         <Server className="h-7 w-7" />
@@ -213,14 +213,14 @@ export default function PlatformProvidersPage() {
                         Configure default providers for all tenants. Tenants can override with their own settings.
                     </p>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => refetch()}>
+                <Button variant="outline" size="sm" className="shrink-0" onClick={() => refetch()}>
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Refresh
                 </Button>
             </div>
 
             {isError && (
-                <div className="rounded-2xl border border-destructive/50 bg-destructive/5 p-4 flex items-center justify-between">
+                <div className="rounded-2xl border border-destructive/50 bg-destructive/5 p-4 flex items-center justify-between gap-3 flex-wrap">
                     <p className="text-sm text-destructive">Failed to load platform providers.</p>
                     <button onClick={() => refetch()} className="text-sm font-medium text-primary hover:underline">Retry</button>
                 </div>
@@ -253,18 +253,18 @@ export default function PlatformProvidersPage() {
 
                                     return (
                                         <div key={pName} className="rounded-lg border border-border bg-card overflow-hidden">
-                                            <div className="flex items-center justify-between py-3 px-4">
+                                            <div className="flex items-center justify-between py-3 px-4 gap-2 flex-wrap">
                                                 <div className="flex items-center gap-3">
                                                     <span className="font-semibold">{label}</span>
                                                     <Badge variant={isActive ? 'default' : 'secondary'} className="text-[10px] uppercase">
                                                         {isActive ? 'Active' : 'Inactive'}
                                                     </Badge>
                                                 </div>
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-2 flex-wrap">
                                                     {p && pid != null && channelId !== 'push' && (
                                                         <>
                                                             {isTestModal ? (
-                                                                <div className="flex items-center gap-2">
+                                                                <div className="flex items-center gap-2 flex-wrap">
                                                                     <input
                                                                         type="text"
                                                                         placeholder={channelId === 'email' ? 'test@example.com' : '+254700000000'}

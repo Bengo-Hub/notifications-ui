@@ -370,7 +370,7 @@ export default function SecuritySettingsPage() {
                         <h4 className="text-sm font-bold">Webhook signing secret</h4>
                         <p className="text-xs text-muted-foreground">Use this secret to verify webhook payloads. Keep it confidential.</p>
                         <div className="flex items-center gap-2">
-                            <div className="flex-1 bg-accent/20 p-2.5 rounded-lg border border-border text-xs font-mono flex items-center gap-2">
+                            <div className="flex-1 min-w-0 bg-accent/20 p-2.5 rounded-lg border border-border text-xs font-mono flex items-center gap-2">
                                 <span className="truncate">{webhookSecret ? '••••••••••••••••••••' : 'Not available (configure at platform level)'}</span>
                             </div>
                             <Button type="button" variant="outline" size="sm" className="gap-1.5 shrink-0" onClick={handleCopyWebhookSecret}>

@@ -249,7 +249,7 @@ export default function TemplateEditorPage() {
                             Visual
                         </button>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                         {!isNew && (
                             <>
                                 {isPlatformUser && tenants && tenants.length > 0 && (
@@ -294,7 +294,7 @@ export default function TemplateEditorPage() {
                         <CardContent className="space-y-6 pt-6">
                             {activeTab === 'edit' && (
                                 <>
-                                    <div className="grid grid-cols-2 gap-6">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                         <div className="space-y-2">
                                             <label className="text-sm font-bold secondary-foreground">Template Name</label>
                                             <input
@@ -306,7 +306,7 @@ export default function TemplateEditorPage() {
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-sm font-bold secondary-foreground">Channel Type</label>
-                                            <div className="grid grid-cols-4 gap-2">
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                                 {['email', 'sms', 'push', 'whatsapp'].map((type) => (
                                                     <button
                                                         key={type}
