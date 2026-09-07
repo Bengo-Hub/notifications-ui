@@ -3,10 +3,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { whatsappInboxApi } from '@/lib/api/whatsapp-inbox';
 
-// Conversations poll every 15s — cheap fallback for live-update until the websocket stream ships
-// (Part A-3 of the plan); messages poll faster only while a thread is actually open.
-const CONVERSATIONS_POLL_MS = 15_000;
-const MESSAGES_POLL_MS = 8_000;
+// The WebSocket stream (use-whatsapp-inbox-stream.ts) drives real-time updates by invalidating
+// these queries directly — this polling interval is only a safety net for a dropped/reconnecting
+// socket, not the primary update mechanism.
+const CONVERSATIONS_POLL_MS = 60_000;
+const MESSAGES_POLL_MS = 45_000;
 
 export const whatsappInboxKeys = {
     all: () => ['whatsapp-conversations'] as const,

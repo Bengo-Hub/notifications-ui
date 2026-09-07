@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/base';
 import { DataTable } from '@bengo-hub/shared-ui-lib/data-table';
 import { useMe } from '@/hooks/useMe';
 import { useConversations } from '@/hooks/use-whatsapp-inbox';
+import { useWhatsAppInboxStream } from '@/hooks/use-whatsapp-inbox-stream';
 import { buildConversationColumns } from './conversation-columns';
 import { MessageCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -18,6 +19,7 @@ export default function WhatsAppInboxPage() {
 
     const { data, isLoading, isError, refetch } = useConversations({ page, limit: pageSize });
     const columns = useMemo(() => buildConversationColumns(), []);
+    useWhatsAppInboxStream();
 
     if (!hasPermission('notifications.whatsapp_inbox.view')) {
         return (

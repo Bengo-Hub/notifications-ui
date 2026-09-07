@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/base';
 import { useMe } from '@/hooks/useMe';
 import { useConversationMessages, useMarkRead, useSendReply } from '@/hooks/use-whatsapp-inbox';
 import { useConversations } from '@/hooks/use-whatsapp-inbox';
+import { useWhatsAppInboxStream } from '@/hooks/use-whatsapp-inbox-stream';
 import { cn } from '@/lib/utils';
 import { AlertTriangle, ArrowLeft, Loader2, Send } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
@@ -22,6 +23,7 @@ export default function WhatsAppThreadPage() {
     const canReply = hasPermission('notifications.whatsapp_inbox.reply');
 
     const { data, isLoading } = useConversationMessages(conversationId);
+    useWhatsAppInboxStream(conversationId);
     // Reuse the list query (already polling) to get this conversation's window/contact info
     // rather than a second endpoint just for header details.
     const { data: convList } = useConversations({ limit: 50 });

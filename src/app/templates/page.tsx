@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { DataTable } from '@bengo-hub/shared-ui-lib/data-table';
 import { Mail, MessageCircle, MessageSquare, Plus, Search, Send, Smartphone, Zap } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { WhatsAppSyncModal } from './whatsapp-sync-modal';
 import { buildTemplateColumns } from './template-columns';
 import type { NotificationTemplate } from '@/lib/api/templates';
@@ -86,11 +86,11 @@ export default function TemplatesPage() {
         setPage(1);
     };
 
-    const goToTemplate = (template: NotificationTemplate) => {
+    const goToTemplate = useCallback((template: NotificationTemplate) => {
         router.push(`/templates/${template.filePath?.replace(/\.[^.]+$/, '').replace(/^[^/]+\//, '') ?? template.name}?channel=${template.channel}`);
-    };
+    }, [router]);
 
-    const columns = useMemo(() => buildTemplateColumns(canManage, goToTemplate), [canManage]);
+    const columns = useMemo(() => buildTemplateColumns(canManage, goToTemplate), [canManage, goToTemplate]);
     const totalPages = Math.max(1, Math.ceil(total / limit));
 
     return (
