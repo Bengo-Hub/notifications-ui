@@ -29,6 +29,16 @@ COPY . .
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
+# WhatsApp Embedded Signup (use-whatsapp-embedded-signup.ts) — Meta App ID and the Embedded
+# Signup config_id (App Dashboard -> WhatsApp -> Embedded Signup -> Configurations). Not secrets:
+# both are meant to be read by the client-side Meta JS SDK, the same way a public API key is.
+# Defaulted here (not routed through build.sh/GitHub secrets) since nothing else in the build
+# pipeline currently overrides them.
+ARG NEXT_PUBLIC_META_APP_ID=1795331208142018
+ENV NEXT_PUBLIC_META_APP_ID=${NEXT_PUBLIC_META_APP_ID}
+ARG NEXT_PUBLIC_META_WHATSAPP_CONFIG_ID=1588908702785574
+ENV NEXT_PUBLIC_META_WHATSAPP_CONFIG_ID=${NEXT_PUBLIC_META_WHATSAPP_CONFIG_ID}
+
 RUN pnpm build
 
 # Production image, copy all the files and run next
