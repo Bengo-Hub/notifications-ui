@@ -39,6 +39,20 @@ export interface SubscribeResult {
     authorization_url?: string;
 }
 
+export interface TemplateSyncResult {
+    name: string;
+    category: string;
+    outcome: 'created' | 'skipped' | 'failed';
+    detail?: string;
+    dry_run?: boolean;
+}
+
+export interface TemplateSyncResponse {
+    waba_id: string;
+    results: TemplateSyncResult[];
+    summary: Record<string, number>;
+}
+
 export const whatsappApi = {
     listPlans: () =>
         apiClient.get<PlansResponse>('/api/v1/billing/whatsapp/plans'),
@@ -51,4 +65,12 @@ export const whatsappApi = {
 
     cancel: () =>
         apiClient.post<{ message: string }>('/api/v1/billing/whatsapp/cancel', {}),
+
+    // syncTemplates idempotently syncs the drafted WhatsApp template set to Meta — dryRun (the
+    // default everywhere this is called from the UI) previews with zero write calls to Meta.
+    syncTemplates: (opts: { dryRun: boolean; only?: string[] }) =>
+        apiClient.post<TemplateSyncResponse>('/api/v1/platform/whatsapp/templates/sync', {
+            dry_run: opts.dryRun,
+            only: opts.only,
+        }),
 };

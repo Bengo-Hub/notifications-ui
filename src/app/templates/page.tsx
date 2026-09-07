@@ -6,9 +6,10 @@ import { Pagination } from '@/components/ui/pagination';
 import { useTemplates } from '@/hooks/use-templates';
 import { isPlatformOwnerOrSuperuser } from '@/lib/auth/permissions';
 import { cn } from '@/lib/utils';
-import { Edit2, Hash, Mail, MessageCircle, MessageSquare, Plus, Search, Smartphone, Tag, Zap } from 'lucide-react';
+import { Edit2, Hash, Mail, MessageCircle, MessageSquare, Plus, Search, Send, Smartphone, Tag, Zap } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
+import { WhatsAppSyncModal } from './whatsapp-sync-modal';
 
 const CHANNELS = ['all', 'email', 'sms', 'push', 'whatsapp'] as const;
 type Channel = (typeof CHANNELS)[number];
@@ -24,6 +25,7 @@ export default function TemplatesPage() {
     const [channelFilter, setChannelFilter] = useState<Channel>('all');
     const [categoryFilter, setCategoryFilter] = useState<string>('');
     const [searchInput, setSearchInput] = useState('');
+    const [syncModalOpen, setSyncModalOpen] = useState(false);
     const router = useRouter();
 
     const { data: result, isLoading: loading, isError, refetch } = useTemplates({
@@ -119,12 +121,20 @@ export default function TemplatesPage() {
                     )}
                 </div>
                 {canManage && (
-                    <Button className="gap-2 shadow-lg shadow-primary/20">
-                        <Plus className="h-4 w-4" />
-                        Create Template
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" className="gap-2" onClick={() => setSyncModalOpen(true)}>
+                            <Send className="h-4 w-4" />
+                            Sync WhatsApp to Meta
+                        </Button>
+                        <Button className="gap-2 shadow-lg shadow-primary/20">
+                            <Plus className="h-4 w-4" />
+                            Create Template
+                        </Button>
+                    </div>
                 )}
             </div>
+
+            <WhatsAppSyncModal open={syncModalOpen} onClose={() => setSyncModalOpen(false)} />
 
             {isError && (
                 <div className="rounded-2xl border border-destructive/50 bg-destructive/5 p-4 flex items-center justify-between">
