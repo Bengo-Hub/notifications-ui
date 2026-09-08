@@ -14,7 +14,7 @@ import { ReactNode, useEffect } from 'react';
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
     const { status, initialize } = useAuthStore();
-    const { user, isLoading: meLoading, isError: meError } = useMe();
+    const { user, hasPermission, isLoading: meLoading, isError: meError } = useMe();
     const pathname = usePathname();
     const router = useRouter();
 
@@ -40,16 +40,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }, [meError, pathname]);
 
-    // Platform-only routes: /platform, /templates, /monitoring
+    // Platform-only routes: /platform, /templates.
+    // /monitoring is tenant-reachable too — a platform owner sees cross-tenant data, a tenant
+    // admin/manager with notifications.analytics.view sees only their own tenant's (the API
+    // enforces the actual scoping; this is just the route guard).
     useEffect(() => {
         if (status === 'authenticated' && user) {
-            const platformOnlyPrefixes = ['/platform', '/templates', '/monitoring'];
-            const isRestricted = platformOnlyPrefixes.some(prefix => pathname?.startsWith(prefix));
-            if (isRestricted && !isPlatformOwnerOrSuperuser(user)) {
+            const isPlatformOwner = isPlatformOwnerOrSuperuser(user);
+            const platformOnlyPrefixes = ['/platform', '/templates'];
+            const isPlatformOnlyRestricted = platformOnlyPrefixes.some(prefix => pathname?.startsWith(prefix));
+            const isMonitoringRestricted =
+                pathname?.startsWith('/monitoring') && !hasPermission('notifications.analytics.view');
+            if ((isPlatformOnlyRestricted || isMonitoringRestricted) && !isPlatformOwner) {
                 router.replace('/unauthorized');
             }
         }
-    }, [status, user, pathname, router]);
+    }, [status, user, hasPermission, pathname, router]);
 
     // Show loading until we know auth state so dashboard never flashes before SSO redirect
     const loading =

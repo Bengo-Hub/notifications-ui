@@ -5,10 +5,13 @@ user guide (`shared-docs/docs/user-guide/notifications/`). These are not a regre
 where a spec opens a form (the channel picker), it screenshots and cancels without submitting, so
 nothing fails CI and no real data changes.
 
-Scoped to the **tenant-facing** app only. Notifications-ui also has a handful of platform-owner-only
-screens (Monitoring, Templates, Platform Providers, under `isPlatformOwner` in `sidebar.tsx`) —
-those are internal operational tooling, not something a tenant admin ever sees, so they're
-deliberately out of scope for this suite and for the user guide it feeds.
+Scoped to the **tenant-facing** app only. Notifications-ui also has a couple of genuinely
+platform-owner-only screens (Templates, Platform Providers, still gated by `isPlatformOwner` in
+`sidebar.tsx`/`auth-provider.tsx`) — those are internal operational tooling, not something a
+tenant admin ever sees, so they stay out of scope for this suite and for the user guide it feeds.
+Monitoring is *not* one of these: it's reachable by any tenant admin/manager with
+`notifications.analytics.view` (RoleAdmin/RoleManager get it by default), scoped to their own
+tenant's data only, so it's captured here like any other tenant screen.
 
 Unlike inventory-ui's PIN-login docs-capture suite, this app has no PIN flow — `lib/auth.ts`'s
 `ssoLogin` drives a real SSO form submission with the platform's demo account, the same flow
@@ -23,8 +26,9 @@ this app's own domain didn't always complete) — logging in once avoids repeati
 
 ## Re-running this
 
-The guide's screenshots go stale whenever the WhatsApp Inbox, WhatsApp Subscription, or
-Notification Preferences pages change layout. Re-run the relevant spec and re-publish shared-docs.
+The guide's screenshots go stale whenever the WhatsApp Inbox, WhatsApp Subscription, Monitoring,
+or Notification Preferences pages change layout. Re-run the relevant spec and re-publish
+shared-docs.
 Always target the `docs-capture` project so setup runs first:
 
 ```

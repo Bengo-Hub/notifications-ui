@@ -49,13 +49,18 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                     href: '/templates',
                     active: pathname.startsWith('/templates'),
                 },
-                {
-                    label: 'Monitoring',
-                    icon: Activity,
-                    href: '/monitoring',
-                    active: pathname.startsWith('/monitoring'),
-                },
             ]
+            : []),
+        // Tenant-scoped: a platform owner sees cross-tenant data (via the header tenant
+        // switcher); a tenant admin/manager with notifications.analytics.view sees only their
+        // own tenant's delivery stats and logs — enforced by the API, not just this UI gate.
+        ...(isPlatformOwner || hasPermission('notifications.analytics.view')
+            ? [{
+                label: 'Monitoring',
+                icon: Activity,
+                href: '/monitoring',
+                active: pathname.startsWith('/monitoring'),
+            }]
             : []),
         ...(hasPermission('notifications.whatsapp_inbox.view')
             ? [{

@@ -23,15 +23,19 @@ function channelMeta(channel: string) {
 }
 
 export default function MonitoringPage() {
-    const { user } = useMe();
+    const { user, hasPermission } = useMe();
     const router = useRouter();
 
-    // Defense-in-depth: redirect non-platform users (AuthProvider also handles this)
+    // Defense-in-depth: redirect anyone without analytics access (AuthProvider also handles
+    // this). A platform owner sees the same page scoped to whatever tenant they're acting as
+    // (see the header tenant-switcher); a tenant admin/manager with notifications.analytics.view
+    // sees only their own tenant's data — the API itself enforces that scoping, this is just the
+    // UI-level gate.
     useEffect(() => {
-        if (user && !isPlatformOwnerOrSuperuser(user)) {
+        if (user && !isPlatformOwnerOrSuperuser(user) && !hasPermission('notifications.analytics.view')) {
             router.replace('/unauthorized');
         }
-    }, [user, router]);
+    }, [user, hasPermission, router]);
     const [range, setRange] = useState<'24h' | '7d'>('24h');
     const [channelFilter, setChannelFilter] = useState<string>('');
     const [statusFilter, setStatusFilter] = useState<string>('');
