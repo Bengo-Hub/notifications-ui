@@ -135,7 +135,14 @@ export function WhatsAppSyncModal({ open, onClose }: { open: boolean; onClose: (
                                 <div key={r.name} className={cn('flex items-start gap-2 p-2.5 rounded-lg border text-xs', meta.className)}>
                                     <Icon className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                                     <div className="min-w-0">
-                                        <p className="font-mono font-semibold">{r.name}</p>
+                                        <p className="font-mono font-semibold">
+                                            {r.name}
+                                            {r.meta_status && (
+                                                <span className="ml-2 rounded px-1.5 py-0.5 text-[10px] font-sans font-bold uppercase bg-black/5 dark:bg-white/10">
+                                                    {r.meta_status.toLowerCase()}
+                                                </span>
+                                            )}
+                                        </p>
                                         {r.detail && <p className="text-[11px] opacity-80 mt-0.5 break-words">{r.detail}</p>}
                                     </div>
                                 </div>

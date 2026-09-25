@@ -63,6 +63,8 @@ export interface TemplateSyncResult {
     outcome: 'created' | 'skipped' | 'failed';
     detail?: string;
     dry_run?: boolean;
+    /** Meta's review status for a template that already exists (APPROVED, PENDING, REJECTED...). */
+    meta_status?: string;
 }
 
 export interface TemplateSyncResponse {
