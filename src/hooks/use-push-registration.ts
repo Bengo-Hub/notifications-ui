@@ -40,13 +40,13 @@ export function usePushRegistration() {
             setStatus('denied');
             return false;
         }
-        const token = await pushManager.subscribeUser();
-        if (!token) {
+        const device = await pushManager.subscribeUser();
+        if (!device) {
             setStatus('denied');
             return false;
         }
         try {
-            await deviceTokensApi.register(token);
+            await deviceTokensApi.register(device.token, device.provider);
             setStatus('granted');
             return true;
         } catch {

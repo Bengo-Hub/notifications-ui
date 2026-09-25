@@ -1,5 +1,20 @@
 import { getToken } from 'firebase/messaging';
-import { getFirebaseMessaging, getFirebaseVapidKey, isFirebaseConfigured } from './firebase';
+import { getFirebaseMessaging, isPushConfigured, loadPushSetup } from './firebase';
+
+/** base64url VAPID key to the byte array PushManager.subscribe expects. */
+function urlBase64ToUint8Array(value: string): Uint8Array<ArrayBuffer> {
+    const padded = (value + '='.repeat((4 - (value.length % 4)) % 4)).replace(/-/g, '+').replace(/_/g, '/');
+    const raw = atob(padded);
+    const out = new Uint8Array(new ArrayBuffer(raw.length));
+    for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+    return out;
+}
+
+export interface PushDevice {
+    /** FCM registration token, or the browser PushSubscription as JSON. */
+    token: string;
+    provider: 'fcm' | 'webpush';
+}
 
 export const pushManager = {
     async isSupported(): Promise<boolean> {
@@ -7,7 +22,7 @@ export const pushManager = {
             typeof window !== 'undefined' &&
             'serviceWorker' in navigator &&
             'PushManager' in window &&
-            (await isFirebaseConfigured())
+            (await isPushConfigured())
         );
     },
 
@@ -23,26 +38,33 @@ export const pushManager = {
     },
 
     /**
-     * Registers the shared offline-shell service worker (public/sw.js — not auto-registered by
-     * next-pwa, which is disabled here) then asks Firebase for an FCM registration token scoped
-     * to it. Returns the token string, directly compatible with POST /push/tokens — NOT a raw
-     * PushSubscription object (the previous implementation here built one via
-     * registration.pushManager.subscribe(), which the FCM-based backend can't send to at all).
+     * Registers the shared offline-shell service worker (public/sw.js, not auto-registered by
+     * next-pwa, which is disabled here) and gets this device's push token the way the server says:
+     * an FCM token (kind "fcm") or a standard Web Push subscription (kind "webpush"). The result
+     * goes straight to POST /push/tokens with its provider.
      */
-    async subscribeUser(): Promise<string | null> {
-        if (!(await this.isSupported())) return null;
+    async subscribeUser(): Promise<PushDevice | null> {
+        const setup = await loadPushSetup();
+        if (!setup || !(await this.isSupported())) return null;
 
         const registration = await navigator.serviceWorker.register('/sw.js');
         await navigator.serviceWorker.ready;
 
-        const messaging = await getFirebaseMessaging();
-        if (!messaging) return null;
-
         try {
-            return await getToken(messaging, {
-                vapidKey: await getFirebaseVapidKey(),
+            if (setup.kind === 'webpush') {
+                const sub =
+                    (await registration.pushManager.getSubscription()) ??
+                    (await registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: urlBase64ToUint8Array(setup.vapidPublicKey),
+                    }));
+                return { token: JSON.stringify(sub.toJSON()), provider: 'webpush' };
+            }
+            const token = await getToken(getFirebaseMessaging(setup.config), {
+                vapidKey: setup.config.vapid_key,
                 serviceWorkerRegistration: registration,
             });
+            return token ? { token, provider: 'fcm' } : null;
         } catch {
             return null;
         }
