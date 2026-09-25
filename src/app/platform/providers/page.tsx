@@ -28,8 +28,14 @@ const PROVIDER_FIELDS: Record<string, { key: string; label: string; type: string
         { key: 'api_key', label: 'API Key', type: 'password', placeholder: 'Leave empty to keep current value' },
         { key: 'from', label: 'Sender ID', type: 'text', placeholder: 'YOURAPP' },
     ],
+    // Platform Firebase project shared by every tenant without its own. Server key (secret) plus
+    // the public web values every app fetches from /push/web-config to register devices.
     fcm: [
-        { key: 'service_account', label: 'Service Account JSON', type: 'text', placeholder: 'Paste FCM service account JSON' },
+        { key: 'service_account', label: 'Service Account JSON', type: 'password', placeholder: 'Paste the service account JSON (leave empty to keep current)' },
+        { key: 'web_api_key', label: 'Web API Key', type: 'text', placeholder: 'Firebase console > Project settings > Your apps (web)' },
+        { key: 'web_messaging_sender_id', label: 'Messaging Sender ID', type: 'text', placeholder: 'e.g. 123456789012' },
+        { key: 'web_app_id', label: 'Web App ID', type: 'text', placeholder: 'e.g. 1:123456789012:web:abc123' },
+        { key: 'web_vapid_key', label: 'Web Push Certificate (VAPID public key)', type: 'text', placeholder: 'Cloud Messaging > Web configuration > Key pair' },
     ],
     meta_cloud: [
         { key: 'phone_number_id', label: 'Phone Number ID', type: 'text', placeholder: 'e.g. 1262404020292374' },

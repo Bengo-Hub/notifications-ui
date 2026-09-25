@@ -1,5 +1,5 @@
 import { getToken } from 'firebase/messaging';
-import { firebaseVapidKey, getFirebaseMessaging, isFirebaseConfigured } from './firebase';
+import { getFirebaseMessaging, getFirebaseVapidKey, isFirebaseConfigured } from './firebase';
 
 export const pushManager = {
     async isSupported(): Promise<boolean> {
@@ -7,7 +7,7 @@ export const pushManager = {
             typeof window !== 'undefined' &&
             'serviceWorker' in navigator &&
             'PushManager' in window &&
-            isFirebaseConfigured()
+            (await isFirebaseConfigured())
         );
     },
 
@@ -35,12 +35,12 @@ export const pushManager = {
         const registration = await navigator.serviceWorker.register('/sw.js');
         await navigator.serviceWorker.ready;
 
-        const messaging = getFirebaseMessaging();
+        const messaging = await getFirebaseMessaging();
         if (!messaging) return null;
 
         try {
             return await getToken(messaging, {
-                vapidKey: firebaseVapidKey,
+                vapidKey: await getFirebaseVapidKey(),
                 serviceWorkerRegistration: registration,
             });
         } catch {

@@ -324,8 +324,15 @@ export default function ProvidersPage() {
             { key: 'api_key', label: 'API Key', type: 'password', placeholder: 'Leave empty to keep current value' },
             { key: 'from', label: 'Sender ID', type: 'text', placeholder: 'YOURAPP' },
         ],
+        // Only for a business that wants push from its own Firebase project; otherwise leave empty
+        // and the platform's shared project is used. All five values must be from one project.
         fcm: [
-            { key: 'service_account', label: 'Service Account JSON', type: 'text', placeholder: 'Paste FCM service account JSON' },
+            { key: '_fcm_guide', label: 'Own Firebase project (optional)', type: 'banner', placeholder: 'Leave empty to use the platform push setup. To send from your own Firebase project, enter its service account and web app values; they are used only when all are filled.' },
+            { key: 'service_account', label: 'Service Account JSON', type: 'password', placeholder: 'Paste the service account JSON (leave empty to keep current)' },
+            { key: 'web_api_key', label: 'Web API Key', type: 'text', placeholder: 'Firebase console > Project settings > Your apps (web)' },
+            { key: 'web_messaging_sender_id', label: 'Messaging Sender ID', type: 'text', placeholder: 'e.g. 123456789012' },
+            { key: 'web_app_id', label: 'Web App ID', type: 'text', placeholder: 'e.g. 1:123456789012:web:abc123' },
+            { key: 'web_vapid_key', label: 'Web Push Certificate (VAPID public key)', type: 'text', placeholder: 'Cloud Messaging > Web configuration > Key pair' },
         ],
         meta_cloud: [
             { key: '_meta_guide', label: 'Manual Setup', type: 'banner', placeholder: 'If Connect above isn’t available yet, our team can set your number up manually — paste the Phone Number ID they give you below.' },

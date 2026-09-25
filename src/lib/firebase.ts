@@ -1,33 +1,61 @@
-// Browser-only Firebase init for Web Push (FCM). All values here are public client config —
-// meant to be read by Firebase's JS SDK, not secrets — the real secret (the service-account JSON
-// fcm.go signs with) stays backend-only. Everything is optional: a tenant/deployment without
-// Firebase configured just means push notifications don't work, not a crash.
+// Browser-only Firebase init for Web Push (FCM). Push is configured centrally in
+// notifications-api (the tenant's own Firebase project, else the platform's): the browser config
+// comes from GET /api/v1/push/web-config at runtime, the same endpoint every other app uses, so
+// this app carries no Firebase build settings. The service account never leaves the backend.
+// Not configured just means push notifications are unavailable, not a crash.
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getMessaging, type Messaging } from 'firebase/messaging';
 
-const firebaseConfig = {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-};
+const apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL || 'https://notificationsapi.codevertexafrica.com').replace(/\/$/, '');
 
-export const firebaseVapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY ?? '';
-
-export function isFirebaseConfigured(): boolean {
-    return !!(firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.messagingSenderId && firebaseVapidKey);
+interface WebPushConfig {
+    api_key: string;
+    auth_domain?: string;
+    project_id: string;
+    storage_bucket?: string;
+    messaging_sender_id: string;
+    app_id: string;
+    vapid_key: string;
 }
 
+let configPromise: Promise<WebPushConfig | null> | null = null;
 let app: FirebaseApp | null = null;
 let messaging: Messaging | null = null;
 
-/** Lazily initializes Firebase — only called from client code that already checked isFirebaseConfigured(). */
-export function getFirebaseMessaging(): Messaging | null {
-    if (typeof window === 'undefined' || !isFirebaseConfigured()) return null;
+/** The Firebase browser config for the signed-in tenant, or null when push is not set up. */
+export function loadWebPushConfig(): Promise<WebPushConfig | null> {
+    if (typeof window === 'undefined') return Promise.resolve(null);
+    if (!configPromise) {
+        const tenant = localStorage.getItem('tenant_slug') ?? '';
+        configPromise = fetch(`${apiBaseUrl}/api/v1/push/web-config?tenant=${encodeURIComponent(tenant)}`)
+            .then((r) => (r.ok ? r.json() : null))
+            .then((body) => (body?.enabled ? (body.config as WebPushConfig) : null))
+            .catch(() => null);
+    }
+    return configPromise;
+}
+
+export async function isFirebaseConfigured(): Promise<boolean> {
+    return (await loadWebPushConfig()) !== null;
+}
+
+export async function getFirebaseVapidKey(): Promise<string> {
+    return (await loadWebPushConfig())?.vapid_key ?? '';
+}
+
+/** Lazily initializes Firebase with the central config; null when push is not set up. */
+export async function getFirebaseMessaging(): Promise<Messaging | null> {
+    const cfg = await loadWebPushConfig();
+    if (!cfg) return null;
     if (!app) {
-        app = getApps()[0] ?? initializeApp(firebaseConfig);
+        app = getApps()[0] ?? initializeApp({
+            apiKey: cfg.api_key,
+            authDomain: cfg.auth_domain,
+            projectId: cfg.project_id,
+            storageBucket: cfg.storage_bucket,
+            messagingSenderId: cfg.messaging_sender_id,
+            appId: cfg.app_id,
+        });
     }
     if (!messaging) {
         messaging = getMessaging(app);
