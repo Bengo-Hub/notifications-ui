@@ -2,6 +2,7 @@
 
 import { Badge } from '@/components/ui/base';
 import { cn } from '@/lib/utils';
+import { messageText } from '@/lib/whatsapp-message-text';
 import type { DataTableColumn } from '@bengo-hub/shared-ui-lib/data-table';
 import type { WhatsAppConversation } from '@/lib/api/whatsapp-inbox';
 
@@ -32,8 +33,8 @@ export function buildConversationColumns(): DataTableColumn<WhatsAppConversation
             key: 'preview',
             header: 'Last message',
             render: (row) => (
-                <span className="text-sm text-muted-foreground truncate block max-w-xs">
-                    {row.last_message_preview || '—'}
+                <span className="block max-w-[16rem] truncate text-sm text-muted-foreground sm:max-w-md lg:max-w-xl">
+                    {messageText(row.last_message_preview)}
                 </span>
             ),
         },
@@ -56,7 +57,8 @@ export function buildConversationColumns(): DataTableColumn<WhatsAppConversation
                             'inline-flex h-2 w-2 rounded-full',
                             row.window_open ? 'bg-green-500' : 'bg-muted-foreground/30'
                         )}
-                        title={row.window_open ? 'Reply window open' : 'Reply window closed — template message required'}
+                        title={row.window_open ? 'You can reply freely' : 'Reply window closed: send an approved template to restart the chat'}
+                        aria-label={row.window_open ? 'Reply window open' : 'Reply window closed'}
                     />
                 </div>
             ),

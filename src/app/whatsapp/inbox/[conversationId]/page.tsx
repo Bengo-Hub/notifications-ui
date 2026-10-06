@@ -6,6 +6,7 @@ import { useConversationMessages, useMarkRead, useSendReply } from '@/hooks/use-
 import { useConversations } from '@/hooks/use-whatsapp-inbox';
 import { useWhatsAppInboxStream } from '@/hooks/use-whatsapp-inbox-stream';
 import { cn } from '@/lib/utils';
+import { messageText } from '@/lib/whatsapp-message-text';
 import { AlertTriangle, ArrowLeft, Loader2, Send } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -65,7 +66,7 @@ export default function WhatsAppThreadPage() {
     };
 
     return (
-        <div className="flex flex-col h-[calc(100vh-4rem)] max-w-3xl mx-auto">
+        <div className="mx-auto flex h-[calc(100dvh-4rem)] w-full max-w-4xl flex-col">
             <div className="flex items-center gap-3 p-4 border-b border-border">
                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => router.push('/whatsapp/inbox')}>
                     <ArrowLeft className="h-4 w-4" />
@@ -94,7 +95,7 @@ export default function WhatsAppThreadPage() {
                                     : 'bg-card border border-border rounded-bl-none'
                             )}
                         >
-                            <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                            <p className="whitespace-pre-wrap break-words">{messageText(m.body, '')}</p>
                             <p className={cn('text-[10px] mt-1 text-right', m.direction === 'outbound' ? 'opacity-70' : 'text-muted-foreground')}>
                                 {formatTime(m.created_at)}
                             </p>

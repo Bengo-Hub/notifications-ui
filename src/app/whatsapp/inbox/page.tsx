@@ -35,15 +35,21 @@ export default function WhatsAppInboxPage() {
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
     return (
-        <div className="p-8 space-y-6 max-w-6xl mx-auto">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-                    <MessageCircle className="h-7 w-7 text-primary" /> WhatsApp Inbox
-                </h1>
-                <p className="text-muted-foreground mt-1">
-                    Conversations with your customers over WhatsApp.
-                    {total > 0 && <span className="ml-1 font-medium text-foreground">{total} conversations</span>}
-                </p>
+        <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+                <div className="min-w-0">
+                    <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight sm:text-3xl">
+                        <MessageCircle className="h-6 w-6 text-primary sm:h-7 sm:w-7" /> WhatsApp Inbox
+                    </h1>
+                    <p className="mt-1 text-sm text-muted-foreground sm:text-base">
+                        Conversations with your customers over WhatsApp.
+                    </p>
+                </div>
+                {total > 0 && (
+                    <span className="rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-foreground">
+                        {total} conversation{total === 1 ? '' : 's'}
+                    </span>
+                )}
             </div>
 
             <PushPermissionPrompt />
@@ -75,7 +81,7 @@ export default function WhatsAppInboxPage() {
                         emptyState={
                             <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground py-12">
                                 <MessageCircle className="h-10 w-10 opacity-30" />
-                                <p>No conversations yet — they&apos;ll appear here when a customer messages your WhatsApp number.</p>
+                                <p>No conversations yet. They appear here when a customer messages your WhatsApp number.</p>
                             </div>
                         }
                     />
