@@ -1,8 +1,12 @@
 import { apiClient } from './client';
 
-/** A platform "what's new" banner shown on the apps' dashboards (notifications-api). */
+/** Who owns the banners being managed: the platform (every tenant sees them) or the acting tenant. */
+export type BannerScope = 'platform' | 'tenant';
+
+/** A dashboard banner shown on the apps (notifications-api). */
 export interface Announcement {
     id: string;
+    tenant_id?: string | null;
     title: string;
     summary: string;
     highlights?: string[];
@@ -37,9 +41,11 @@ export interface AnnouncementInput {
     ends_at: string | null;
 }
 
+const base = (scope: BannerScope) => (scope === 'platform' ? '/api/v1/platform/announcements' : '/api/v1/announcements');
+
 export const announcementsApi = {
-    list: () => apiClient.get<{ announcements: Announcement[] }>('/api/v1/platform/announcements'),
-    create: (body: AnnouncementInput) => apiClient.post<Announcement>('/api/v1/platform/announcements', body),
-    update: (id: string, body: AnnouncementInput) => apiClient.put<Announcement>(`/api/v1/platform/announcements/${id}`, body),
-    remove: (id: string) => apiClient.delete<void>(`/api/v1/platform/announcements/${id}`),
+    list: (scope: BannerScope = 'platform') => apiClient.get<{ announcements: Announcement[] }>(base(scope)),
+    create: (body: AnnouncementInput, scope: BannerScope = 'platform') => apiClient.post<Announcement>(base(scope), body),
+    update: (id: string, body: AnnouncementInput, scope: BannerScope = 'platform') => apiClient.put<Announcement>(`${base(scope)}/${id}`, body),
+    remove: (id: string, scope: BannerScope = 'platform') => apiClient.delete<void>(`${base(scope)}/${id}`),
 };

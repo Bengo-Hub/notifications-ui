@@ -2,7 +2,7 @@
 
 import { Button, Switch } from '@/components/ui/base';
 import { useSaveAnnouncement } from '@/hooks/use-announcements';
-import type { Announcement, AnnouncementInput } from '@/lib/api/announcements';
+import type { Announcement, AnnouncementInput, BannerScope } from '@/lib/api/announcements';
 import { cn } from '@/lib/utils';
 import { Loader2, Save } from 'lucide-react';
 import { useState } from 'react';
@@ -29,8 +29,8 @@ function fromLocalInput(v: string): string | null {
     return v ? new Date(v).toISOString() : null;
 }
 
-export function AnnouncementForm({ initial, onDone }: { initial?: Announcement; onDone: () => void }) {
-    const save = useSaveAnnouncement();
+export function AnnouncementForm({ initial, onDone, scope = 'platform' }: { initial?: Announcement; onDone: () => void; scope?: BannerScope }) {
+    const save = useSaveAnnouncement(scope);
     const [title, setTitle] = useState(initial?.title ?? '');
     const [summary, setSummary] = useState(initial?.summary ?? '');
     const [highlights, setHighlights] = useState((initial?.highlights ?? []).join('\n'));

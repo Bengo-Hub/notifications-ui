@@ -1,31 +1,31 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { announcementsApi, type AnnouncementInput } from '@/lib/api/announcements';
+import { announcementsApi, type AnnouncementInput, type BannerScope } from '@/lib/api/announcements';
 
-const KEY = ['platform', 'announcements'] as const;
+const key = (scope: BannerScope) => ['announcements', scope] as const;
 
-export function useAnnouncements() {
+export function useAnnouncements(scope: BannerScope = 'platform') {
     return useQuery({
-        queryKey: KEY,
-        queryFn: async () => (await announcementsApi.list()).announcements ?? [],
+        queryKey: key(scope),
+        queryFn: async () => (await announcementsApi.list(scope)).announcements ?? [],
         staleTime: 30_000,
     });
 }
 
-export function useSaveAnnouncement() {
+export function useSaveAnnouncement(scope: BannerScope = 'platform') {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: ({ id, body }: { id?: string; body: AnnouncementInput }) =>
-            id ? announcementsApi.update(id, body) : announcementsApi.create(body),
-        onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+            id ? announcementsApi.update(id, body, scope) : announcementsApi.create(body, scope),
+        onSuccess: () => qc.invalidateQueries({ queryKey: key(scope) }),
     });
 }
 
-export function useDeleteAnnouncement() {
+export function useDeleteAnnouncement(scope: BannerScope = 'platform') {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: (id: string) => announcementsApi.remove(id),
-        onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+        mutationFn: (id: string) => announcementsApi.remove(id, scope),
+        onSuccess: () => qc.invalidateQueries({ queryKey: key(scope) }),
     });
 }

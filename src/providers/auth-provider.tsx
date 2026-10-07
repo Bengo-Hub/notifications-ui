@@ -51,7 +51,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const isPlatformOnlyRestricted = platformOnlyPrefixes.some(prefix => pathname?.startsWith(prefix));
             const isMonitoringRestricted =
                 pathname?.startsWith('/monitoring') && !hasPermission('notifications.analytics.view');
-            if ((isPlatformOnlyRestricted || isMonitoringRestricted) && !isPlatformOwner) {
+            const isBroadcastsRestricted =
+                pathname?.startsWith('/broadcasts') && !hasPermission('notifications.broadcasts.manage');
+            if ((isPlatformOnlyRestricted || isMonitoringRestricted || isBroadcastsRestricted) && !isPlatformOwner) {
                 router.replace('/unauthorized');
             }
         }

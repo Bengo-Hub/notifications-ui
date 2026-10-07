@@ -9,6 +9,7 @@ import {
     LogOut,
     Mail,
     MessageCircle,
+    Send,
     Server,
     Settings,
 } from 'lucide-react';
@@ -60,6 +61,15 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                 icon: Activity,
                 href: '/monitoring',
                 active: pathname.startsWith('/monitoring'),
+            }]
+            : []),
+        // Bulk messages, yearly greetings and dashboard banners for the acting tenant.
+        ...(isPlatformOwner || hasPermission('notifications.broadcasts.manage')
+            ? [{
+                label: 'Broadcasts',
+                icon: Send,
+                href: '/broadcasts',
+                active: pathname.startsWith('/broadcasts'),
             }]
             : []),
         ...(hasPermission('notifications.whatsapp_inbox.view')

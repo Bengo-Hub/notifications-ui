@@ -3,7 +3,7 @@
 import { ReactNode, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { CreditCard, Megaphone, Server, Settings2 } from 'lucide-react';
+import { CreditCard, Megaphone, Send, Server, Settings2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMe } from '@/hooks/useMe';
 import { isPlatformOwnerOrSuperuser } from '@/lib/auth/permissions';
@@ -13,6 +13,7 @@ const platformTabs = [
     { label: 'Configuration', href: '/platform/configuration', icon: Settings2 },
     { label: 'Subscriptions', href: '/platform/subscriptions', icon: CreditCard },
     { label: 'Announcements', href: '/platform/announcements', icon: Megaphone },
+    { label: 'Broadcasts', href: '/platform/broadcasts', icon: Send },
 ];
 
 export default function PlatformLayout({ children }: { children: ReactNode }) {
