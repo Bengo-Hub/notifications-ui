@@ -1,6 +1,6 @@
 'use client';
 
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { broadcastsApi, type BroadcastAction, type BroadcastInput, type OccasionSettings } from '@/lib/api/broadcasts';
 import { useTenantFilterStore } from '@/store/tenant-filter';
 
@@ -89,8 +89,38 @@ export function useDeleteBroadcast() {
     });
 }
 
-export function useEstimate() {
-    return useMutation({ mutationFn: (id: string) => broadcastsApi.estimate(id) });
+export function useEstimate(id: string, enabled: boolean) {
+    const acting = useActing();
+    return useQuery({
+        queryKey: [...keys.one(acting, id), 'estimate'],
+        queryFn: () => broadcastsApi.estimate(id),
+        enabled,
+        staleTime: 60_000,
+        retry: false,
+    });
+}
+
+/** The recipient review, page by page ("Load more"), as it would be sent now. */
+export function useAudienceReview(id: string, enabled: boolean) {
+    const acting = useActing();
+    return useInfiniteQuery({
+        queryKey: [...keys.one(acting, id), 'audience'],
+        queryFn: ({ pageParam }) => broadcastsApi.audience(id, { after: pageParam || undefined, limit: 50 }),
+        initialPageParam: '',
+        getNextPageParam: (last) => last.next || undefined,
+        enabled,
+        staleTime: 60_000,
+        retry: false,
+    });
+}
+
+export function useSetExclusions(id: string) {
+    const qc = useQueryClient();
+    const acting = useActing();
+    return useMutation({
+        mutationFn: (body: { exclude?: string[]; include?: string[] }) => broadcastsApi.setExclusions(id, body),
+        onSuccess: () => qc.invalidateQueries({ queryKey: keys.one(acting, id) }),
+    });
 }
 
 export function useWhatsAppTemplates() {

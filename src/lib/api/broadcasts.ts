@@ -101,6 +101,15 @@ export interface Occasion {
 
 export type BroadcastAction = 'submit' | 'approve' | 'reject' | 'pause' | 'resume' | 'cancel';
 
+/** One person in the recipient review: masked address per channel, or why it would not send. */
+export interface ReviewRow {
+    key: string;
+    name: string;
+    business_name?: string;
+    excluded: boolean;
+    channels: Record<string, { address: string; sends: boolean; reason?: string }>;
+}
+
 // One route set for every sender. The server decides the scope from the acting tenant: the
 // platform tenant acting as itself is the platform (its audience is the tenants); any other tenant
 // sends to its own customers or staff. summary() reports which one the UI is in.
@@ -118,7 +127,11 @@ export const broadcastsApi = {
     act: (id: string, action: BroadcastAction, note?: string) =>
         apiClient.post<Broadcast>(`${root}/broadcasts/${id}/${action}`, { note }),
     estimate: (id: string) =>
-        apiClient.post<{ people: number; reachable: Record<string, number>; at_least: boolean }>(`${root}/broadcasts/${id}/estimate`),
+        apiClient.post<{ people: number; left_out: number; reachable: Record<string, number>; at_least: boolean }>(`${root}/broadcasts/${id}/estimate`),
+    audience: (id: string, params: { after?: string; limit?: number }) =>
+        apiClient.get<{ data: ReviewRow[]; next: string; left_out: number }>(`${root}/broadcasts/${id}/audience`, params),
+    setExclusions: (id: string, body: { exclude?: string[]; include?: string[] }) =>
+        apiClient.put<{ left_out: number }>(`${root}/broadcasts/${id}/exclusions`, body),
     recipients: (id: string, params: { status?: string; channel?: string; limit?: number; offset?: number }) =>
         apiClient.get<{ data: Recipient[]; total: number }>(`${root}/broadcasts/${id}/recipients`, params),
     preview: (texts: Record<string, string>, sample?: { first_name?: string; business_name?: string; occasion?: string }) =>

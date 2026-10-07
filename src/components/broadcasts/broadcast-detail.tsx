@@ -2,9 +2,10 @@
 
 import { Badge, Button } from '@/components/ui/base';
 import { Pagination } from '@/components/ui/pagination';
-import { useBroadcast, useBroadcastAction, useEstimate, useRecipients } from '@/hooks/use-broadcasts';
+import { useBroadcast, useBroadcastAction, useRecipients } from '@/hooks/use-broadcasts';
 import type { BroadcastAction, Channel, SendScope } from '@/lib/api/broadcasts';
 import { Ban, CheckCircle2, Loader2, Pause, Pencil, Play, Send, Users, XCircle } from 'lucide-react';
+import { RecipientReview } from './recipient-review';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { apiError, CHANNEL_LABELS, inputCls, RECIPIENT_STATUS, STATUS_LABELS, when } from './shared';
@@ -22,7 +23,7 @@ interface Props {
 export function BroadcastDetail({ scope, id, canApprove, onEdit }: Props) {
     const { data, isLoading } = useBroadcast(id);
     const act = useBroadcastAction();
-    const estimate = useEstimate();
+    const [reviewing, setReviewing] = useState(false);
     const [page, setPage] = useState(1);
     const [statusFilter, setStatusFilter] = useState('');
     const [channelFilter, setChannelFilter] = useState('');
@@ -49,17 +50,10 @@ export function BroadcastDetail({ scope, id, canApprove, onEdit }: Props) {
         }
     };
 
-    const runEstimate = async () => {
-        try {
-            const e = await estimate.mutateAsync(b.id);
-            const parts = b.channels.filter((c) => c in e.reachable).map((c) => `${CHANNEL_LABELS[c as Channel]}: ${e.reachable[c]}`);
-            toast.success(`${e.at_least ? 'At least ' : ''}${e.people} recipients. ${parts.join(', ')}. Opt-outs are removed when it sends.`);
-        } catch (err) {
-            toast.error(apiError(err, 'Could not count the audience'));
-        }
-    };
-
     const editable = b.status === 'draft' || b.status === 'pending_approval' || b.status === 'rejected';
+    // The recipient list can be changed until sending starts (scheduled included).
+    const beforeSend = editable || b.status === 'scheduled';
+    const audienceError = typeof b.metadata?.audience_error === 'string' ? (b.metadata.audience_error as string) : '';
     const handled = b.sent_count + b.failed_count + b.skipped_count + b.suppressed_count;
 
     return (
@@ -96,9 +90,9 @@ export function BroadcastDetail({ scope, id, canApprove, onEdit }: Props) {
 
             <div className="flex flex-wrap gap-2">
                 {editable && <Button variant="outline" size="sm" className="gap-1.5" onClick={onEdit}><Pencil className="h-3.5 w-3.5" /> Edit</Button>}
-                {editable && b.audience?.type && (
-                    <Button variant="outline" size="sm" className="gap-1.5" onClick={runEstimate} disabled={estimate.isPending}>
-                        {estimate.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Users className="h-3.5 w-3.5" />} Count recipients
+                {beforeSend && b.audience?.type && (
+                    <Button variant={reviewing ? 'secondary' : 'outline'} size="sm" className="gap-1.5" onClick={() => setReviewing((v) => !v)}>
+                        <Users className="h-3.5 w-3.5" /> {reviewing ? 'Hide recipients' : 'Review recipients'}
                     </Button>
                 )}
                 {(b.status === 'draft' || b.status === 'rejected') && (
@@ -124,6 +118,12 @@ export function BroadcastDetail({ scope, id, canApprove, onEdit }: Props) {
                     </Button>
                 )}
             </div>
+
+            {audienceError && (
+                <p className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm">Stopped: {audienceError}</p>
+            )}
+
+            {reviewing && beforeSend && <RecipientReview broadcast={b} editable={beforeSend} />}
 
             {b.target_count > 0 && (
                 <div className="space-y-3">
