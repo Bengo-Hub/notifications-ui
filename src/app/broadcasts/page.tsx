@@ -4,9 +4,13 @@ import { BroadcastsWorkspace } from '@/components/broadcasts/broadcasts-workspac
 import { useMe } from '@/hooks/useMe';
 import { isPlatformOwnerOrSuperuser } from '@/lib/auth/permissions';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 
-/** Broadcasts for the acting tenant: greetings, offers and notices to its customers or staff. */
+/**
+ * Broadcasts: the one place for bulk messages, yearly greetings and dashboard banners. A platform
+ * owner acting as the platform reaches every tenant; acting as a tenant (switcher), or a tenant's
+ * own admin, reaches that tenant's customers and staff.
+ */
 export default function BroadcastsPage() {
     const { user, hasPermission } = useMe();
     const router = useRouter();
@@ -23,9 +27,11 @@ export default function BroadcastsPage() {
         <div className="p-6 sm:p-8 space-y-6 max-w-7xl mx-auto w-full">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight">Broadcasts</h1>
-                <p className="text-muted-foreground mt-1">Messages to your customers and staff, yearly greetings, and dashboard banners.</p>
+                <p className="text-muted-foreground mt-1">Messages, yearly greetings and dashboard banners.</p>
             </div>
-            <BroadcastsWorkspace scope="tenant" canApprove={isOwner || hasPermission('notifications.broadcasts.approve')} />
+            <Suspense>
+                <BroadcastsWorkspace canApprove={isOwner || hasPermission('notifications.broadcasts.approve')} />
+            </Suspense>
         </div>
     );
 }

@@ -1,8 +1,11 @@
 'use client';
 
-import { BroadcastsWorkspace } from '@/components/broadcasts/broadcasts-workspace';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
-/** Platform > Broadcasts: the platform's messages and yearly greetings to its tenants. */
-export default function PlatformBroadcastsPage() {
-    return <BroadcastsWorkspace scope="platform" canApprove />;
+/** Broadcasts live in one place now (the platform is the platform tenant acting as itself). */
+export default function PlatformBroadcastsRedirect() {
+    const router = useRouter();
+    useEffect(() => { router.replace('/broadcasts'); }, [router]);
+    return null;
 }

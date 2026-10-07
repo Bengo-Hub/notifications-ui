@@ -18,9 +18,9 @@ const OCCASION_CHANNELS: Channel[] = ['email', 'sms', 'whatsapp'];
  * it waits for approval unless auto-send is on.
  */
 export function OccasionsPanel({ scope, onOpenBroadcast }: { scope: SendScope; onOpenBroadcast: (id: string) => void }) {
-    const { data: list = [], isLoading } = useOccasions(scope);
-    const save = useSaveOccasion(scope);
-    const draft = useDraftOccasion(scope);
+    const { data: list = [], isLoading } = useOccasions();
+    const save = useSaveOccasion();
+    const draft = useDraftOccasion();
     const [editing, setEditing] = useState<Occasion | null>(null);
 
     const update = async (o: Occasion, patch: Partial<OccasionSettings>) => {
@@ -95,7 +95,7 @@ export function OccasionsPanel({ scope, onOpenBroadcast }: { scope: SendScope; o
 }
 
 function OccasionEditor({ scope, occasion, onDone }: { scope: SendScope; occasion: Occasion; onDone: () => void }) {
-    const save = useSaveOccasion(scope);
+    const save = useSaveOccasion();
     const [variants, setVariants] = useState<OccasionVariant[]>(occasion.settings.variants?.length ? occasion.settings.variants : [{ subject: '', body: '', sms: '' }]);
     const [channels, setChannels] = useState<Channel[]>(occasion.settings.channels ?? ['email']);
     const [sendTime, setSendTime] = useState(occasion.settings.send_time || '09:00');

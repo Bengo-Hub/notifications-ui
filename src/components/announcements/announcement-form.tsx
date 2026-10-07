@@ -30,7 +30,7 @@ function fromLocalInput(v: string): string | null {
 }
 
 export function AnnouncementForm({ initial, onDone, scope = 'platform' }: { initial?: Announcement; onDone: () => void; scope?: BannerScope }) {
-    const save = useSaveAnnouncement(scope);
+    const save = useSaveAnnouncement();
     const [title, setTitle] = useState(initial?.title ?? '');
     const [summary, setSummary] = useState(initial?.summary ?? '');
     const [highlights, setHighlights] = useState((initial?.highlights ?? []).join('\n'));

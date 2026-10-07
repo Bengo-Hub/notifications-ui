@@ -22,8 +22,8 @@ interface Props {
  * to the approval queue. Nothing is sent until someone with the approve permission approves it.
  */
 export function BroadcastComposer({ scope, initial, onDone }: Props) {
-    const save = useSaveBroadcast(scope);
-    const { data: templates = [] } = useWhatsAppTemplates(scope);
+    const save = useSaveBroadcast();
+    const { data: templates = [] } = useWhatsAppTemplates();
     const c = initial?.content ?? {};
 
     const [title, setTitle] = useState(initial?.title ?? '');
@@ -73,7 +73,7 @@ export function BroadcastComposer({ scope, initial, onDone }: Props) {
             if (channels.includes('email')) { texts['email.subject'] = subject; texts['email.body'] = body; }
             if (channels.includes('sms')) texts['sms.body'] = sms;
             if (channels.includes('whatsapp') && waMessage) texts['whatsapp.message'] = waMessage;
-            const res = await broadcastsApi.preview(scope, texts);
+            const res = await broadcastsApi.preview(texts);
             setPreview(res.rendered);
         } catch (err) {
             toast.error(apiError(err, 'Could not preview the message'));
@@ -87,7 +87,7 @@ export function BroadcastComposer({ scope, initial, onDone }: Props) {
             const saved = await save.mutateAsync({ id: initial?.id, body: input() });
             if (forApproval) {
                 if (saved.status === 'draft' || saved.status === 'rejected') {
-                    await broadcastsApi.act(scope, saved.id, 'submit');
+                    await broadcastsApi.act(saved.id, 'submit');
                 }
                 toast.success('Saved and sent for approval');
             } else {

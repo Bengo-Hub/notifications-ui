@@ -2,34 +2,48 @@
 
 import { AnnouncementsPanel } from '@/components/announcements/announcements-panel';
 import { useBroadcastSummary } from '@/hooks/use-broadcasts';
-import type { SendScope } from '@/lib/api/broadcasts';
 import { cn } from '@/lib/utils';
-import { CalendarDays, Megaphone, Send } from 'lucide-react';
+import { CalendarDays, Loader2, Megaphone, Send } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { BroadcastList } from './broadcast-list';
 import { OccasionsPanel } from './occasions-panel';
 
 type Tab = 'messages' | 'occasions' | 'banners';
+const TABS: Tab[] = ['messages', 'occasions', 'banners'];
 
 /**
- * Bulk messages, yearly occasions and (for tenants) dashboard banners, for one sender. The same
- * workspace serves Platform > Broadcasts (the platform messaging its tenants) and Broadcasts in a
- * tenant's own menu (a tenant messaging its customers or staff).
+ * Bulk messages, yearly occasions and dashboard banners for whoever is sending. The server
+ * decides who that is from the acting tenant: the platform tenant acting as itself is the
+ * platform (messages and banners reach every tenant); any other tenant, including one a platform
+ * owner picked in the switcher, reaches its own customers and staff. One page, one set of data.
  */
-export function BroadcastsWorkspace({ scope, canApprove }: { scope: SendScope; canApprove: boolean }) {
-    const [tab, setTab] = useState<Tab>('messages');
+export function BroadcastsWorkspace({ canApprove }: { canApprove: boolean }) {
+    const params = useSearchParams();
+    const initial = params.get('tab') as Tab | null;
+    const [tab, setTab] = useState<Tab>(initial && TABS.includes(initial) ? initial : 'messages');
     const [openId, setOpenId] = useState<string | null>(null);
-    const { data: summary } = useBroadcastSummary(scope);
-    const pending = summary?.pending_approval ?? 0;
+    const { data: summary, isLoading } = useBroadcastSummary();
+
+    if (isLoading || !summary) {
+        return <div className="flex items-center gap-2 py-10 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div>;
+    }
+    const scope = summary.scope;
+    const pending = summary.pending_approval ?? 0;
 
     const tabs: { key: Tab; label: string; icon: typeof Send }[] = [
         { key: 'messages', label: 'Messages', icon: Send },
         { key: 'occasions', label: 'Occasions', icon: CalendarDays },
-        ...(scope === 'tenant' ? [{ key: 'banners' as Tab, label: 'Dashboard banners', icon: Megaphone }] : []),
+        { key: 'banners', label: scope === 'platform' ? 'Announcements' : 'Dashboard banners', icon: Megaphone },
     ];
 
     return (
         <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+                {scope === 'platform'
+                    ? <>Sending as <span className="font-semibold text-foreground">{summary.sender_name}</span> to every tenant. Pick a tenant in the switcher to send as that tenant to its own customers.</>
+                    : <>Sending as <span className="font-semibold text-foreground">{summary.sender_name}</span> to its customers and staff.</>}
+            </p>
             <div className="flex gap-1 overflow-x-auto border-b border-border">
                 {tabs.map((t) => {
                     const Icon = t.icon;
@@ -52,7 +66,7 @@ export function BroadcastsWorkspace({ scope, canApprove }: { scope: SendScope; c
             )}
             {tab === 'messages' && <BroadcastList scope={scope} canApprove={canApprove} openId={openId} onOpen={setOpenId} />}
             {tab === 'occasions' && <OccasionsPanel scope={scope} onOpenBroadcast={(id) => { setTab('messages'); setOpenId(id); }} />}
-            {tab === 'banners' && <AnnouncementsPanel scope="tenant" />}
+            {tab === 'banners' && <AnnouncementsPanel scope={scope} />}
         </div>
     );
 }

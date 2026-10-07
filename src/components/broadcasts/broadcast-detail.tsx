@@ -20,13 +20,13 @@ interface Props {
 
 /** One broadcast: what it says, where it stands, who got it. */
 export function BroadcastDetail({ scope, id, canApprove, onEdit }: Props) {
-    const { data, isLoading } = useBroadcast(scope, id);
-    const act = useBroadcastAction(scope);
-    const estimate = useEstimate(scope);
+    const { data, isLoading } = useBroadcast(id);
+    const act = useBroadcastAction();
+    const estimate = useEstimate();
     const [page, setPage] = useState(1);
     const [statusFilter, setStatusFilter] = useState('');
     const [channelFilter, setChannelFilter] = useState('');
-    const recipients = useRecipients(scope, id, { status: statusFilter || undefined, channel: channelFilter || undefined, limit: PAGE, offset: (page - 1) * PAGE });
+    const recipients = useRecipients(id, { status: statusFilter || undefined, channel: channelFilter || undefined, limit: PAGE, offset: (page - 1) * PAGE });
 
     if (isLoading || !data) {
         return <div className="flex items-center gap-2 py-10 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div>;

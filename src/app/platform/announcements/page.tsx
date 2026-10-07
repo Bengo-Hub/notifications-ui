@@ -1,8 +1,11 @@
 'use client';
 
-import { AnnouncementsPanel } from '@/components/announcements/announcements-panel';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
-/** Platform > Announcements: the "what's new" banners every tenant's apps show on their dashboards. */
-export default function AnnouncementsPage() {
-    return <AnnouncementsPanel scope="platform" />;
+/** Platform announcements are the Announcements tab of Broadcasts (one list, one place). */
+export default function PlatformAnnouncementsRedirect() {
+    const router = useRouter();
+    useEffect(() => { router.replace('/broadcasts?tab=banners'); }, [router]);
+    return null;
 }

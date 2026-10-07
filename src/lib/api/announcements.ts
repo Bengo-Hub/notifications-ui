@@ -41,11 +41,13 @@ export interface AnnouncementInput {
     ends_at: string | null;
 }
 
-const base = (scope: BannerScope) => (scope === 'platform' ? '/api/v1/platform/announcements' : '/api/v1/announcements');
+// One route set: the server decides whose banners these are from the acting tenant (the platform
+// tenant acting as itself manages the platform's banners, shown to every tenant).
+const base = '/api/v1/announcements';
 
 export const announcementsApi = {
-    list: (scope: BannerScope = 'platform') => apiClient.get<{ announcements: Announcement[] }>(base(scope)),
-    create: (body: AnnouncementInput, scope: BannerScope = 'platform') => apiClient.post<Announcement>(base(scope), body),
-    update: (id: string, body: AnnouncementInput, scope: BannerScope = 'platform') => apiClient.put<Announcement>(`${base(scope)}/${id}`, body),
-    remove: (id: string, scope: BannerScope = 'platform') => apiClient.delete<void>(`${base(scope)}/${id}`),
+    list: () => apiClient.get<{ announcements: Announcement[] }>(base),
+    create: (body: AnnouncementInput) => apiClient.post<Announcement>(base, body),
+    update: (id: string, body: AnnouncementInput) => apiClient.put<Announcement>(`${base}/${id}`, body),
+    remove: (id: string) => apiClient.delete<void>(`${base}/${id}`),
 };

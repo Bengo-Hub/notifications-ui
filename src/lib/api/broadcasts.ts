@@ -101,31 +101,34 @@ export interface Occasion {
 
 export type BroadcastAction = 'submit' | 'approve' | 'reject' | 'pause' | 'resume' | 'cancel';
 
-const root = (scope: SendScope) => (scope === 'platform' ? '/api/v1/platform' : '/api/v1');
+// One route set for every sender. The server decides the scope from the acting tenant: the
+// platform tenant acting as itself is the platform (its audience is the tenants); any other tenant
+// sends to its own customers or staff. summary() reports which one the UI is in.
+const root = '/api/v1';
 
 export const broadcastsApi = {
-    list: (scope: SendScope, params: { status?: string; occasion?: boolean; limit?: number; offset?: number }) =>
-        apiClient.get<{ data: Broadcast[]; total: number }>(`${root(scope)}/broadcasts`, params),
-    summary: (scope: SendScope) => apiClient.get<{ pending_approval: number }>(`${root(scope)}/broadcasts/summary`),
-    get: (scope: SendScope, id: string) =>
-        apiClient.get<{ broadcast: Broadcast; channels: Record<string, Record<string, number>> }>(`${root(scope)}/broadcasts/${id}`),
-    create: (scope: SendScope, body: BroadcastInput) => apiClient.post<Broadcast>(`${root(scope)}/broadcasts`, body),
-    update: (scope: SendScope, id: string, body: BroadcastInput) => apiClient.put<Broadcast>(`${root(scope)}/broadcasts/${id}`, body),
-    remove: (scope: SendScope, id: string) => apiClient.delete<void>(`${root(scope)}/broadcasts/${id}`),
-    act: (scope: SendScope, id: string, action: BroadcastAction, note?: string) =>
-        apiClient.post<Broadcast>(`${root(scope)}/broadcasts/${id}/${action}`, { note }),
-    estimate: (scope: SendScope, id: string) =>
-        apiClient.post<{ people: number; reachable: Record<string, number>; at_least: boolean }>(`${root(scope)}/broadcasts/${id}/estimate`),
-    recipients: (scope: SendScope, id: string, params: { status?: string; channel?: string; limit?: number; offset?: number }) =>
-        apiClient.get<{ data: Recipient[]; total: number }>(`${root(scope)}/broadcasts/${id}/recipients`, params),
-    preview: (scope: SendScope, texts: Record<string, string>, sample?: { first_name?: string; business_name?: string; occasion?: string }) =>
-        apiClient.post<{ rendered: Record<string, string>; sender_name: string }>(`${root(scope)}/broadcasts/preview`, { texts, ...sample }),
-    whatsappTemplates: (scope: SendScope) =>
-        apiClient.get<{ templates: { name: string; params: string[] }[] }>(`${root(scope)}/broadcasts/whatsapp-templates`),
+    list: (params: { status?: string; occasion?: boolean; limit?: number; offset?: number }) =>
+        apiClient.get<{ data: Broadcast[]; total: number }>(`${root}/broadcasts`, params),
+    summary: () => apiClient.get<{ pending_approval: number; scope: SendScope; sender_name: string }>(`${root}/broadcasts/summary`),
+    get: (id: string) =>
+        apiClient.get<{ broadcast: Broadcast; channels: Record<string, Record<string, number>> }>(`${root}/broadcasts/${id}`),
+    create: (body: BroadcastInput) => apiClient.post<Broadcast>(`${root}/broadcasts`, body),
+    update: (id: string, body: BroadcastInput) => apiClient.put<Broadcast>(`${root}/broadcasts/${id}`, body),
+    remove: (id: string) => apiClient.delete<void>(`${root}/broadcasts/${id}`),
+    act: (id: string, action: BroadcastAction, note?: string) =>
+        apiClient.post<Broadcast>(`${root}/broadcasts/${id}/${action}`, { note }),
+    estimate: (id: string) =>
+        apiClient.post<{ people: number; reachable: Record<string, number>; at_least: boolean }>(`${root}/broadcasts/${id}/estimate`),
+    recipients: (id: string, params: { status?: string; channel?: string; limit?: number; offset?: number }) =>
+        apiClient.get<{ data: Recipient[]; total: number }>(`${root}/broadcasts/${id}/recipients`, params),
+    preview: (texts: Record<string, string>, sample?: { first_name?: string; business_name?: string; occasion?: string }) =>
+        apiClient.post<{ rendered: Record<string, string>; sender_name: string }>(`${root}/broadcasts/preview`, { texts, ...sample }),
+    whatsappTemplates: () =>
+        apiClient.get<{ templates: { name: string; params: string[] }[] }>(`${root}/broadcasts/whatsapp-templates`),
 
-    occasions: (scope: SendScope) => apiClient.get<{ data: Occasion[] }>(`${root(scope)}/occasions`),
-    saveOccasion: (scope: SendScope, key: string, body: { name?: string; rule?: Record<string, unknown>; lead_days?: number; send_offset_days?: number; settings?: OccasionSettings }) =>
-        apiClient.put<Occasion>(`${root(scope)}/occasions/${key}`, body),
-    deleteOccasion: (scope: SendScope, key: string) => apiClient.delete<void>(`${root(scope)}/occasions/${key}`),
-    draftOccasion: (scope: SendScope, key: string) => apiClient.post<Broadcast>(`${root(scope)}/occasions/${key}/draft`),
+    occasions: () => apiClient.get<{ data: Occasion[] }>(`${root}/occasions`),
+    saveOccasion: (key: string, body: { name?: string; rule?: Record<string, unknown>; lead_days?: number; send_offset_days?: number; settings?: OccasionSettings }) =>
+        apiClient.put<Occasion>(`${root}/occasions/${key}`, body),
+    deleteOccasion: (key: string) => apiClient.delete<void>(`${root}/occasions/${key}`),
+    draftOccasion: (key: string) => apiClient.post<Broadcast>(`${root}/occasions/${key}/draft`),
 };

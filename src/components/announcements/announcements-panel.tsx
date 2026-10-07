@@ -24,8 +24,8 @@ function when(iso?: string | null): string {
  * the acting tenant's own users (a closing notice, a new menu, a staff reminder).
  */
 export function AnnouncementsPanel({ scope = 'platform' }: { scope?: BannerScope }) {
-    const { data: list = [], isLoading } = useAnnouncements(scope);
-    const del = useDeleteAnnouncement(scope);
+    const { data: list = [], isLoading } = useAnnouncements();
+    const del = useDeleteAnnouncement();
     const [editing, setEditing] = useState<Announcement | 'new' | null>(null);
     const now = Date.now();
 

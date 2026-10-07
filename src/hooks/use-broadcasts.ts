@@ -1,118 +1,139 @@
 'use client';
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { broadcastsApi, type BroadcastAction, type BroadcastInput, type OccasionSettings, type SendScope } from '@/lib/api/broadcasts';
+import { broadcastsApi, type BroadcastAction, type BroadcastInput, type OccasionSettings } from '@/lib/api/broadcasts';
+import { useTenantFilterStore } from '@/store/tenant-filter';
+
+/**
+ * Query keys carry the acting tenant (the switcher pick, if any): the server decides whether a
+ * request is the platform's or a tenant's from it, so cached data must never cross that line.
+ */
+function useActing(): string {
+    return useTenantFilterStore((s) => s.selectedTenant?.id) ?? 'self';
+}
 
 const keys = {
-    all: (scope: SendScope) => ['broadcasts', scope] as const,
-    list: (scope: SendScope, params: object) => ['broadcasts', scope, 'list', params] as const,
-    one: (scope: SendScope, id: string) => ['broadcasts', scope, 'one', id] as const,
-    recipients: (scope: SendScope, id: string, params: object) => ['broadcasts', scope, 'recipients', id, params] as const,
-    occasions: (scope: SendScope) => ['broadcasts', scope, 'occasions'] as const,
+    all: (acting: string) => ['broadcasts', acting] as const,
+    list: (acting: string, params: object) => ['broadcasts', acting, 'list', params] as const,
+    one: (acting: string, id: string) => ['broadcasts', acting, 'one', id] as const,
+    recipients: (acting: string, id: string, params: object) => ['broadcasts', acting, 'recipients', id, params] as const,
+    occasions: (acting: string) => ['broadcasts', acting, 'occasions'] as const,
 };
 
 /** Lists poll while anything is sending, so progress moves without a reload. */
-export function useBroadcasts(scope: SendScope, params: { status?: string; limit?: number; offset?: number }) {
+export function useBroadcasts(params: { status?: string; limit?: number; offset?: number }) {
+    const acting = useActing();
     return useQuery({
-        queryKey: keys.list(scope, params),
-        queryFn: () => broadcastsApi.list(scope, params),
+        queryKey: keys.list(acting, params),
+        queryFn: () => broadcastsApi.list(params),
         placeholderData: keepPreviousData,
         refetchInterval: (q) => (q.state.data?.data.some((b) => b.status === 'sending') ? 5_000 : false),
     });
 }
 
-export function useBroadcastSummary(scope: SendScope, enabled = true) {
+/** Pending approvals, plus who is sending: the platform (to tenants) or a tenant (to customers). */
+export function useBroadcastSummary(enabled = true) {
+    const acting = useActing();
     return useQuery({
-        queryKey: [...keys.all(scope), 'summary'],
-        queryFn: () => broadcastsApi.summary(scope),
+        queryKey: [...keys.all(acting), 'summary'],
+        queryFn: () => broadcastsApi.summary(),
         enabled,
         staleTime: 30_000,
     });
 }
 
-export function useBroadcast(scope: SendScope, id: string | null) {
+export function useBroadcast(id: string | null) {
+    const acting = useActing();
     return useQuery({
-        queryKey: keys.one(scope, id ?? ''),
-        queryFn: () => broadcastsApi.get(scope, id!),
+        queryKey: keys.one(acting, id ?? ''),
+        queryFn: () => broadcastsApi.get(id!),
         enabled: !!id,
         refetchInterval: (q) => (q.state.data?.broadcast.status === 'sending' ? 5_000 : false),
     });
 }
 
-export function useRecipients(scope: SendScope, id: string, params: { status?: string; channel?: string; limit?: number; offset?: number }) {
+export function useRecipients(id: string, params: { status?: string; channel?: string; limit?: number; offset?: number }) {
+    const acting = useActing();
     return useQuery({
-        queryKey: keys.recipients(scope, id, params),
-        queryFn: () => broadcastsApi.recipients(scope, id, params),
+        queryKey: keys.recipients(acting, id, params),
+        queryFn: () => broadcastsApi.recipients(id, params),
         placeholderData: keepPreviousData,
     });
 }
 
-export function useSaveBroadcast(scope: SendScope) {
+export function useSaveBroadcast() {
     const qc = useQueryClient();
+    const acting = useActing();
     return useMutation({
         mutationFn: ({ id, body }: { id?: string; body: BroadcastInput }) =>
-            id ? broadcastsApi.update(scope, id, body) : broadcastsApi.create(scope, body),
-        onSuccess: () => qc.invalidateQueries({ queryKey: keys.all(scope) }),
+            id ? broadcastsApi.update(id, body) : broadcastsApi.create(body),
+        onSuccess: () => qc.invalidateQueries({ queryKey: keys.all(acting) }),
     });
 }
 
-export function useBroadcastAction(scope: SendScope) {
+export function useBroadcastAction() {
     const qc = useQueryClient();
+    const acting = useActing();
     return useMutation({
-        mutationFn: ({ id, action, note }: { id: string; action: BroadcastAction; note?: string }) => broadcastsApi.act(scope, id, action, note),
-        onSuccess: () => qc.invalidateQueries({ queryKey: keys.all(scope) }),
+        mutationFn: ({ id, action, note }: { id: string; action: BroadcastAction; note?: string }) => broadcastsApi.act(id, action, note),
+        onSuccess: () => qc.invalidateQueries({ queryKey: keys.all(acting) }),
     });
 }
 
-export function useDeleteBroadcast(scope: SendScope) {
+export function useDeleteBroadcast() {
     const qc = useQueryClient();
+    const acting = useActing();
     return useMutation({
-        mutationFn: (id: string) => broadcastsApi.remove(scope, id),
-        onSuccess: () => qc.invalidateQueries({ queryKey: keys.all(scope) }),
+        mutationFn: (id: string) => broadcastsApi.remove(id),
+        onSuccess: () => qc.invalidateQueries({ queryKey: keys.all(acting) }),
     });
 }
 
-export function useEstimate(scope: SendScope) {
-    return useMutation({ mutationFn: (id: string) => broadcastsApi.estimate(scope, id) });
+export function useEstimate() {
+    return useMutation({ mutationFn: (id: string) => broadcastsApi.estimate(id) });
 }
 
-export function useWhatsAppTemplates(scope: SendScope) {
+export function useWhatsAppTemplates() {
     return useQuery({
-        queryKey: [...keys.all(scope), 'wa-templates'],
-        queryFn: async () => (await broadcastsApi.whatsappTemplates(scope)).templates,
+        queryKey: ['broadcasts', 'wa-templates'],
+        queryFn: async () => (await broadcastsApi.whatsappTemplates()).templates,
         staleTime: 10 * 60_000,
     });
 }
 
-export function useOccasions(scope: SendScope) {
+export function useOccasions() {
+    const acting = useActing();
     return useQuery({
-        queryKey: keys.occasions(scope),
-        queryFn: async () => (await broadcastsApi.occasions(scope)).data ?? [],
+        queryKey: keys.occasions(acting),
+        queryFn: async () => (await broadcastsApi.occasions()).data ?? [],
         staleTime: 60_000,
     });
 }
 
-export function useSaveOccasion(scope: SendScope) {
+export function useSaveOccasion() {
     const qc = useQueryClient();
+    const acting = useActing();
     return useMutation({
         mutationFn: ({ key, settings, name, rule }: { key: string; settings?: OccasionSettings; name?: string; rule?: Record<string, unknown> }) =>
-            broadcastsApi.saveOccasion(scope, key, { settings, name, rule }),
-        onSuccess: () => qc.invalidateQueries({ queryKey: keys.occasions(scope) }),
+            broadcastsApi.saveOccasion(key, { settings, name, rule }),
+        onSuccess: () => qc.invalidateQueries({ queryKey: keys.occasions(acting) }),
     });
 }
 
-export function useDeleteOccasion(scope: SendScope) {
+export function useDeleteOccasion() {
     const qc = useQueryClient();
+    const acting = useActing();
     return useMutation({
-        mutationFn: (key: string) => broadcastsApi.deleteOccasion(scope, key),
-        onSuccess: () => qc.invalidateQueries({ queryKey: keys.occasions(scope) }),
+        mutationFn: (key: string) => broadcastsApi.deleteOccasion(key),
+        onSuccess: () => qc.invalidateQueries({ queryKey: keys.occasions(acting) }),
     });
 }
 
-export function useDraftOccasion(scope: SendScope) {
+export function useDraftOccasion() {
     const qc = useQueryClient();
+    const acting = useActing();
     return useMutation({
-        mutationFn: (key: string) => broadcastsApi.draftOccasion(scope, key),
-        onSuccess: () => qc.invalidateQueries({ queryKey: keys.all(scope) }),
+        mutationFn: (key: string) => broadcastsApi.draftOccasion(key),
+        onSuccess: () => qc.invalidateQueries({ queryKey: keys.all(acting) }),
     });
 }

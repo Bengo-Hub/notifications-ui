@@ -1,31 +1,39 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { announcementsApi, type AnnouncementInput, type BannerScope } from '@/lib/api/announcements';
+import { announcementsApi, type AnnouncementInput } from '@/lib/api/announcements';
+import { useTenantFilterStore } from '@/store/tenant-filter';
 
-const key = (scope: BannerScope) => ['announcements', scope] as const;
+/** Keyed by the acting tenant: the server decides whose banners these are from it. */
+function useKey() {
+    const acting = useTenantFilterStore((s) => s.selectedTenant?.id) ?? 'self';
+    return ['announcements', acting] as const;
+}
 
-export function useAnnouncements(scope: BannerScope = 'platform') {
+export function useAnnouncements() {
+    const key = useKey();
     return useQuery({
-        queryKey: key(scope),
-        queryFn: async () => (await announcementsApi.list(scope)).announcements ?? [],
+        queryKey: key,
+        queryFn: async () => (await announcementsApi.list()).announcements ?? [],
         staleTime: 30_000,
     });
 }
 
-export function useSaveAnnouncement(scope: BannerScope = 'platform') {
+export function useSaveAnnouncement() {
     const qc = useQueryClient();
+    const key = useKey();
     return useMutation({
         mutationFn: ({ id, body }: { id?: string; body: AnnouncementInput }) =>
-            id ? announcementsApi.update(id, body, scope) : announcementsApi.create(body, scope),
-        onSuccess: () => qc.invalidateQueries({ queryKey: key(scope) }),
+            id ? announcementsApi.update(id, body) : announcementsApi.create(body),
+        onSuccess: () => qc.invalidateQueries({ queryKey: key }),
     });
 }
 
-export function useDeleteAnnouncement(scope: BannerScope = 'platform') {
+export function useDeleteAnnouncement() {
     const qc = useQueryClient();
+    const key = useKey();
     return useMutation({
-        mutationFn: (id: string) => announcementsApi.remove(id, scope),
-        onSuccess: () => qc.invalidateQueries({ queryKey: key(scope) }),
+        mutationFn: (id: string) => announcementsApi.remove(id),
+        onSuccess: () => qc.invalidateQueries({ queryKey: key }),
     });
 }

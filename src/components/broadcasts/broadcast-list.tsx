@@ -26,10 +26,10 @@ const PAGE = 20;
 export function BroadcastList({ scope, canApprove, openId, onOpen }: { scope: SendScope; canApprove: boolean; openId: string | null; onOpen: (id: string | null) => void }) {
     const [filter, setFilter] = useState('');
     const [page, setPage] = useState(1);
-    const { data, isLoading } = useBroadcasts(scope, { status: filter || undefined, limit: PAGE, offset: (page - 1) * PAGE });
-    const del = useDeleteBroadcast(scope);
+    const { data, isLoading } = useBroadcasts({ status: filter || undefined, limit: PAGE, offset: (page - 1) * PAGE });
+    const del = useDeleteBroadcast();
     const [composing, setComposing] = useState<'new' | string | null>(null);
-    const editing = useBroadcast(scope, composing && composing !== 'new' ? composing : null);
+    const editing = useBroadcast(composing && composing !== 'new' ? composing : null);
 
     const remove = async (b: Broadcast) => {
         if (!window.confirm(`Delete the draft "${b.title}"?`)) return;
