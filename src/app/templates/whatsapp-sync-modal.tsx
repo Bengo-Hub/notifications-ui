@@ -167,9 +167,9 @@ export function WhatsAppSyncModal({ open, onClose }: { open: boolean; onClose: (
             onClose={submitting ? () => undefined : close}
             title="Sync WhatsApp Templates to Meta"
             description="Only templates missing from the WABA are submitted, a few at a time. Nothing is sent until you confirm below."
-            className="max-w-xl w-full shadow-xl max-h-[85vh] flex flex-col"
+            className="w-full max-w-3xl shadow-xl"
         >
-            <div className="space-y-4 overflow-y-auto">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
                 {loadingPreview && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground py-8 justify-center">
                         <Loader2 className="h-4 w-4 animate-spin" /> Checking what&apos;s already on Meta...
@@ -188,7 +188,7 @@ export function WhatsAppSyncModal({ open, onClose }: { open: boolean; onClose: (
                         <p className="text-xs text-muted-foreground">
                             WABA <span className="font-mono">{preview.waba_id}</span>
                         </p>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                             <div className="rounded-lg border border-border p-3">
                                 <div className="text-2xl font-bold font-mono tabular-nums">{toCreate.length}</div>
                                 <div className="text-[11px] text-muted-foreground uppercase tracking-wide">Would submit</div>
@@ -236,9 +236,9 @@ export function WhatsAppSyncModal({ open, onClose }: { open: boolean; onClose: (
                             <div className="space-y-1.5">
                                 <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Rejected by Meta</p>
                                 {rejected.map((r) => (
-                                    <div key={r.name} className="flex items-start gap-2 p-2 rounded-lg border border-destructive/30 bg-destructive/5 text-xs text-destructive">
+                                    <div key={r.name} className="flex flex-wrap items-start gap-x-2 gap-y-0.5 p-2 rounded-lg border border-destructive/30 bg-destructive/5 text-xs text-destructive">
                                         <XCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                                        <span className="font-mono">{r.name}</span>
+                                        <span className="font-mono break-all">{r.name}</span>
                                         {r.meta_reason && <span className="opacity-80">{r.meta_reason.toLowerCase().replaceAll('_', ' ')}</span>}
                                     </div>
                                 ))}
@@ -273,7 +273,7 @@ export function WhatsAppSyncModal({ open, onClose }: { open: boolean; onClose: (
                 )}
             </div>
 
-            <div className="pt-4 mt-2 border-t border-border/50 flex items-center justify-end gap-2 shrink-0">
+            <div className="pt-4 mt-2 border-t border-border/50 flex flex-wrap items-center justify-end gap-2 shrink-0">
                 <Button variant="outline" size="sm" onClick={() => { setRows(null); loadPreview(); }} disabled={loadingPreview || submitting} className="gap-1.5 mr-auto">
                     <RefreshCw className={cn('h-3.5 w-3.5', loadingPreview && 'animate-spin')} /> Refresh
                 </Button>

@@ -6,6 +6,7 @@
 // behaves the same, instead of each screen hand-rolling its own.
 
 import { Button, Card, CardContent, CardHeader } from '@/components/ui/base';
+import { cn } from '@/lib/utils';
 import { X } from 'lucide-react';
 import { ReactNode } from 'react';
 
@@ -26,13 +27,14 @@ export function Modal({
 }) {
     if (!open) return null;
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4" onClick={onClose}>
+            {/* Never taller than the screen: the header stays put and the body scrolls. */}
             <Card
-                className={className ?? 'max-w-md w-full shadow-xl'}
+                className={cn('flex max-h-[calc(100dvh-1.5rem)] flex-col', className ?? 'max-w-md w-full shadow-xl')}
                 onClick={(e: React.MouseEvent) => e.stopPropagation()}
             >
-                <CardHeader className="flex flex-row items-start justify-between gap-4">
-                    <div>
+                <CardHeader className="flex shrink-0 flex-row items-start justify-between gap-4">
+                    <div className="min-w-0">
                         <h3 className="font-bold">{title}</h3>
                         {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
                     </div>
@@ -40,7 +42,7 @@ export function Modal({
                         <X className="h-4 w-4" />
                     </Button>
                 </CardHeader>
-                <CardContent>{children}</CardContent>
+                <CardContent className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</CardContent>
             </Card>
         </div>
     );

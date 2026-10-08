@@ -5,6 +5,7 @@ import { Pagination } from '@/components/ui/pagination';
 import { useBroadcast, useBroadcastAction, useRecipients } from '@/hooks/use-broadcasts';
 import type { BroadcastAction, Channel, SendScope } from '@/lib/api/broadcasts';
 import { Ban, CheckCircle2, Loader2, Pause, Pencil, Play, Send, Users, XCircle } from 'lucide-react';
+import { useConfirm, type ConfirmOptions } from '@/components/ui/confirm-dialog';
 import { RecipientReview } from './recipient-review';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -23,6 +24,7 @@ interface Props {
 export function BroadcastDetail({ scope, id, canApprove, onEdit }: Props) {
     const { data, isLoading } = useBroadcast(id);
     const act = useBroadcastAction();
+    const { confirm, dialog } = useConfirm();
     const [reviewing, setReviewing] = useState(false);
     const [page, setPage] = useState(1);
     const [statusFilter, setStatusFilter] = useState('');
@@ -35,12 +37,12 @@ export function BroadcastDetail({ scope, id, canApprove, onEdit }: Props) {
     const b = data.broadcast;
     const s = STATUS_LABELS[b.status];
 
-    const run = async (action: BroadcastAction, confirmText?: string) => {
-        if (confirmText && !window.confirm(confirmText)) return;
+    const run = async (action: BroadcastAction, ask?: ConfirmOptions) => {
         let note: string | undefined;
-        if (action === 'reject') {
-            note = window.prompt('Why is it rejected? (shown to whoever wrote it)') ?? undefined;
-            if (note === undefined) return;
+        if (ask) {
+            const res = await confirm(ask);
+            if (!res.ok) return;
+            if (action === 'reject') note = res.value;
         }
         try {
             await act.mutateAsync({ id: b.id, action, note });
@@ -54,10 +56,13 @@ export function BroadcastDetail({ scope, id, canApprove, onEdit }: Props) {
     // The recipient list can be changed until sending starts (scheduled included).
     const beforeSend = editable || b.status === 'scheduled';
     const audienceError = typeof b.metadata?.audience_error === 'string' ? (b.metadata.audience_error as string) : '';
-    const handled = b.sent_count + b.failed_count + b.skipped_count + b.suppressed_count;
+    // Zero counts can be missing from the API reply: read them as 0, never NaN.
+    const n = (v: number | undefined) => v ?? 0;
+    const handled = n(b.sent_count) + n(b.failed_count) + n(b.skipped_count) + n(b.suppressed_count);
 
     return (
         <div className="space-y-5">
+            {dialog}
             <div className="flex flex-wrap items-center gap-2">
                 <Badge variant={s.variant}>{s.label}</Badge>
                 {b.channels.map((c) => <Badge key={c} variant="outline">{CHANNEL_LABELS[c]}</Badge>)}
@@ -100,11 +105,21 @@ export function BroadcastDetail({ scope, id, canApprove, onEdit }: Props) {
                 )}
                 {canApprove && (b.status === 'pending_approval' || b.status === 'draft') && (
                     <>
-                        <Button size="sm" className="gap-1.5" onClick={() => run('approve', 'Approve and send? It goes out at the scheduled time to everyone in the audience.')}>
+                        <Button size="sm" className="gap-1.5" onClick={() => run('approve', {
+                            title: 'Approve and send?',
+                            description: `It goes out ${when(b.send_at)} to everyone ticked in the recipient list. People without a verified email or a valid phone are never included.`,
+                            confirmLabel: 'Approve',
+                        })}>
                             <CheckCircle2 className="h-3.5 w-3.5" /> Approve
                         </Button>
                         {b.status === 'pending_approval' && (
-                            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => run('reject')}><XCircle className="h-3.5 w-3.5" /> Reject</Button>
+                            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => run('reject', {
+                                title: 'Reject this message?',
+                                description: 'Whoever wrote it sees your reason and can edit and send it again.',
+                                confirmLabel: 'Reject',
+                                tone: 'destructive',
+                                input: { label: 'Why is it rejected?', placeholder: 'For example: wrong date, check the wording', required: true },
+                            })}><XCircle className="h-3.5 w-3.5" /> Reject</Button>
                         )}
                     </>
                 )}
@@ -113,7 +128,13 @@ export function BroadcastDetail({ scope, id, canApprove, onEdit }: Props) {
                 )}
                 {b.status === 'paused' && <Button variant="outline" size="sm" className="gap-1.5" onClick={() => run('resume')}><Play className="h-3.5 w-3.5" /> Resume</Button>}
                 {['draft', 'pending_approval', 'scheduled', 'sending', 'paused'].includes(b.status) && (
-                    <Button variant="outline" size="sm" className="gap-1.5 text-destructive" onClick={() => run('cancel', 'Cancel it? Anything not sent yet stays unsent.')}>
+                    <Button variant="outline" size="sm" className="gap-1.5 text-destructive" onClick={() => run('cancel', {
+                        title: 'Cancel this message?',
+                        description: 'Anything not sent yet stays unsent. This cannot be undone.',
+                        confirmLabel: 'Cancel message',
+                        cancelLabel: 'Keep it',
+                        tone: 'destructive',
+                    })}>
                         <Ban className="h-3.5 w-3.5" /> Cancel
                     </Button>
                 )}
@@ -132,8 +153,8 @@ export function BroadcastDetail({ scope, id, canApprove, onEdit }: Props) {
                     </div>
                     <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-5">
                         {[
-                            ['Recipients', b.target_count], ['Sent', b.sent_count], ['Failed', b.failed_count],
-                            ['Not sent', b.skipped_count], ['Opted out', b.suppressed_count],
+                            ['Recipients', n(b.target_count)], ['Sent', n(b.sent_count)], ['Failed', n(b.failed_count)],
+                            ['Not sent', n(b.skipped_count)], ['Opted out', n(b.suppressed_count)],
                         ].map(([label, n]) => (
                             <div key={label as string} className="rounded-lg border border-border p-3">
                                 <p className="text-[11px] text-muted-foreground">{label}</p>

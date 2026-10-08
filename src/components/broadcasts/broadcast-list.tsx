@@ -1,6 +1,7 @@
 'use client';
 
 import { Badge, Button, Card, CardContent, CardHeader } from '@/components/ui/base';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { Modal } from '@/components/ui/modal';
 import { Pagination } from '@/components/ui/pagination';
 import { useBroadcast, useBroadcasts, useDeleteBroadcast } from '@/hooks/use-broadcasts';
@@ -28,11 +29,13 @@ export function BroadcastList({ scope, canApprove, openId, onOpen }: { scope: Se
     const [page, setPage] = useState(1);
     const { data, isLoading } = useBroadcasts({ status: filter || undefined, limit: PAGE, offset: (page - 1) * PAGE });
     const del = useDeleteBroadcast();
+    const { confirm, dialog } = useConfirm();
     const [composing, setComposing] = useState<'new' | string | null>(null);
     const editing = useBroadcast(composing && composing !== 'new' ? composing : null);
 
     const remove = async (b: Broadcast) => {
-        if (!window.confirm(`Delete the draft "${b.title}"?`)) return;
+        const { ok } = await confirm({ title: 'Delete this draft?', description: `"${b.title}" is removed for good.`, confirmLabel: 'Delete', tone: 'destructive' });
+        if (!ok) return;
         try {
             await del.mutateAsync(b.id);
             toast.success('Draft deleted');
@@ -46,6 +49,7 @@ export function BroadcastList({ scope, canApprove, openId, onOpen }: { scope: Se
 
     return (
         <Card>
+            {dialog}
             <CardHeader className="flex flex-row items-center justify-between gap-4">
                 <div>
                     <h2 className="font-bold flex items-center gap-2"><Send className="h-4 w-4" /> Messages</h2>

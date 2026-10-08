@@ -1,6 +1,7 @@
 'use client';
 
 import { Card, CardContent } from '@/components/ui/base';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { cn } from '@/lib/utils';
 import { Bell, Mail, MessageCircle, MessageSquare, RefreshCw, RotateCcw, Smartphone } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -29,6 +30,7 @@ export default function NotificationPreferencesPage() {
     const { data, isLoading, isError, refetch } = useNotificationPreferences();
     const update = useUpdateNotificationPreference();
     const resetPref = useResetNotificationPreference();
+    const { confirm, dialog } = useConfirm();
     const [channel, setChannel] = useState<ChannelFilter>('all');
     const [pendingKey, setPendingKey] = useState<string | null>(null);
     const [resettingKey, setResettingKey] = useState<string | null>(null);
@@ -166,7 +168,12 @@ export default function NotificationPreferencesPage() {
 
     const handleResetAll = async () => {
         if (overriddenKeys.length === 0) return;
-        if (!confirm(`Reset all ${overriddenKeys.length} customized notification(s) back to their defaults?`)) return;
+        const { ok } = await confirm({
+            title: 'Reset to defaults?',
+            description: `All ${overriddenKeys.length} customized notification(s) go back to their default settings.`,
+            confirmLabel: 'Reset all',
+        });
+        if (!ok) return;
         try {
             await Promise.all(overriddenKeys.map((key) => resetPref.mutateAsync(key)));
             toast.success('All customizations reset to defaults');
@@ -177,6 +184,7 @@ export default function NotificationPreferencesPage() {
 
     return (
         <div className="space-y-6">
+            {dialog}
             <div className="flex items-start justify-between gap-4">
                 <div>
                     <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">

@@ -1,6 +1,7 @@
 'use client';
 
 import { Badge, Button, Card, CardContent, CardHeader } from '@/components/ui/base';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { Modal } from '@/components/ui/modal';
 import { useAnnouncements, useDeleteAnnouncement } from '@/hooks/use-announcements';
 import type { Announcement, BannerScope } from '@/lib/api/announcements';
@@ -26,11 +27,14 @@ function when(iso?: string | null): string {
 export function AnnouncementsPanel({ scope = 'platform' }: { scope?: BannerScope }) {
     const { data: list = [], isLoading } = useAnnouncements();
     const del = useDeleteAnnouncement();
+    const { confirm, dialog } = useConfirm();
     const [editing, setEditing] = useState<Announcement | 'new' | null>(null);
-    const now = Date.now();
+    // Read the clock once per mount, not on every render.
+    const [now] = useState(() => Date.now());
 
     const remove = async (a: Announcement) => {
-        if (!window.confirm(`Delete "${a.title}"? It disappears from every dashboard.`)) return;
+        const { ok } = await confirm({ title: 'Delete this banner?', description: `"${a.title}" disappears from every dashboard.`, confirmLabel: 'Delete', tone: 'destructive' });
+        if (!ok) return;
         try {
             await del.mutateAsync(a.id);
             toast.success('Banner deleted');
@@ -44,6 +48,7 @@ export function AnnouncementsPanel({ scope = 'platform' }: { scope?: BannerScope
 
     return (
         <Card>
+            {dialog}
             <CardHeader className="flex flex-row items-center justify-between gap-4">
                 <div>
                     <h2 className="font-bold flex items-center gap-2"><Megaphone className="h-4 w-4" /> {scope === 'platform' ? 'Announcements' : 'Dashboard banners'}</h2>
