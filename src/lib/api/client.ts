@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { useTenantFilterStore } from '@/store/tenant-filter';
 
 // Must point to notifications API host (not the UI host). NEXT_PUBLIC_* are inlined at build time.
@@ -137,8 +137,8 @@ class ApiClient {
         return this.instance.get<T>(url, { params }).then((res: AxiosResponse<T>) => res.data);
     }
 
-    public post<T>(url: string, data?: any): Promise<T> {
-        return this.instance.post<T>(url, data).then((res: AxiosResponse<T>) => res.data);
+    public post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+        return this.instance.post<T>(url, data, config).then((res: AxiosResponse<T>) => res.data);
     }
 
     public put<T>(url: string, data?: any): Promise<T> {
