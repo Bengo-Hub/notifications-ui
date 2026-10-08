@@ -11,7 +11,7 @@ import { apiError, CHANNEL_LABELS, inputCls } from './shared';
 
 /**
  * Who the message goes to, before it is approved: one row per person (a tenant, a customer or a
- * staff member), the masked address each channel would use or why it would not send, and a tick
+ * staff member) with a valid email or phone, the masked address each channel would use or why it would not send, and a tick
  * box to leave people out. The counts and the list come from the same server-side review the
  * real send uses, so what is ticked here is exactly what goes out.
  */
@@ -133,6 +133,7 @@ export function RecipientReview({ broadcast, editable }: { broadcast: Broadcast;
                                         const rc = r.channels[c];
                                         return (
                                             <td key={c} className="p-2.5 align-top">
+                                                {!rc && <span className="text-[11px] text-muted-foreground">Not used</span>}
                                                 {rc?.address && <span className="font-mono text-xs">{rc.address}</span>}
                                                 {rc && !rc.sends && !out && (
                                                     <span className="block text-[11px] text-muted-foreground">{rc.reason || 'not sent'}</span>
@@ -163,7 +164,7 @@ export function RecipientReview({ broadcast, editable }: { broadcast: Broadcast;
                     </Button>
                 )}
             </div>
-            <p className="text-[11px] text-muted-foreground">Addresses are partly hidden. People who opted out or gave no consent are never sent to, ticked or not.</p>
+            <p className="text-[11px] text-muted-foreground">Addresses are partly hidden. Only people with a valid email or phone are listed: email goes to those with a valid email, WhatsApp (or SMS when WhatsApp is off) to those with only a valid phone, and every channel when both are valid. People who opted out or gave no consent are never sent to, ticked or not.</p>
         </div>
     );
 }
