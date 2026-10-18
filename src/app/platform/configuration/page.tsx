@@ -1,20 +1,16 @@
 'use client';
 
-import { BackupDestinationForm } from '@/components/backup-destination-form';
 import { Badge, Button, Card, CardContent, CardHeader, Switch } from '@/components/ui/base';
 import { cn } from '@/lib/utils';
 import {
     useBillingMargin,
-    usePlatformBackupDestination,
     usePlatformBilling,
     usePlatformSettings,
-    useTestPlatformBackupDestination,
-    useUpdatePlatformBackupDestination,
     useUpdatePlatformBilling,
     useUpsertPlatformSetting,
 } from '@/hooks/use-platform-config';
-import type { ServiceConfigItem, UpsertBackupDestination } from '@/lib/api/platform-config';
-import { CloudCog, CreditCard, Database, Hash, KeyRound, ListFilter, Loader2, Lock, Save, Settings2, SlidersHorizontal, ToggleLeft, TrendingUp, Type } from 'lucide-react';
+import type { ServiceConfigItem } from '@/lib/api/platform-config';
+import { CloudCog, CreditCard, Hash, KeyRound, ListFilter, Loader2, Lock, Save, Settings2, SlidersHorizontal, ToggleLeft, TrendingUp, Type } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -332,32 +328,15 @@ function PlatformBillingCard() {
     );
 }
 
-type ConfigSection = 'general' | 'backups' | 'billing';
+type ConfigSection = 'general' | 'billing';
 
 const SECTION_TABS: { value: ConfigSection; label: string; icon: typeof SlidersHorizontal }[] = [
     { value: 'general', label: 'General', icon: SlidersHorizontal },
-    { value: 'backups', label: 'Backups', icon: Database },
     { value: 'billing', label: 'Billing & Margin', icon: CloudCog },
 ];
 
 export default function PlatformConfigurationPage() {
-    const { data: destination, isLoading: destLoading } = usePlatformBackupDestination();
-    const updateDest = useUpdatePlatformBackupDestination();
-    const testDest = useTestPlatformBackupDestination();
     const [section, setSection] = useState<ConfigSection>('general');
-
-    const handleSaveDest = async (body: UpsertBackupDestination) => {
-        try {
-            await updateDest.mutateAsync(body);
-            toast.success('Backup destination saved');
-        } catch (e: any) {
-            toast.error(e?.response?.data?.error ?? 'Failed to save backup destination');
-        }
-    };
-
-    const handleTestDest = (body: UpsertBackupDestination) => {
-        testDest.mutate(body);
-    };
 
     return (
         <div className="space-y-6">
@@ -367,7 +346,7 @@ export default function PlatformConfigurationPage() {
                     Configuration
                 </h1>
                 <p className="text-sm text-muted-foreground mt-1">
-                    Platform-wide defaults: service config keys, the default backup mirror destination, and SMS billing rates.
+                    Platform-wide defaults: service config keys and SMS billing rates.
                     Provider credentials live under <span className="font-mono">Providers</span>; the credential encryption key is
                     managed from <span className="font-mono">Settings &gt; Security</span> (tenant context: codevertex).
                 </p>
@@ -407,20 +386,6 @@ export default function PlatformConfigurationPage() {
                     </div>
                     <ServiceConfigEditor />
                 </div>
-            )}
-
-            {section === 'backups' && (
-                <BackupDestinationForm
-                    title="Default Backup Destination"
-                    description="Applies to every tenant that has not configured its own override under Settings > Security."
-                    data={destination}
-                    isLoading={destLoading}
-                    onSave={handleSaveDest}
-                    saving={updateDest.isPending}
-                    onTest={handleTestDest}
-                    testing={testDest.isPending}
-                    testResult={testDest.data}
-                />
             )}
 
             {section === 'billing' && (

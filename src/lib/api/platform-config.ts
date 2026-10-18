@@ -13,34 +13,6 @@ export interface ServiceConfigItem {
     updated_at: string;
 }
 
-export interface DestinationParam {
-    key: string;
-    is_secret: boolean;
-    set: boolean;
-    value?: string;
-}
-
-export interface BackupDestination {
-    configured: boolean;
-    type: string;
-    enabled: boolean;
-    remote_path: string;
-    params: DestinationParam[];
-}
-
-export interface UpsertBackupDestination {
-    type: string;
-    enabled: boolean;
-    remote_path: string;
-    params: Record<string, string>;
-}
-
-export interface BackupDestinationTestResult {
-    ok: boolean;
-    message?: string;
-    error?: string;
-}
-
 export interface SMSMarginSummary {
     revenue: number;
     provider_cost: number;
@@ -76,24 +48,6 @@ export const platformConfigApi = {
 
     upsertPlatformSetting: (key: string, body: { config_value: string; description?: string }) =>
         apiClient.put<ServiceConfigItem>(`/api/v1/platform/config/${encodeURIComponent(key)}`, body),
-
-    getPlatformBackupDestination: () =>
-        apiClient.get<BackupDestination>('/api/v1/platform/backups/destination'),
-
-    putPlatformBackupDestination: (body: UpsertBackupDestination) =>
-        apiClient.put<BackupDestination>('/api/v1/platform/backups/destination', body),
-
-    testPlatformBackupDestination: (body: UpsertBackupDestination) =>
-        apiClient.post<BackupDestinationTestResult>('/api/v1/platform/backups/destination/test', body),
-
-    getTenantBackupDestination: () =>
-        apiClient.get<BackupDestination>('/api/v1/backups/destination'),
-
-    putTenantBackupDestination: (body: UpsertBackupDestination) =>
-        apiClient.put<BackupDestination>('/api/v1/backups/destination', body),
-
-    testTenantBackupDestination: (body: UpsertBackupDestination) =>
-        apiClient.post<BackupDestinationTestResult>('/api/v1/backups/destination/test', body),
 
     getPlatformBilling: () =>
         apiClient.get<PlatformBillingSettings>('/api/v1/platform/billing'),
