@@ -2,16 +2,10 @@
 
 import { Badge, Button, Card, CardContent, CardHeader, Switch } from '@/components/ui/base';
 import { cn } from '@/lib/utils';
-import {
-    useBillingMargin,
-    usePlatformBilling,
-    usePlatformSettings,
-    useUpdatePlatformBilling,
-    useUpsertPlatformSetting,
-} from '@/hooks/use-platform-config';
+import { usePlatformSettings, useUpsertPlatformSetting } from '@/hooks/use-platform-config';
 import type { ServiceConfigItem } from '@/lib/api/platform-config';
-import { CloudCog, CreditCard, Hash, KeyRound, ListFilter, Loader2, Lock, Save, Settings2, SlidersHorizontal, ToggleLeft, TrendingUp, Type } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { Hash, KeyRound, ListFilter, Loader2, Lock, Save, Settings2, ToggleLeft, Type } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 type SettingChip = 'all' | 'bool' | 'string' | 'int' | 'secret';
@@ -200,144 +194,7 @@ function ServiceConfigRow({
     );
 }
 
-function MarginCard() {
-    const { data, isLoading } = useBillingMargin();
-    const fmt = (n: number) => `KES ${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
-
-    return (
-        <Card>
-            <CardHeader className="border-b border-border/50 py-4">
-                <div className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-primary" />
-                    <h3 className="font-bold text-sm uppercase tracking-tight">Realized Margin</h3>
-                </div>
-            </CardHeader>
-            <CardContent className="p-6 space-y-6">
-                <p className="text-xs text-muted-foreground">
-                    What tenants are charged vs. the platform&apos;s real provider cost. SMS is summed across all
-                    deductions ever recorded; WhatsApp is a live snapshot of currently-active subscriptions
-                    (plan price vs. plan&apos;s estimated monthly provider cost).
-                </p>
-                {isLoading ? (
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm py-4">
-                        <Loader2 className="h-4 w-4 animate-spin" /> Loading...
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="p-4 rounded-lg border border-border bg-card space-y-2">
-                            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">SMS</h4>
-                            <div className="text-sm space-y-1">
-                                <div className="flex justify-between"><span className="text-muted-foreground">Revenue</span><span className="font-mono">{fmt(data?.sms.revenue ?? 0)}</span></div>
-                                <div className="flex justify-between"><span className="text-muted-foreground">Provider cost</span><span className="font-mono">{fmt(data?.sms.provider_cost ?? 0)}</span></div>
-                                <div className="flex justify-between font-bold pt-1 border-t border-border/50"><span>Margin</span><span className="font-mono text-primary">{fmt(data?.sms.margin ?? 0)}</span></div>
-                                <div className="text-[11px] text-muted-foreground pt-1">{data?.sms.transaction_count ?? 0} deductions</div>
-                            </div>
-                        </div>
-                        <div className="p-4 rounded-lg border border-border bg-card space-y-2">
-                            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">WhatsApp</h4>
-                            <div className="text-sm space-y-1">
-                                <div className="flex justify-between"><span className="text-muted-foreground">Revenue / mo</span><span className="font-mono">{fmt(data?.whatsapp.revenue ?? 0)}</span></div>
-                                <div className="flex justify-between"><span className="text-muted-foreground">Provider cost / mo</span><span className="font-mono">{fmt(data?.whatsapp.provider_cost ?? 0)}</span></div>
-                                <div className="flex justify-between font-bold pt-1 border-t border-border/50"><span>Margin / mo</span><span className="font-mono text-primary">{fmt(data?.whatsapp.margin ?? 0)}</span></div>
-                                <div className="text-[11px] text-muted-foreground pt-1">{data?.whatsapp.active_subscriptions ?? 0} active subscriptions</div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
-    );
-}
-
-function PlatformBillingCard() {
-    const { data, isLoading } = usePlatformBilling();
-    const update = useUpdatePlatformBilling();
-    const [costPerSms, setCostPerSms] = useState('');
-    const [providerCostPerSms, setProviderCostPerSms] = useState('');
-    const [minMarkup, setMinMarkup] = useState('');
-    const [minTopup, setMinTopup] = useState('');
-
-    useEffect(() => {
-        if (!data) return;
-        setCostPerSms(String(data.cost_per_sms ?? ''));
-        setProviderCostPerSms(String(data.provider_cost_per_sms ?? ''));
-        setMinMarkup(String(data.min_markup_percentage ?? ''));
-        setMinTopup(String(data.min_topup_amount ?? ''));
-    }, [data]);
-
-    const handleSave = async () => {
-        try {
-            await update.mutateAsync({
-                cost_per_sms: Number(costPerSms) || 0,
-                provider_cost_per_sms: Number(providerCostPerSms) || 0,
-                min_markup_percentage: Number(minMarkup) || 0,
-                min_topup_amount: Number(minTopup) || 0,
-            });
-            toast.success('Billing settings saved');
-        } catch (e: any) {
-            toast.error(e?.response?.data?.error ?? 'Failed to save billing settings');
-        }
-    };
-
-    return (
-        <Card>
-            <CardHeader className="border-b border-border/50 py-4">
-                <div className="flex items-center gap-2">
-                    <CreditCard className="h-4 w-4 text-primary" />
-                    <h3 className="font-bold text-sm uppercase tracking-tight">SMS Billing</h3>
-                </div>
-            </CardHeader>
-            <CardContent className="p-6 space-y-6">
-                <p className="text-xs text-muted-foreground">
-                    Tenant-facing SMS credit pricing. WhatsApp is billed via subscription plans (Billing &gt; WhatsApp plans), not here.
-                </p>
-                {isLoading ? (
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm py-4">
-                        <Loader2 className="h-4 w-4 animate-spin" /> Loading...
-                    </div>
-                ) : (
-                    <>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Cost per SMS (KES, tenant-facing)</label>
-                                <input value={costPerSms} onChange={(e) => setCostPerSms(e.target.value)} className="w-full bg-accent/20 p-2.5 rounded-lg border border-border text-sm font-mono focus:ring-1 focus:ring-primary outline-none" />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Provider cost per SMS (KES, real cost)</label>
-                                <input value={providerCostPerSms} onChange={(e) => setProviderCostPerSms(e.target.value)} className="w-full bg-accent/20 p-2.5 rounded-lg border border-border text-sm font-mono focus:ring-1 focus:ring-primary outline-none" />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Minimum markup (%)</label>
-                                <input value={minMarkup} onChange={(e) => setMinMarkup(e.target.value)} className="w-full bg-accent/20 p-2.5 rounded-lg border border-border text-sm font-mono focus:ring-1 focus:ring-primary outline-none" />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Minimum top-up amount (KES)</label>
-                                <input value={minTopup} onChange={(e) => setMinTopup(e.target.value)} className="w-full bg-accent/20 p-2.5 rounded-lg border border-border text-sm font-mono focus:ring-1 focus:ring-primary outline-none" />
-                            </div>
-                        </div>
-                        <div className="flex justify-end pt-2 border-t border-border/50">
-                            <Button size="sm" className="gap-2 px-6" disabled={update.isPending} onClick={handleSave}>
-                                {update.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                                Save
-                            </Button>
-                        </div>
-                    </>
-                )}
-            </CardContent>
-        </Card>
-    );
-}
-
-type ConfigSection = 'general' | 'billing';
-
-const SECTION_TABS: { value: ConfigSection; label: string; icon: typeof SlidersHorizontal }[] = [
-    { value: 'general', label: 'General', icon: SlidersHorizontal },
-    { value: 'billing', label: 'Billing & Margin', icon: CloudCog },
-];
-
 export default function PlatformConfigurationPage() {
-    const [section, setSection] = useState<ConfigSection>('general');
-
     return (
         <div className="space-y-6">
             <div>
@@ -346,54 +203,20 @@ export default function PlatformConfigurationPage() {
                     Configuration
                 </h1>
                 <p className="text-sm text-muted-foreground mt-1">
-                    Platform-wide defaults: service config keys and SMS billing rates.
-                    Provider credentials live under <span className="font-mono">Providers</span>; the credential encryption key is
+                    Platform-wide defaults for service config keys. SMS and WhatsApp prices, bundles and plans are set in
+                    subscriptions. Provider credentials live under <span className="font-mono">Providers</span>; the credential encryption key is
                     managed from <span className="font-mono">Settings &gt; Security</span> (tenant context: codevertex).
                 </p>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-                {SECTION_TABS.map((tab) => {
-                    const Icon = tab.icon;
-                    const active = section === tab.value;
-                    return (
-                        <button
-                            key={tab.value}
-                            type="button"
-                            onClick={() => setSection(tab.value)}
-                            className={cn(
-                                'inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm font-medium border transition-colors',
-                                active
-                                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                                    : 'bg-card text-muted-foreground border-border hover:text-foreground hover:border-foreground/30'
-                            )}
-                        >
-                            <Icon className="h-3.5 w-3.5" />
-                            {tab.label}
-                        </button>
-                    );
-                })}
+            <div className="rounded-xl border border-border bg-accent/5 p-4 flex items-center gap-3">
+                <KeyRound className="h-4 w-4 text-primary shrink-0" />
+                <p className="text-xs text-muted-foreground">
+                    Looking for the credential encryption key? It lives on the platform tenant&apos;s own Settings &gt; Security page,
+                    since it&apos;s scoped to that tenant context like the rest of Settings.
+                </p>
             </div>
-
-            {section === 'general' && (
-                <div className="space-y-6">
-                    <div className="rounded-xl border border-border bg-accent/5 p-4 flex items-center gap-3">
-                        <KeyRound className="h-4 w-4 text-primary shrink-0" />
-                        <p className="text-xs text-muted-foreground">
-                            Looking for the credential encryption key? It lives on the platform tenant&apos;s own Settings &gt; Security page,
-                            since it&apos;s scoped to that tenant context like the rest of Settings.
-                        </p>
-                    </div>
-                    <ServiceConfigEditor />
-                </div>
-            )}
-
-            {section === 'billing' && (
-                <div className="space-y-6">
-                    <PlatformBillingCard />
-                    <MarginCard />
-                </div>
-            )}
+            <ServiceConfigEditor />
         </div>
     );
 }

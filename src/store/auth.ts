@@ -1,4 +1,4 @@
-import { apiClient } from '@/lib/api/client';
+import { setApiAccessToken } from '@/lib/api/client';
 import { buildAuthorizeUrl, buildLogoutUrl, exchangeCodeForTokens, fetchProfile, revokeServerSession } from '@/lib/auth/api';
 import {
     consumeVerifier,
@@ -72,7 +72,7 @@ export const useAuthStore = create<AuthState>()(
                     return;
                 }
 
-                apiClient.setAccessToken(session.accessToken);
+                setApiAccessToken(session.accessToken);
                 set({ status: 'loading' });
 
                 // Expired token on reload: renew it with the refresh token (one small call) instead of a
@@ -82,7 +82,7 @@ export const useAuthStore = create<AuthState>()(
                   ? await (await import('@/lib/auth/token-refresh')).refreshAccessToken()
                   : null;
                 if (renewedOnLoad) {
-                  apiClient.setAccessToken(renewedOnLoad);
+                  setApiAccessToken(renewedOnLoad);
                 }
                 try {
                     const user = await fetchProfile(get().session?.accessToken ?? session.accessToken);
@@ -148,7 +148,7 @@ export const useAuthStore = create<AuthState>()(
                         expiresAt: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
                     };
 
-                    apiClient.setAccessToken(session.accessToken);
+                    setApiAccessToken(session.accessToken);
                     set({ session });
 
                     let attempts = 0;
@@ -178,7 +178,7 @@ export const useAuthStore = create<AuthState>()(
 
                 get().syncTenantToStorage(null);
                 set({ status: 'unauthenticated', user: null, session: null, isAuthenticated: false, lastAuthenticatedAt: null });
-                apiClient.setAccessToken(null);
+                setApiAccessToken(null);
 
                 // Clear persisted storage so re-visit doesn't rehydrate stale session
                 try { localStorage.removeItem('notifications-auth-storage'); } catch { /* no-op */ }
@@ -217,7 +217,7 @@ export const useAuthStore = create<AuthState>()(
             // Sync token to apiClient as soon as session is rehydrated so every request has Bearer (fixes 401)
             onRehydrateStorage: () => (state: AuthState | undefined) => {
                 if (state?.session?.accessToken) {
-                    apiClient.setAccessToken(state.session.accessToken);
+                    setApiAccessToken(state.session.accessToken);
                 }
                 if (state?.user) {
                     state.syncTenantToStorage(state.user);

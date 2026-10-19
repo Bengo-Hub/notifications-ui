@@ -30,13 +30,16 @@ export function setPlatformScope(isPlatform: boolean) {
     platformScope = isPlatform;
 }
 
+// SMS and WhatsApp balances, plans and purchases are owned by subscriptions-api.
+const subscriptionsBaseUrl = process.env.NEXT_PUBLIC_SUBSCRIPTIONS_API_URL || 'https://pricingapi.codevertexafrica.com';
+
 class ApiClient {
     private instance: AxiosInstance;
     private accessToken: string | null = null;
 
-    constructor() {
+    constructor(baseURL: string) {
         this.instance = axios.create({
-            baseURL: apiBaseUrl,
+            baseURL,
             headers: {
                 'Content-Type': 'application/json',
             },
@@ -154,4 +157,13 @@ class ApiClient {
     }
 }
 
-export const apiClient = new ApiClient();
+export const apiClient = new ApiClient(apiBaseUrl);
+
+/** Client for subscriptions-api (credits, bundles, plans). Same auth and tenant headers. */
+export const subscriptionsClient = new ApiClient(subscriptionsBaseUrl);
+
+/** Sets the access token on every API client; use this instead of calling either directly. */
+export function setApiAccessToken(token: string | null) {
+    apiClient.setAccessToken(token);
+    subscriptionsClient.setAccessToken(token);
+}

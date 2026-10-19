@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { MessageSquare, MessageCircle } from 'lucide-react';
 
 const tabs = [
-    { label: 'SMS Credits', href: '/billing/credits', icon: MessageSquare },
+    { label: 'SMS', href: '/billing/credits', icon: MessageSquare },
     { label: 'WhatsApp', href: '/billing/whatsapp', icon: MessageCircle },
 ];
 
