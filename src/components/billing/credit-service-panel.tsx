@@ -71,7 +71,7 @@ export function CreditServicePanel({ service }: { service: CreditService }) {
             if (result.initiate_url && result.intent_id) {
                 setPending({ intentId: result.intent_id, initiateUrl: result.initiate_url, amount });
             } else if (result.authorization_url) {
-                window.location.href = result.authorization_url;
+                window.location.assign(result.authorization_url);
             }
         } catch (err: unknown) {
             const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;

@@ -4,6 +4,7 @@ import { Badge, Button, Card, CardContent, CardHeader, Switch } from '@/componen
 import { cn } from '@/lib/utils';
 import { usePlatformSettings, useUpsertPlatformSetting } from '@/hooks/use-platform-config';
 import type { ServiceConfigItem } from '@/lib/api/platform-config';
+import { MessagingSettingsCard } from '@/components/platform/messaging/messaging-settings';
 import { Hash, KeyRound, ListFilter, Loader2, Lock, Save, Settings2, ToggleLeft, Type } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -204,7 +205,7 @@ export default function PlatformConfigurationPage() {
                 </h1>
                 <p className="text-sm text-muted-foreground mt-1">
                     Platform-wide defaults for service config keys. SMS and WhatsApp prices, bundles and plans are set in
-                    subscriptions. Provider credentials live under <span className="font-mono">Providers</span>; the credential encryption key is
+                    subscriptions, and the overage cap is under Messaging below. Provider credentials live under <span className="font-mono">Providers</span>; the credential encryption key is
                     managed from <span className="font-mono">Settings &gt; Security</span> (tenant context: codevertex).
                 </p>
             </div>
@@ -216,6 +217,7 @@ export default function PlatformConfigurationPage() {
                     since it&apos;s scoped to that tenant context like the rest of Settings.
                 </p>
             </div>
+            <MessagingSettingsCard />
             <ServiceConfigEditor />
         </div>
     );

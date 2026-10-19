@@ -3,13 +3,14 @@
 import { ReactNode, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Server, Settings2 } from 'lucide-react';
+import { MessagesSquare, Server, Settings2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMe } from '@/hooks/useMe';
 import { isPlatformOwnerOrSuperuser } from '@/lib/auth/permissions';
 
 const platformTabs = [
     { label: 'Providers', href: '/platform/providers', icon: Server },
+    { label: 'Messaging', href: '/platform/messaging', icon: MessagesSquare },
     { label: 'Configuration', href: '/platform/configuration', icon: Settings2 },
 ];
 
@@ -37,7 +38,7 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
         <div className="flex-1 min-h-0 overflow-y-auto p-8 space-y-6 max-w-7xl mx-auto w-full">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight">Platform</h1>
-                <p className="text-muted-foreground mt-1">Shared provider credentials and platform-wide configuration.</p>
+                <p className="text-muted-foreground mt-1">Shared provider credentials, messaging balances and platform-wide configuration.</p>
             </div>
 
             <nav className="border-b border-border overflow-x-auto">
