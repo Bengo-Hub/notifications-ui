@@ -19,7 +19,7 @@ export default function PlatformMessagingPage() {
                     Messaging
                 </h1>
                 <p className="text-sm text-muted-foreground mt-1">
-                    Who holds SMS, WhatsApp and AI credit balances, plans and unpaid overage. Grant units to a tenant from the table.
+                    Who holds SMS and WhatsApp balances, plans and unpaid overage. Grant units to a tenant from the table.
                     The overage cap is under Configuration.
                 </p>
             </div>

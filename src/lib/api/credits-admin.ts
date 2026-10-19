@@ -1,7 +1,7 @@
 import { subscriptionsClient } from './client';
 
 /** Credit services a platform owner can inspect. */
-export type AdminCreditService = 'sms' | 'whatsapp' | 'ai_credits';
+export type AdminCreditService = 'sms' | 'whatsapp';
 
 export type AdminTenantStatus = 'active' | 'capped' | 'not_activated' | 'exempt';
 

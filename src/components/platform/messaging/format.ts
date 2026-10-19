@@ -3,10 +3,9 @@ import type { AdminCreditService, AdminTenantStatus } from '@/lib/api/credits-ad
 export const SERVICE_LABEL: Record<AdminCreditService, string> = {
     sms: 'SMS',
     whatsapp: 'WhatsApp',
-    ai_credits: 'AI credits',
 };
 
-export const SERVICES: AdminCreditService[] = ['sms', 'whatsapp', 'ai_credits'];
+export const SERVICES: AdminCreditService[] = ['sms', 'whatsapp'];
 
 export const STATUS_LABEL: Record<AdminTenantStatus, string> = {
     active: 'Active',

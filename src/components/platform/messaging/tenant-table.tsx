@@ -100,7 +100,7 @@ export function TenantTable({ service }: { service: AdminCreditService }) {
     const rows = data?.data ?? [];
     const total = data?.total ?? 0;
     const hasTiers = service === 'whatsapp';
-    const hasOverage = service !== 'ai_credits';
+    const hasOverage = true;
     const filtered = q !== '' || status !== '';
     const label = SERVICE_LABEL[service];
 
@@ -145,11 +145,9 @@ export function TenantTable({ service }: { service: AdminCreditService }) {
                                 <tr className="border-b border-border bg-accent/5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                                     <th className="px-4 py-3">Tenant</th>
                                     <th className="px-4 py-3">Plan</th>
-                                    <th className="px-4 py-3 text-right">{service === 'ai_credits' ? 'Bundle' : 'Balance'}</th>
+                                    <th className="px-4 py-3 text-right">Balance</th>
                                     {hasTiers && <th className="px-4 py-3">Tier and renewal</th>}
-                                    {(hasTiers || service === 'ai_credits') && (
-                                        <th className="px-4 py-3 text-right">{hasTiers ? 'Plan units left' : 'Allowance left'}</th>
-                                    )}
+                                    {hasTiers && <th className="px-4 py-3 text-right">Plan units left</th>}
                                     {hasOverage && <th className="px-4 py-3">Overage</th>}
                                     <th className="px-4 py-3 text-right">Used this month</th>
                                     <th className="px-4 py-3">Status</th>
@@ -189,7 +187,7 @@ export function TenantTable({ service }: { service: AdminCreditService }) {
                                                 <TierCell row={row} />
                                             </td>
                                         )}
-                                        {(hasTiers || service === 'ai_credits') && (
+                                        {hasTiers && (
                                             <td className="px-4 py-3 text-right tabular-nums">
                                                 {row.unlimited ? 'Unlimited' : fmtUnits(row.quota_balance)}
                                             </td>
