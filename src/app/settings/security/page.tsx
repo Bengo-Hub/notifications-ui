@@ -1,184 +1,67 @@
 'use client';
 
 import { Badge, Button, Card, CardContent, CardHeader } from '@/components/ui/base';
-import { Copy, KeyRound, RefreshCw, ShieldCheck } from 'lucide-react';
+import { Copy, ShieldCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { settingsApi, type EncryptionKeyStatus } from '@/lib/api/settings';
+import { settingsApi, type EncryptionKeyStatus, type MailDeliveryKeyStatus } from '@/lib/api/settings';
+import { PlatformKeyCard } from '@/components/platform-key-card';
 import { useMe } from '@/hooks/useMe';
 import { isPlatformOwnerOrSuperuser } from '@/lib/auth/permissions';
 
 function CredentialEncryptionKeyCard() {
-    const [status, setStatus] = useState<EncryptionKeyStatus | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [generating, setGenerating] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [showAdvanced, setShowAdvanced] = useState(false);
-    const [manualKey, setManualKey] = useState('');
-    const [keyError, setKeyError] = useState<string | null>(null);
-
-    const fetchStatus = async () => {
-        try {
-            const data = await settingsApi.getEncryptionKey();
-            setStatus(data);
-        } catch {
-            setStatus(null);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchStatus();
-    }, []);
-
-    const handleGenerate = async () => {
-        setGenerating(true);
-        try {
-            await settingsApi.updateEncryptionKey({ generate: true });
-            await fetchStatus();
-            toast.success('New encryption key generated and activated');
-        } catch {
-            toast.error('Failed to generate encryption key');
-        } finally {
-            setGenerating(false);
-        }
-    };
-
-    const handleSaveManual = async () => {
-        const key = manualKey.trim();
-        if (!key) {
-            setKeyError('Enter a base64-encoded 32-byte key');
-            return;
-        }
-        setSaving(true);
-        setKeyError(null);
-        try {
-            await settingsApi.updateEncryptionKey({ key });
-            await fetchStatus();
-            setManualKey('');
-            setShowAdvanced(false);
-            toast.success('Encryption key activated');
-        } catch (err) {
-            const data = (err as { response?: { data?: { error?: string; message?: string } } })?.response?.data;
-            const msg = data?.error || data?.message || 'Invalid key — must be a base64-encoded 32-byte value';
-            setKeyError(msg);
-            toast.error(msg);
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const badge = (() => {
-        if (loading) return <Badge variant="outline">Loading…</Badge>;
-        if (!status?.configured) {
-            return <Badge variant="error">Not configured — provider credentials stored unencrypted</Badge>;
-        }
-        if (status.source === 'db') return <Badge variant="success">Configured (database)</Badge>;
-        return <Badge variant="warning">Using environment fallback</Badge>;
-    })();
-
-    const busy = loading || generating || saving;
-
     return (
-        <Card>
-            <CardHeader className="border-b border-border/50 py-4">
-                <div className="flex items-center gap-2">
-                    <KeyRound className="h-4 w-4 text-primary" />
-                    <h3 className="font-bold text-sm uppercase tracking-tight">Credential Encryption Key</h3>
-                </div>
-            </CardHeader>
-            <CardContent className="p-6 space-y-6">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="space-y-1 pr-4">
-                        <h4 className="text-sm font-bold">Active key</h4>
-                        <p className="text-xs text-muted-foreground">
-                            Encrypts provider API keys and secrets at rest. Managed at the platform level.
-                        </p>
-                    </div>
-                    {badge}
-                </div>
+        <PlatformKeyCard<EncryptionKeyStatus>
+            title="Credential Encryption Key"
+            description="Encrypts provider API keys and secrets at rest. Managed at the platform level."
+            notConfiguredLabel="Not configured — provider credentials stored unencrypted"
+            generateLabel="Generate & activate new key"
+            generatedToast="New encryption key generated and activated"
+            failedToast="Failed to generate encryption key"
+            footnote="New credentials encrypt with the active key; existing ones stay readable (decryption tries previous keys / plaintext). The raw key is never shown."
+            load={settingsApi.getEncryptionKey}
+            generate={() => settingsApi.updateEncryptionKey({ generate: true })}
+            manual={{
+                save: (key) => settingsApi.updateEncryptionKey({ key }),
+                label: 'Provide your own key (base64-encoded 32 bytes)',
+                placeholder: 'base64 32-byte key',
+                savedToast: 'Encryption key activated',
+                invalidFallback: 'Invalid key — must be a base64-encoded 32-byte value',
+            }}
+        />
+    );
+}
 
+/** The key the mail server signs its delivery (bounce) webhook with; rotating it also updates the mail server. */
+function MailDeliveryKeyCard() {
+    return (
+        <PlatformKeyCard<MailDeliveryKeyStatus>
+            title="Mail Delivery Webhook Key"
+            description="Signs the mail server's bounce notifications so only the mail server can mark an email as bounced."
+            notConfiguredLabel="Not configured — bounces are not recorded yet"
+            generateLabel="Rotate key"
+            generatedToast="Key rotated and applied to the mail server"
+            failedToast="Could not rotate the key"
+            footnote="Rotating creates a new key and pushes it to the mail server. The previous key keeps working for a short time so notices already in flight are accepted. If the mail server does not accept the new key, nothing changes. The raw key is never shown."
+            load={settingsApi.getMailDeliveryKey}
+            generate={settingsApi.rotateMailDeliveryKey}
+            extra={(status) => (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1">
-                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                            Key fingerprint
-                        </label>
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Last bounce notice</label>
                         <div className="bg-accent/20 p-2.5 rounded-lg border border-border text-xs font-mono truncate">
-                            {loading ? '…' : status?.key_fingerprint || 'N/A'}
+                            {status.last_event_at ? new Date(status.last_event_at).toLocaleString() : 'None yet'}
                         </div>
                     </div>
                     <div className="space-y-1">
-                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                            Last updated
-                        </label>
-                        <div className="bg-accent/20 p-2.5 rounded-lg border border-border text-xs font-mono truncate">
-                            {loading ? '…' : status?.updated_at ? new Date(status.updated_at).toLocaleString() : 'Never'}
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Webhook address</label>
+                        <div className="bg-accent/20 p-2.5 rounded-lg border border-border text-xs font-mono truncate" title={status.webhook_url}>
+                            {status.webhook_url}
                         </div>
                     </div>
                 </div>
-
-                <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-border/50">
-                    <Button
-                        type="button"
-                        size="sm"
-                        className="gap-1.5"
-                        disabled={busy}
-                        onClick={handleGenerate}
-                    >
-                        <RefreshCw className={`h-3.5 w-3.5 ${generating ? 'animate-spin' : ''}`} />
-                        {generating ? 'Generating…' : 'Generate & activate new key'}
-                    </Button>
-                    <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        disabled={busy}
-                        onClick={() => { setShowAdvanced((v) => !v); setKeyError(null); }}
-                    >
-                        {showAdvanced ? 'Hide advanced' : 'Advanced'}
-                    </Button>
-                </div>
-
-                {showAdvanced && (
-                    <div className="space-y-2 p-4 rounded-xl bg-accent/10 border border-border/50">
-                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                            Provide your own key (base64-encoded 32 bytes)
-                        </label>
-                        <input
-                            type="text"
-                            value={manualKey}
-                            onChange={(e) => { setManualKey(e.target.value); setKeyError(null); }}
-                            placeholder="base64 32-byte key"
-                            spellCheck={false}
-                            autoComplete="off"
-                            disabled={saving}
-                            className="w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm font-mono focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                        />
-                        {keyError && <p className="text-xs text-destructive">{keyError}</p>}
-                        <div className="flex justify-end">
-                            <Button
-                                type="button"
-                                size="sm"
-                                className="px-6"
-                                disabled={saving || !manualKey.trim()}
-                                onClick={handleSaveManual}
-                            >
-                                {saving ? 'Saving…' : 'Save'}
-                            </Button>
-                        </div>
-                    </div>
-                )}
-
-                <div className="flex items-start gap-3 p-4 rounded-xl bg-primary/5 border border-primary/20">
-                    <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                        New credentials encrypt with the active key; existing ones stay readable (decryption tries
-                        previous keys / plaintext). The raw key is never shown.
-                    </p>
-                </div>
-            </CardContent>
-        </Card>
+            )}
+        />
     );
 }
 
@@ -239,6 +122,7 @@ export default function SecuritySettingsPage() {
             </Card>
 
             {isPlatformAdmin && <CredentialEncryptionKeyCard />}
+            {isPlatformAdmin && <MailDeliveryKeyCard />}
         </div>
     );
 }

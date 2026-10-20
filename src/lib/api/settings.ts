@@ -79,6 +79,13 @@ export const settingsApi = {
     updateEncryptionKey: (body: { generate?: boolean; key?: string }) =>
         apiClient.put<EncryptionKeyStatus>('/api/v1/platform/encryption-key', body),
 
+    // Shared signing key of the mail server's delivery webhook (bounce feedback).
+    getMailDeliveryKey: () =>
+        apiClient.get<MailDeliveryKeyStatus>('/api/v1/platform/mail-delivery-key'),
+
+    rotateMailDeliveryKey: () =>
+        apiClient.put<MailDeliveryKeyStatus>('/api/v1/platform/mail-delivery-key', { generate: true }),
+
     // Per-tenant notification-type toggles (feed the worker's dispatch gate).
     listNotificationPreferences: () =>
         apiClient.get<{ data: NotificationPreference[]; total: number }>('/api/v1/notification-preferences'),
@@ -126,7 +133,13 @@ export interface WebhookConfig {
 
 export interface EncryptionKeyStatus {
     configured: boolean;
-    source: 'db' | 'env';
+    source: 'db' | 'env' | '';
     key_fingerprint: string;
     updated_at: string | null;
+}
+
+export interface MailDeliveryKeyStatus extends EncryptionKeyStatus {
+    /** Last time the mail server called the webhook; null until the first bounce event. */
+    last_event_at?: string | null;
+    webhook_url: string;
 }
