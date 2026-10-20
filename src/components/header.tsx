@@ -6,7 +6,7 @@ import { Bell, ChevronDown, Menu, Search, Settings, User } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { ThemeToggle } from './theme-toggle';
-import { useVisibleServices, AppSwitcherGrid, AppSwitcherTrigger, type ServiceKey } from '@bengo-hub/shared-ui-lib/app-switcher';
+import { useVisibleServices, serviceTagsFromAccessToken, AppSwitcherGrid, AppSwitcherTrigger, type ServiceKey } from '@bengo-hub/shared-ui-lib/app-switcher';
 import { AccountPanel } from '@bengo-hub/shared-ui-lib/account-panel';
 
 // notifications-ui never wired the shared app-switcher before — this is its first adoption.
@@ -36,6 +36,7 @@ interface HeaderProps {
 
 export function Header({ onMenuClick }: HeaderProps) {
     const user = useAuthStore((state) => state.user);
+    const session = useAuthStore((state) => state.session);
     const status = useAuthStore((state) => state.status);
     const logout = useAuthStore((state) => state.logout);
     const [profileOpen, setProfileOpen] = useState(false);
@@ -45,7 +46,15 @@ export function Header({ onMenuClick }: HeaderProps) {
     const orgSlug = (user as any)?.tenantSlug || 'codevertex';
     // The App Store shows every real service to every authenticated user in the tenant — each
     // destination service already enforces its own RBAC + subscription gating on arrival.
-    const services = useVisibleServices({ orgSlug, urls: SERVICE_URLS, canManageLinks: true });
+    // A service outside the plan stays visible as "Not in your plan" with a link to the plans page
+    // (shared-ui-lib default), so tenants discover the rest of the suite without hitting a 403.
+    const services = useVisibleServices({
+        orgSlug,
+        urls: SERVICE_URLS,
+        canManageLinks: true,
+        activeServiceTags: serviceTagsFromAccessToken(session?.accessToken),
+        upgradeUrl: SERVICE_URLS.subscriptions ? `${SERVICE_URLS.subscriptions}/${orgSlug}` : null,
+    });
 
     return (
         <header className="h-16 border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-30 px-4 sm:px-6 flex items-center justify-between">
