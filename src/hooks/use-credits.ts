@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { creditsApi, type CreditLedgerResponse, type CreditService, type CreditSnapshot } from '@/lib/api/credits';
+import { creditsApi, type AutoTopup, type AutoTopupInput, type CreditLedgerResponse, type CreditService, type CreditSnapshot } from '@/lib/api/credits';
 
 const STALE_MS = 30 * 1000;
 
@@ -30,6 +30,14 @@ export function useCreditTransactions(service: CreditService, limit = 10) {
         queryKey: creditKeys.transactions(service, limit),
         queryFn: () => creditsApi.transactions(service, { limit }),
         staleTime: STALE_MS,
+    });
+}
+
+export function useSetAutoTopup(service: CreditService) {
+    const queryClient = useQueryClient();
+    return useMutation<AutoTopup, Error, AutoTopupInput>({
+        mutationFn: (body) => creditsApi.setAutoTopup(service, body),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: creditKeys.all }),
     });
 }
 

@@ -33,6 +33,7 @@ export interface CreditSnapshot {
     unit_price_kes: number;
     bundles: CreditBundle[];
     tiers: CreditTier[] | null;
+    auto_topup?: AutoTopup;
 }
 
 export interface CreditLedgerEntry {
@@ -49,6 +50,24 @@ export interface CreditLedgerResponse {
     total: number;
     limit: number;
     offset: number;
+}
+
+export interface AutoTopup {
+    enabled: boolean;
+    threshold: number;
+    bundle_code: string;
+    monthly_limit_kes: number;
+    spent_month?: string;
+    spent_kes: number;
+    last_charge_at?: string;
+    disabled_reason?: string;
+}
+
+export interface AutoTopupInput {
+    enabled: boolean;
+    threshold?: number;
+    bundle_code?: string;
+    monthly_limit_kes?: number;
 }
 
 export interface PurchaseIntent {
@@ -75,4 +94,7 @@ export const creditsApi = {
 
     setAutoRenew: (service: CreditService, autoRenew: boolean) =>
         subscriptionsClient.post<{ auto_renew: boolean }>(`/api/v1/credits/${service}/auto-renew`, { auto_renew: autoRenew }),
+
+    setAutoTopup: (service: CreditService, body: AutoTopupInput) =>
+        subscriptionsClient.put<AutoTopup>(`/api/v1/credits/${service}/auto-topup`, body),
 };

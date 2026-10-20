@@ -8,6 +8,7 @@ import { Badge, Button, Card, CardContent } from '@/components/ui/base';
 import { creditsApi, type CreditService, type CreditSnapshot } from '@/lib/api/credits';
 import { creditKeys, useCreditSnapshot, useCreditTransactions, useSetAutoRenew } from '@/hooks/use-credits';
 import { useAuthStore } from '@/store/auth';
+import { AutoTopupCard } from '@/components/billing/auto-topup-card';
 
 const REASON_TEXT: Record<string, string> = {
     no_subscription: 'Your account has no active subscription. Subscribe to a plan first.',
@@ -262,6 +263,8 @@ export function CreditServicePanel({ service }: { service: CreditService }) {
                         {error && <p className="text-sm text-destructive mt-3">{error}</p>}
                     </section>
                 )}
+
+                <AutoTopupCard service={service} snap={snap} />
 
                 <section>
                     <h2 className="text-xl font-bold mb-4">Recent activity</h2>
