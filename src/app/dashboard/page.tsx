@@ -4,6 +4,8 @@ import { useMe } from '@/hooks/useMe';
 import { useActivityLogs, useDeliveryStats } from '@/hooks/use-analytics';
 import { useTemplates } from '@/hooks/use-templates';
 import { isPlatformOwnerOrSuperuser } from '@/lib/auth/permissions';
+import { deliveryRate, deliveryStatus } from '@/lib/delivery-status';
+import { Badge } from '@/components/ui/base';
 import { Activity, Mail, MessageCircle, MessageSquare, Smartphone } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -86,9 +88,11 @@ export default function DashboardPage() {
                     <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
                         <h3 className="text-lg font-semibold">Delivery Rate</h3>
                         <p className="text-4xl font-bold mt-2">
-                            {statsLoading ? '—' : stats != null ? `${stats.deliveryRate.toFixed(1)}%` : '0%'}
+                            {statsLoading ? '—' : deliveryRate(stats) ?? '—'}
                         </p>
-                        <p className="text-xs text-muted-foreground mt-1">Last 24 hours</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            {!statsLoading && deliveryRate(stats) == null ? 'Nothing sent in the last 24 hours' : 'Last 24 hours'}
+                        </p>
                     </div>
 
                     <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
@@ -96,7 +100,10 @@ export default function DashboardPage() {
                         <p className="text-4xl font-bold mt-2">
                             {statsLoading ? '—' : stats?.totalSent?.toLocaleString() ?? '0'}
                         </p>
-                        <p className="text-xs text-muted-foreground mt-1">SMS, Email, Push</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            Email, WhatsApp, SMS and push
+                            {stats?.skipped ? `; ${stats.skipped.toLocaleString()} not sent` : ''}
+                        </p>
                     </div>
                 </div>
 
@@ -121,7 +128,10 @@ export default function DashboardPage() {
                                         <span className="font-medium">{log.templateName}</span>{' '}
                                         <span className="text-muted-foreground">&rarr; {log.recipient}</span>
                                     </span>
-                                    <span className="text-muted-foreground text-xs ml-auto shrink-0">
+                                    <Badge variant={deliveryStatus(log.status).variant} className="shrink-0">
+                                        {deliveryStatus(log.status).label}
+                                    </Badge>
+                                    <span className="text-muted-foreground text-xs shrink-0">
                                         {new Date(log.timestamp).toLocaleString()}
                                     </span>
                                 </li>

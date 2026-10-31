@@ -5,9 +5,10 @@ import { useMe } from '@/hooks/useMe';
 import { useActivityLogs, useDeliveryStats } from '@/hooks/use-analytics';
 import type { ActivityLog } from '@/lib/api/analytics';
 import { isPlatformOwnerOrSuperuser } from '@/lib/auth/permissions';
+import { DELIVERY_STATUS, deliveryRate, deliveryStatus } from '@/lib/delivery-status';
 import { cn } from '@/lib/utils';
 import { DataTable, type DataTableColumn } from '@bengo-hub/shared-ui-lib/data-table';
-import { Activity, AlertCircle, ArrowDownRight, ArrowUpRight, BarChart3, CheckCircle2, Clock, Filter, Mail, MessageCircle, MessageSquare, Smartphone, Zap } from 'lucide-react';
+import { Activity, AlertCircle, ArrowUpRight, BarChart3, CheckCircle2, Clock, Filter, Mail, MessageCircle, MessageSquare, Smartphone, Zap } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -77,9 +78,21 @@ export default function MonitoringPage() {
     };
 
     const kpis = [
-        { name: 'Total Messages', value: stats?.totalSent?.toLocaleString() ?? '—', trend: '+12%', icon: Zap, color: 'blue' },
-        { name: 'Delivery Rate', value: stats != null ? `${stats.deliveryRate.toFixed(1)}%` : '—', trend: '+0.4%', icon: CheckCircle2, color: 'green' },
-        { name: 'Error Rate', value: stats != null ? `${stats.errorRate.toFixed(1)}%` : '—', trend: '-0.1%', icon: AlertCircle, color: 'orange' },
+        {
+            name: 'Messages Sent',
+            value: stats?.totalSent?.toLocaleString() ?? '—',
+            note: stats?.skipped ? `${stats.skipped.toLocaleString()} not sent (no plan or credits, invalid recipient)` : '',
+            icon: Zap,
+            color: 'blue',
+        },
+        { name: 'Delivery Rate', value: deliveryRate(stats) ?? '—', note: deliveryRate(stats) == null ? 'Nothing attempted in this range' : '', icon: CheckCircle2, color: 'green' },
+        {
+            name: 'Error Rate',
+            value: deliveryRate(stats) == null ? '—' : `${stats!.errorRate.toFixed(1)}%`,
+            note: stats?.failed ? `${stats.failed.toLocaleString()} failed` : '',
+            icon: AlertCircle,
+            color: 'orange',
+        },
     ];
 
     const maxSeries = Math.max(1, ...(stats?.timeSeries?.map((d) => Math.max(d.sent, d.delivered)) ?? [1]));
@@ -125,11 +138,11 @@ export default function MonitoringPage() {
             header: 'Status',
             sortable: true,
             filterable: true,
-            filterOptions: [{ value: 'sent' }, { value: 'delivered' }, { value: 'failed' }],
+            filterOptions: Object.entries(DELIVERY_STATUS).map(([value, meta]) => ({ value, label: meta.label })),
             accessor: (log) => log.status,
             render: (log) => (
-                <Badge variant="default" className="text-[10px] py-0 px-1.5 leading-tight uppercase">
-                    {log.status}
+                <Badge variant={deliveryStatus(log.status).variant} className="text-[10px] py-0 px-1.5 leading-tight uppercase">
+                    {deliveryStatus(log.status).label}
                 </Badge>
             ),
         },
@@ -193,17 +206,11 @@ export default function MonitoringPage() {
                                         )}>
                                             <kpi.icon className="h-5 w-5" />
                                         </div>
-                                        <div className={cn(
-                                            "flex items-center gap-0.5 text-xs font-bold",
-                                            kpi.trend.startsWith('+') ? "text-green-500" : "text-orange-500"
-                                        )}>
-                                            {kpi.trend.startsWith('+') ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                                            {kpi.trend}
-                                        </div>
                                     </div>
                                     <div className="mt-4">
                                         <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{kpi.name}</p>
                                         <p className="text-3xl font-bold mt-1">{kpi.value}</p>
+                                        {kpi.note && <p className="text-xs text-muted-foreground mt-1">{kpi.note}</p>}
                                     </div>
                                 </CardContent>
                             </Card>
@@ -307,9 +314,9 @@ export default function MonitoringPage() {
                                     className="bg-accent/30 border border-border rounded-lg py-1.5 px-3 text-xs focus:ring-1 focus:ring-primary outline-none"
                                 >
                                     <option value="">All statuses</option>
-                                    <option value="sent">Sent</option>
-                                    <option value="delivered">Delivered</option>
-                                    <option value="failed">Failed</option>
+                                    {Object.entries(DELIVERY_STATUS).map(([value, meta]) => (
+                                        <option key={value} value={value}>{meta.label}</option>
+                                    ))}
                                 </select>
                             </div>
                         </CardHeader>
@@ -350,7 +357,7 @@ export default function MonitoringPage() {
                                     <p><span className="text-muted-foreground">Template:</span> {selectedLog.templateName}</p>
                                     <p><span className="text-muted-foreground">Channel:</span> {selectedLog.channel}</p>
                                     <p><span className="text-muted-foreground">Recipient:</span> <code className="text-xs">{selectedLog.recipient}</code></p>
-                                    <p><span className="text-muted-foreground">Status:</span> <Badge variant="default" className="text-xs">{selectedLog.status}</Badge></p>
+                                    <p><span className="text-muted-foreground">Status:</span> <Badge variant={deliveryStatus(selectedLog.status).variant} className="text-xs">{deliveryStatus(selectedLog.status).label}</Badge></p>
                                     <p><span className="text-muted-foreground">Time:</span> {new Date(selectedLog.timestamp).toLocaleString()}</p>
                                 </CardContent>
                             </Card>

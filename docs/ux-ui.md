@@ -44,9 +44,14 @@
 - Load branding `GET /api/v1/{orgSlug}/branding`
 - Update logo, primary color, footer text; live preview on same page
 
-### Dashboard
+### Dashboard and Monitoring
 - Metrics from analytics/delivery API; empty state when no data
 - Recent activity from delivery/activity API
+- Every log row shows its status badge (`src/lib/delivery-status.ts`): Sent, Delivered, Failed, or Not sent.
+  "Not sent" is a send the gate held back (no SMS or WhatsApp plan or credits, invalid or unverified
+  recipient). Without the badge, a tenant's refused SMS and WhatsApp attempts looked like real sends.
+- Delivery rate shows "—" when nothing was attempted (never 0%); the not-sent count sits under the sent total.
+  KPI cards show only computed figures (the old fixed trend percentages are gone).
 
 ---
 
