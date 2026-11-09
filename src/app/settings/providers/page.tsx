@@ -311,13 +311,15 @@ export default function ProvidersPage() {
             { key: 'port', label: 'Port', type: 'text', placeholder: '587' },
             { key: 'username', label: 'Username', type: 'text', placeholder: 'user@example.com' },
             { key: 'password', label: 'Password', type: 'password', placeholder: 'Leave empty to keep current value' },
-            { key: 'from', label: 'From Address', type: 'text', placeholder: 'no-reply@yourcompany.com' },
+            { key: 'from', label: 'From Address', type: 'text', placeholder: 'Your Company <no-reply@yourcompany.com>' },
+            { key: 'reply_to', label: 'Reply-To Address (optional)', type: 'text', placeholder: 'info@yourcompany.com' },
             { key: 'start_tls', label: 'Start TLS', type: 'switch', placeholder: 'Enable for port 587. Disable for port 465 (SSL).' },
         ],
         brevo: [
             { key: 'api_key', label: 'API Key', type: 'password', placeholder: 'Leave empty to keep current value' },
             { key: 'sender_email', label: 'Sender Email', type: 'text', placeholder: 'no-reply@yourcompany.com' },
             { key: 'sender_name', label: 'Sender Name', type: 'text', placeholder: 'Your Company' },
+            { key: 'reply_to', label: 'Reply-To Address (optional)', type: 'text', placeholder: 'info@yourcompany.com' },
         ],
         africastalking: [
             { key: 'username', label: 'Username', type: 'text', placeholder: 'sandbox' },
