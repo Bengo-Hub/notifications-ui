@@ -109,17 +109,22 @@ class ApiClient {
             const url: string = error.config?.url ?? '';
             if (!url.includes('/auth/me') && !error.config?._retried) {
                 // Attempt token refresh before triggering logout
+                const sent = String(error.config?.headers?.Authorization ?? '').replace(/^Bearer\s+/i, '');
                 const { refreshAccessToken } = await import('@/lib/auth/token-refresh');
-                const newToken = await refreshAccessToken();
+                const newToken = await refreshAccessToken(sent || this.accessToken);
 
                 if (newToken) {
-                    this.accessToken = newToken;
+                    setApiAccessToken(newToken);
                     error.config._retried = true;
                     error.config.headers.Authorization = `Bearer ${newToken}`;
                     return this.instance.request(error.config);
                 }
 
-                // Refresh failed — fire logout callback
+                // Refresh failed, fire logout callback
+                on401Callback?.();
+            } else if (error.config?._retried) {
+                // Even a freshly renewed token was refused: the session is unusable, so send the
+                // person to sign in instead of leaving a page where every save fails.
                 on401Callback?.();
             }
         }

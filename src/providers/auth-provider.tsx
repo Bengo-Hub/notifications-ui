@@ -4,6 +4,9 @@ import { OfflineBar } from '@bengo-hub/shared-ui-lib/offline';
 import { useMe } from '@/hooks/useMe';
 import { isPlatformOwnerOrSuperuser } from '@/lib/auth/permissions';
 import { useAuthStore } from '@/store/auth';
+import { setApiAccessToken } from '@/lib/api/client';
+import { AUTH_STORAGE_KEY } from '@/lib/auth/token-refresh';
+import { watchSessionAcrossTabs } from '@bengo-hub/shared-ui-lib/auth';
 import { usePathname, useRouter } from 'next/navigation';
 import { ReactNode, useEffect } from 'react';
 
@@ -30,6 +33,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
         checkAuth();
     }, [status, pathname, initialize]);
+
+    // Another tab renewed or replaced the session: load it here and point both API clients at the
+    // new token, so this tab neither sends a rotated-away token nor writes its stale copy back.
+    useEffect(
+        () =>
+            watchSessionAcrossTabs(AUTH_STORAGE_KEY, () => {
+                void Promise.resolve(useAuthStore.persist.rehydrate()).then(() => {
+                    const token = useAuthStore.getState().session?.accessToken;
+                    if (token) setApiAccessToken(token);
+                });
+            }),
+        [],
+    );
 
     // Auth error on /me: redirect to login (SSO) — but NOT for subscription 403
     useEffect(() => {
