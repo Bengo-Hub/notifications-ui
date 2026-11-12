@@ -149,16 +149,16 @@ class ApiClient {
         return this.instance.post<T>(url, data, config).then((res: AxiosResponse<T>) => res.data);
     }
 
-    public put<T>(url: string, data?: any): Promise<T> {
-        return this.instance.put<T>(url, data).then((res: AxiosResponse<T>) => res.data);
+    public put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+        return this.instance.put<T>(url, data, config).then((res: AxiosResponse<T>) => res.data);
     }
 
     public patch<T>(url: string, data?: any): Promise<T> {
         return this.instance.patch<T>(url, data).then((res: AxiosResponse<T>) => res.data);
     }
 
-    public delete<T>(url: string): Promise<T> {
-        return this.instance.delete<T>(url).then((res: AxiosResponse<T>) => res.data);
+    public delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
+        return this.instance.delete<T>(url, config).then((res: AxiosResponse<T>) => res.data);
     }
 }
 

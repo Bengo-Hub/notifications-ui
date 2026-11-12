@@ -1,5 +1,6 @@
 'use client';
 
+import { WhatsAppBusinessProfileSection } from '@/components/settings/whatsapp-business-profile';
 import { Badge, Button, Card, CardContent, Switch } from '@/components/ui/base';
 import {
     settingsKeys,
@@ -11,6 +12,8 @@ import {
     type TemplateSyncProgress,
 } from '@/hooks/use-settings';
 import { useWhatsAppEmbeddedSignup } from '@/hooks/use-whatsapp-embedded-signup';
+import { useConfirm } from '@/components/ui/confirm-dialog';
+import { whatsappApi } from '@/lib/api/whatsapp';
 import { settingsApi } from '@/lib/api/settings';
 import { cn } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
@@ -226,8 +229,35 @@ function WebhookConfigCard({ kind }: { kind: 'whatsapp' | 'sms' }) {
     );
 }
 
-function WhatsAppConnectButton({ onConnected, connectedPhoneId }: { onConnected?: () => void; connectedPhoneId?: string }) {
+function WhatsAppConnectButton({ onConnected, onDisconnected, connectedPhoneId }: { onConnected?: () => void; onDisconnected?: () => void; connectedPhoneId?: string }) {
     const { configured, missing, launchSignup, status, isCompleting, completeError, completeSuccess, paymentMethodMissing } = useWhatsAppEmbeddedSignup();
+    const { confirm, dialog } = useConfirm();
+    const [disconnecting, setDisconnecting] = useState(false);
+
+    // Releases the number on Meta (when its account still exists) and removes the saved connection,
+    // so messages stop going out from it and a fresh connection starts clean.
+    const disconnect = async () => {
+        const { ok } = await confirm({
+            title: 'Disconnect this WhatsApp number?',
+            description:
+                'Messages stop going out from this number straight away. We release the number on Meta and remove it here. To delete the WhatsApp account itself, remove it in WhatsApp Manager afterwards.',
+            confirmLabel: 'Disconnect',
+            tone: 'destructive',
+        });
+        if (!ok) return;
+        setDisconnecting(true);
+        try {
+            const res = await whatsappApi.disconnect();
+            toast.success('WhatsApp number disconnected', {
+                description: res.notes?.filter((n) => !n.startsWith('to delete')).join('. ') || undefined,
+            });
+            onDisconnected?.();
+        } catch (error: any) {
+            toast.error(error?.response?.data?.error || 'Could not disconnect the WhatsApp number');
+        } finally {
+            setDisconnecting(false);
+        }
+    };
 
     useEffect(() => {
         if (completeSuccess) {
@@ -256,7 +286,12 @@ function WhatsAppConnectButton({ onConnected, connectedPhoneId }: { onConnected?
                         {connectedPhoneId ? (
                             <>Your messages go out from your own number (Phone Number ID <span className="font-mono">{connectedPhoneId}</span>).</>
                         ) : (
-                            <>Register your own WhatsApp number in a few clicks. No need to visit Meta yourself.</>
+                            <>
+                                Register your own WhatsApp number in a few clicks. When Meta asks for a business
+                                portfolio, choose the existing <strong>Codevertex Africa Limited</strong> business.
+                                Do not create a new one: a new, unverified business hides your name in chats and
+                                limits you to 250 new customers a day.
+                            </>
                         )}
                     </p>
                 </div>
@@ -272,6 +307,20 @@ function WhatsAppConnectButton({ onConnected, connectedPhoneId }: { onConnected?
                         ? 'Finishing setup…'
                         : connectedPhoneId ? 'Connect a different number' : 'Connect WhatsApp Number'}
                 </Button>
+                {connectedPhoneId && (
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 shrink-0 text-destructive"
+                        disabled={busy || disconnecting}
+                        onClick={disconnect}
+                    >
+                        {disconnecting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
+                        Disconnect
+                    </Button>
+                )}
+                {dialog}
             </div>
             {!configured && (
                 <p className="text-[11px] text-muted-foreground">
@@ -624,7 +673,16 @@ export default function ProvidersPage() {
                                                                 // The template sync starts on connect; show its first results.
                                                                 queryClient.invalidateQueries({ queryKey: settingsKeys.tenantWhatsAppTemplates() });
                                                             }}
+                                                            onDisconnected={() => {
+                                                                loadProviderSettings('whatsapp', 'meta_cloud', true);
+                                                                queryClient.invalidateQueries({ queryKey: settingsKeys.tenantWhatsAppTemplates() });
+                                                            }}
                                                             connectedPhoneId={savedProviderSettings['whatsapp:meta_cloud']?.phone_number_id || undefined}
+                                                        />
+                                                    )}
+                                                    {config.provider_name === 'meta_cloud' && (
+                                                        <WhatsAppBusinessProfileSection
+                                                            phoneNumberId={savedProviderSettings['whatsapp:meta_cloud']?.phone_number_id || undefined}
                                                         />
                                                     )}
                                                     {config.provider_name === 'meta_cloud' && savedProviderSettings['whatsapp:meta_cloud']?.phone_number_id && (
