@@ -1,6 +1,6 @@
 import { apiClient } from './client';
 
-// WhatsApp plans, bundles and balances live in subscriptions-api (see credits.ts). This file only
+// WhatsApp credits (one wallet per kind of message) live in subscriptions-api (see credits.ts). This file only
 // keeps the Meta template sync, which is a notifications concern.
 
 export interface TemplateSyncResult {

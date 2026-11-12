@@ -12,7 +12,7 @@ import { AutoTopupCard } from '@/components/billing/auto-topup-card';
 
 const REASON_TEXT: Record<string, string> = {
     no_subscription: 'Your account has no active subscription. Subscribe to a plan first.',
-    service_not_activated: 'Not activated yet. Buy a bundle or plan below to start sending.',
+    service_not_activated: 'Not activated yet. Buy a bundle below to start sending.',
 };
 
 const ACTION_LABEL: Record<string, string> = {
@@ -21,7 +21,7 @@ const ACTION_LABEL: Record<string, string> = {
     deduction: 'Sent',
     refund: 'Refunded',
     adjustment: 'Adjustment',
-    overage: 'Sent beyond plan (KES 1 each)',
+    overage: 'Sent beyond bundles (on your next invoice)',
 };
 
 function kes(n: number) {
@@ -45,9 +45,9 @@ interface PendingPurchase {
 }
 
 /**
- * One credit service (SMS or WhatsApp) for the acting tenant: balances, the recurring plan where
- * the service has one, bundles to buy, overage and recent activity. All numbers and prices come
- * from subscriptions-api; nothing is priced in this app.
+ * One credit service for the acting tenant (SMS; WhatsApp has its own page with one wallet per
+ * message category): balances, bundles to buy, overage and recent activity. All numbers and prices
+ * come from subscriptions-api; nothing is priced in this app.
  */
 export function CreditServicePanel({ service }: { service: CreditService }) {
     const user = useAuthStore((s) => s.user);
@@ -131,8 +131,8 @@ export function CreditServicePanel({ service }: { service: CreditService }) {
                         <h1 className="text-3xl font-bold tracking-tight">{snap.label}</h1>
                         <p className="text-muted-foreground mt-1">
                             {service === 'sms'
-                                ? 'Buy SMS bundles. Each SMS costs KES 1, and any you send beyond your bundles is added to your next invoice.'
-                                : 'Choose a monthly plan and top up with bundles. Each message beyond your plan and bundles costs KES 1 and is added to your next invoice.'}
+                                ? 'Buy SMS credits. Each SMS costs KES 1 per recipient. When your credits run out, SMS stop until you buy more, so turn on auto top-up below to never run out.'
+                                : snap.explainer ?? 'Buy credits for this kind of message. 1 credit sends 1 message.'}
                         </p>
                     </div>
                     <Badge variant="outline" className={`rounded-full font-semibold px-3 py-1 text-[10px] ${badge.cls}`}>{badge.text}</Badge>
@@ -177,6 +177,7 @@ export function CreditServicePanel({ service }: { service: CreditService }) {
                                 </CardContent>
                             </Card>
                         )}
+                        {snap.overage_pending_kes > 0 && (
                         <Card>
                             <CardContent className="p-6">
                                 <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1">Owed for extra messages</p>
@@ -189,6 +190,7 @@ export function CreditServicePanel({ service }: { service: CreditService }) {
                                 </p>
                             </CardContent>
                         </Card>
+                        )}
                     </div>
                 )}
 

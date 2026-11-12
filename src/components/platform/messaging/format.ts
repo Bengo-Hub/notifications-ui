@@ -1,11 +1,21 @@
 import type { AdminCreditService, AdminTenantStatus } from '@/lib/api/credits-admin';
 
+// WhatsApp categories by their plain names (never Meta's category words alone).
 export const SERVICE_LABEL: Record<AdminCreditService, string> = {
     sms: 'SMS',
-    whatsapp: 'WhatsApp',
+    whatsapp_marketing: 'WhatsApp promotions',
+    whatsapp_utility: 'WhatsApp order and account updates',
+    whatsapp_authentication: 'WhatsApp login codes',
+    whatsapp_service: 'WhatsApp replies',
 };
 
-export const SERVICES: AdminCreditService[] = ['sms', 'whatsapp'];
+export const SERVICES: AdminCreditService[] = [
+    'sms',
+    'whatsapp_marketing',
+    'whatsapp_utility',
+    'whatsapp_authentication',
+    'whatsapp_service',
+];
 
 export const STATUS_LABEL: Record<AdminTenantStatus, string> = {
     active: 'Active',

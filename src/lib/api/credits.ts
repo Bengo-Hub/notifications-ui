@@ -1,6 +1,21 @@
-import { subscriptionsClient } from './client';
+import { apiClient, subscriptionsClient } from './client';
 
-export type CreditService = 'sms' | 'whatsapp';
+/** WhatsApp is sold per message category; each category is its own credit service. */
+export type WhatsAppCreditService =
+    | 'whatsapp_marketing'
+    | 'whatsapp_utility'
+    | 'whatsapp_authentication'
+    | 'whatsapp_service';
+
+export type CreditService = 'sms' | WhatsAppCreditService;
+
+/** Display order of the WhatsApp categories. */
+export const WHATSAPP_CREDIT_SERVICES: WhatsAppCreditService[] = [
+    'whatsapp_utility',
+    'whatsapp_service',
+    'whatsapp_marketing',
+    'whatsapp_authentication',
+];
 
 export interface CreditBundle {
     code: string;
@@ -19,6 +34,14 @@ export interface CreditTier {
 export interface CreditSnapshot {
     service: string;
     label: string;
+    /** "whatsapp" for the WhatsApp categories. */
+    group?: string;
+    /** Plain category name, e.g. "Promotions and broadcasts". */
+    name?: string;
+    /** Meta's category word (MARKETING, UTILITY...); never shown without the plain name. */
+    meta_category?: string;
+    explainer?: string;
+    tier_name?: string;
     exempt: boolean;
     covered: boolean;
     reason?: string;
@@ -78,6 +101,29 @@ export interface PurchaseIntent {
     initiate_url?: string;
     authorization_url?: string;
 }
+
+export interface WhatsAppGuideMessage {
+    template_id: string;
+    label: string;
+    sent: number;
+}
+
+/** One WhatsApp credit category with the tenant's own messages in it (notifications-api). */
+export interface WhatsAppCategoryGuide {
+    service: WhatsAppCreditService;
+    meta_category: string;
+    name: string;
+    explainer: string;
+    examples: string[];
+    your_messages: WhatsAppGuideMessage[];
+}
+
+export const whatsappGuideApi = {
+    get: () =>
+        apiClient.get<{ categories: WhatsAppCategoryGuide[]; window_days: number }>(
+            '/api/v1/settings/whatsapp/credit-categories',
+        ),
+};
 
 export const creditsApi = {
     list: () => subscriptionsClient.get<{ services: CreditSnapshot[] }>('/api/v1/credits'),

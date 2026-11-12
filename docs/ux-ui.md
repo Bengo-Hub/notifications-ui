@@ -48,10 +48,19 @@
 - Metrics from analytics/delivery API; empty state when no data
 - Recent activity from delivery/activity API
 - Every log row shows its status badge (`src/lib/delivery-status.ts`): Sent, Delivered, Failed, or Not sent.
-  "Not sent" is a send the gate held back (no SMS or WhatsApp plan or credits, invalid or unverified
+  "Not sent" is a send the gate held back (no SMS credits or no WhatsApp credits of the message's kind, invalid or unverified
   recipient). Without the badge, a tenant's refused SMS and WhatsApp attempts looked like real sends.
 - Delivery rate shows "—" when nothing was attempted (never 0%); the not-sent count sits under the sent total.
   KPI cards show only computed figures (the old fixed trend percentages are gone).
+
+### WhatsApp credits (/billing/whatsapp)
+- One card per kind of message, by its plain name: Promotions and broadcasts, Order, payment and account updates,
+  Login and verification codes, Replies to customers. Meta's category words never appear on their own.
+- Each card shows the price per message, credits left, the tenant's own messages of the last 90 days that use it
+  (notifications-api `GET /api/v1/settings/whatsapp/credit-categories`), or examples when there are none, and the
+  bundles to buy. Activity and auto top-up follow the selected card.
+- A tenant still inside a paid monthly plan (retired 2026-11-12) sees when it ends and that it will not renew.
+- Prices and bundles come from subscriptions-api; nothing is priced in the app.
 
 ---
 

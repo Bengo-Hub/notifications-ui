@@ -1,7 +1,7 @@
 'use client';
 
-import { CreditServicePanel } from '@/components/billing/credit-service-panel';
+import { WhatsAppCreditsPanel } from '@/components/billing/whatsapp-credits-panel';
 
 export default function WhatsAppBillingPage() {
-    return <CreditServicePanel service="whatsapp" />;
+    return <WhatsAppCreditsPanel />;
 }

@@ -19,12 +19,12 @@ export default function PlatformMessagingPage() {
                     Messaging
                 </h1>
                 <p className="text-sm text-muted-foreground mt-1">
-                    Who holds SMS and WhatsApp balances, plans and unpaid overage. Grant units to a tenant from the table.
-                    The overage cap is under Configuration.
+                    Who holds SMS and WhatsApp credits and unpaid overage. WhatsApp credits are kept per message category.
+                    Grant units to a tenant from the table. The overage cap is under Configuration.
                 </p>
             </div>
 
-            <div role="tablist" aria-label="Service" className="inline-flex rounded-xl border border-border bg-card p-1">
+            <div role="tablist" aria-label="Service" className="inline-flex flex-wrap rounded-xl border border-border bg-card p-1">
                 {SERVICES.map((s) => (
                     <button
                         key={s}

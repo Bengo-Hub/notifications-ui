@@ -1,7 +1,12 @@
 import { subscriptionsClient } from './client';
 
-/** Credit services a platform owner can inspect. */
-export type AdminCreditService = 'sms' | 'whatsapp';
+/** Credit services a platform owner can inspect. WhatsApp is one service per message category. */
+export type AdminCreditService =
+    | 'sms'
+    | 'whatsapp_marketing'
+    | 'whatsapp_utility'
+    | 'whatsapp_authentication'
+    | 'whatsapp_service';
 
 export type AdminTenantStatus = 'active' | 'capped' | 'not_activated' | 'exempt';
 

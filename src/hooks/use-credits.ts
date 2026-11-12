@@ -1,7 +1,16 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { creditsApi, type AutoTopup, type AutoTopupInput, type CreditLedgerResponse, type CreditService, type CreditSnapshot } from '@/lib/api/credits';
+import {
+    creditsApi,
+    whatsappGuideApi,
+    type AutoTopup,
+    type AutoTopupInput,
+    type CreditLedgerResponse,
+    type CreditService,
+    type CreditSnapshot,
+    type WhatsAppCategoryGuide,
+} from '@/lib/api/credits';
 
 const STALE_MS = 30 * 1000;
 
@@ -30,6 +39,15 @@ export function useCreditTransactions(service: CreditService, limit = 10) {
         queryKey: creditKeys.transactions(service, limit),
         queryFn: () => creditsApi.transactions(service, { limit }),
         staleTime: STALE_MS,
+    });
+}
+
+/** Which of the tenant's own WhatsApp messages fall in each credit category (notifications-api). */
+export function useWhatsAppGuide() {
+    return useQuery<WhatsAppCategoryGuide[]>({
+        queryKey: ['credits', 'whatsapp-guide'],
+        queryFn: async () => (await whatsappGuideApi.get()).categories,
+        staleTime: 5 * 60 * 1000,
     });
 }
 

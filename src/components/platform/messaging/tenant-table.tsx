@@ -99,7 +99,8 @@ export function TenantTable({ service }: { service: AdminCreditService }) {
 
     const rows = data?.data ?? [];
     const total = data?.total ?? 0;
-    const hasTiers = service === 'whatsapp';
+    // Retired WhatsApp tiers still show while a tenant's paid period runs.
+    const hasTiers = service.startsWith('whatsapp_');
     const hasOverage = true;
     const filtered = q !== '' || status !== '';
     const label = SERVICE_LABEL[service];
