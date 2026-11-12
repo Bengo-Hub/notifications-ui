@@ -41,6 +41,10 @@ const PROVIDER_FIELDS: Record<string, { key: string; label: string; type: string
         { key: 'phone_number_id', label: 'Phone Number ID', type: 'text', placeholder: 'e.g. 1262404020292374' },
         { key: 'access_token', label: 'Access Token', type: 'password', placeholder: 'Leave empty to keep current value' },
         { key: 'api_version', label: 'API Version', type: 'text', placeholder: 'v21.0' },
+        // Embedded Signup exchanges each connecting business's code with these, and the app
+        // secret also verifies webhook signatures. The WhatsApp app, not the MarketFlow app.
+        { key: 'app_id', label: 'WhatsApp App ID', type: 'text', placeholder: 'App Dashboard > App settings > Basic' },
+        { key: 'app_secret', label: 'WhatsApp App Secret', type: 'password', placeholder: 'Leave empty to keep current value' },
     ],
 };
 

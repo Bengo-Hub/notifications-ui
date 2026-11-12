@@ -45,9 +45,24 @@ function loadFacebookSdk(): Promise<void> {
     return sdkLoadPromise;
 }
 
-interface EmbeddedSignupResult {
+interface SignupIds {
     waba_id: string;
     phone_number_id: string;
+}
+
+interface EmbeddedSignupResult extends SignupIds {
+    /** One-time code from FB.login; the backend exchanges it for the business token. */
+    code: string;
+}
+
+/** Meta posts the popup's session events from facebook.com (www. or web.). */
+function isFacebookOrigin(origin: string): boolean {
+    try {
+        const host = new URL(origin).hostname;
+        return origin.startsWith('https://') && (host === 'facebook.com' || host.endsWith('.facebook.com'));
+    } catch {
+        return false;
+    }
 }
 
 /**
@@ -62,16 +77,19 @@ interface EmbeddedSignupResult {
  *    Business Verification + App Review for whatsapp_business_management/whatsapp_business_messaging
  *    at Advanced Access. Until both are set, `configured` is false and launchSignup is a no-op.
  *
- * On completion, posts {waba_id, phone_number_id} to the backend's
- * POST /billing/whatsapp/embedded-signup/complete, which uses the platform's own Meta credentials
- * (granted access automatically by the signup) to subscribe the webhook, register the number, and
- * save phone_number_id as this tenant's own provider setting — the same field the manual
- * phone_number_id form field already reads/writes.
+ * Completion needs two things that arrive separately and in either order: the one-time `code`
+ * from the FB.login callback and the {waba_id, phone_number_id} from the popup's FINISH message.
+ * Once both are in, they go together to POST /billing/whatsapp/embedded-signup/complete, which
+ * exchanges the code for the business token and uses it to subscribe the webhook, register the
+ * number and save it as this tenant's own WhatsApp settings. Without the code the backend can
+ * only use the platform token, which Meta refuses on a WABA the customer just created.
  */
 export function useWhatsAppEmbeddedSignup() {
     const [status, setStatus] = useState<'idle' | 'loading-sdk' | 'awaiting-popup' | 'completing'>('idle');
     const qc = useQueryClient();
-    const resultRef = useRef<EmbeddedSignupResult | null>(null);
+    const codeRef = useRef<string | null>(null);
+    const idsRef = useRef<SignupIds | null>(null);
+    const sentRef = useRef(false);
 
     const completeMutation = useMutation({
         mutationFn: (result: EmbeddedSignupResult) =>
@@ -84,20 +102,34 @@ export function useWhatsAppEmbeddedSignup() {
         },
     });
 
+    const resetMutation = completeMutation.reset;
+
+    // Sends once, when both the code and the IDs have arrived.
+    const tryComplete = () => {
+        const code = codeRef.current;
+        const ids = idsRef.current;
+        if (!code || !ids || sentRef.current) return;
+        sentRef.current = true;
+        setStatus('completing');
+        completeMutation.mutate({ code, ...ids });
+    };
+    const tryCompleteRef = useRef(tryComplete);
+    tryCompleteRef.current = tryComplete;
+
     useEffect(() => {
         const handler = (event: MessageEvent) => {
-            if (event.origin !== 'https://www.facebook.com') return;
+            if (!isFacebookOrigin(event.origin)) return;
             let data: any;
             try {
-                data = JSON.parse(event.data);
+                data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
             } catch {
                 return;
             }
             if (data?.type !== 'WA_EMBEDDED_SIGNUP') return;
-            if (data.event === 'FINISH' && data.data?.phone_number_id && data.data?.waba_id) {
-                resultRef.current = { waba_id: data.data.waba_id, phone_number_id: data.data.phone_number_id };
-                setStatus('completing');
-                completeMutation.mutate(resultRef.current);
+            // FINISH, or a FINISH_* variant (for example an existing WhatsApp Business app number).
+            if (typeof data.event === 'string' && data.event.startsWith('FINISH') && data.data?.phone_number_id && data.data?.waba_id) {
+                idsRef.current = { waba_id: String(data.data.waba_id), phone_number_id: String(data.data.phone_number_id) };
+                tryCompleteRef.current();
             } else if (data.event === 'CANCEL') {
                 setStatus('idle');
             }
@@ -109,15 +141,22 @@ export function useWhatsAppEmbeddedSignup() {
 
     const launchSignup = useCallback(async () => {
         if (!META_APP_ID || !META_EMBEDDED_SIGNUP_CONFIG_ID) return;
+        codeRef.current = null;
+        idsRef.current = null;
+        sentRef.current = false;
+        resetMutation();
         setStatus('loading-sdk');
         await loadFacebookSdk();
         setStatus('awaiting-popup');
         window.FB?.login(
             (response) => {
-                if (!response.authResponse) setStatus('idle');
-                // The FINISH/CANCEL postMessage (handled above) is what actually drives completion —
-                // this callback alone only tells us the popup closed with SOME auth response, which
-                // may arrive before or after the postMessage event.
+                const code = response.authResponse?.code;
+                if (!code) {
+                    setStatus('idle');
+                    return;
+                }
+                codeRef.current = code;
+                tryCompleteRef.current();
             },
             {
                 config_id: META_EMBEDDED_SIGNUP_CONFIG_ID,
@@ -126,7 +165,7 @@ export function useWhatsAppEmbeddedSignup() {
                 extras: { setup: {}, featureType: '', sessionInfoVersion: '3' },
             }
         );
-    }, []);
+    }, [resetMutation]);
 
     return {
         configured: !!META_APP_ID && !!META_EMBEDDED_SIGNUP_CONFIG_ID,
