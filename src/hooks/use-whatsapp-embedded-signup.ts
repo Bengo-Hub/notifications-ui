@@ -19,7 +19,13 @@ declare global {
 
 const META_APP_ID = process.env.NEXT_PUBLIC_META_APP_ID ?? '';
 const META_EMBEDDED_SIGNUP_CONFIG_ID = process.env.NEXT_PUBLIC_META_WHATSAPP_CONFIG_ID ?? '';
-const FB_SDK_VERSION = 'v21.0';
+// Keep in step with the Graph API version on Platform > Providers > WhatsApp (v26.0 since
+// 2026-11-12); NEXT_PUBLIC_META_SDK_VERSION overrides it without a code change.
+const FB_SDK_VERSION = process.env.NEXT_PUBLIC_META_SDK_VERSION || 'v26.0';
+
+// Meta's number registration alone can take over 14 seconds, past the client's 15 second
+// default, which cancelled the signup halfway (2026-11-12).
+const COMPLETE_TIMEOUT_MS = 120_000;
 
 let sdkLoadPromise: Promise<void> | null = null;
 
@@ -95,7 +101,8 @@ export function useWhatsAppEmbeddedSignup() {
         mutationFn: (result: EmbeddedSignupResult) =>
             apiClient.post<{ message: string; phone_number_id: string }>(
                 '/api/v1/billing/whatsapp/embedded-signup/complete',
-                result
+                result,
+                { timeout: COMPLETE_TIMEOUT_MS }
             ),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['settings', 'current', 'providers'] });
