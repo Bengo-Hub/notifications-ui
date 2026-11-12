@@ -218,12 +218,17 @@ function WebhookConfigCard({ kind }: { kind: 'whatsapp' | 'sms' }) {
     );
 }
 
-function WhatsAppConnectButton() {
+function WhatsAppConnectButton({ onConnected, connectedPhoneId }: { onConnected?: () => void; connectedPhoneId?: string }) {
     const { configured, missing, launchSignup, status, isCompleting, completeError, completeSuccess } = useWhatsAppEmbeddedSignup();
 
     useEffect(() => {
-        if (completeSuccess) toast.success('WhatsApp number connected');
+        if (completeSuccess) {
+            toast.success('WhatsApp number connected');
+            // The form below holds its values in local state, so reload it to show the new number.
+            onConnected?.();
+        }
         if (completeError) toast.error((completeError as any)?.response?.data?.error ?? 'Failed to complete WhatsApp connection');
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [completeSuccess, completeError]);
 
     const busy = status === 'loading-sdk' || status === 'awaiting-popup' || isCompleting;
@@ -233,10 +238,15 @@ function WhatsAppConnectButton() {
             <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
                     <h4 className="text-sm font-bold flex items-center gap-1.5">
-                        <MessageCircle className="h-4 w-4 text-emerald-600" /> Connect via WhatsApp
+                        <MessageCircle className="h-4 w-4 text-emerald-600" />
+                        {connectedPhoneId ? 'WhatsApp number connected' : 'Connect via WhatsApp'}
                     </h4>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                        Register your own WhatsApp number in a few clicks — no need to visit Meta yourself.
+                        {connectedPhoneId ? (
+                            <>Your messages go out from your own number (Phone Number ID <span className="font-mono">{connectedPhoneId}</span>).</>
+                        ) : (
+                            <>Register your own WhatsApp number in a few clicks. No need to visit Meta yourself.</>
+                        )}
                     </p>
                 </div>
                 <Button
@@ -247,7 +257,9 @@ function WhatsAppConnectButton() {
                     onClick={launchSignup}
                 >
                     {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
-                    {status === 'completing' || isCompleting ? 'Finishing setup…' : 'Connect WhatsApp Number'}
+                    {status === 'completing' || isCompleting
+                        ? 'Finishing setup…'
+                        : connectedPhoneId ? 'Connect a different number' : 'Connect WhatsApp Number'}
                 </Button>
             </div>
             {!configured && (
@@ -342,9 +354,9 @@ export default function ProvidersPage() {
         ],
     };
 
-    const loadProviderSettings = async (providerType: string, providerName: string) => {
+    const loadProviderSettings = async (providerType: string, providerName: string, force = false) => {
         const settingsKey = `${providerType}:${providerName}`;
-        if (providerSettings[settingsKey]) return;
+        if (providerSettings[settingsKey] && !force) return;
         try {
             setLoadingSettings(settingsKey);
             const res = await settingsApi.getProviderSettings(providerType, providerName);
@@ -473,7 +485,12 @@ export default function ProvidersPage() {
                                                 )}
 
                                                 {!isChanging && <>
-                                                    {config.provider_name === 'meta_cloud' && <WhatsAppConnectButton />}
+                                                    {config.provider_name === 'meta_cloud' && (
+                                                        <WhatsAppConnectButton
+                                                            onConnected={() => loadProviderSettings('whatsapp', 'meta_cloud', true)}
+                                                            connectedPhoneId={savedProviderSettings['whatsapp:meta_cloud']?.phone_number_id || undefined}
+                                                        />
+                                                    )}
                                                     {config.provider_name === 'meta_cloud' && <WebhookConfigCard kind="whatsapp" />}
                                                     {config.provider_name === 'africastalking' && <WebhookConfigCard kind="sms" />}
                                                     <ProviderSettingsForm

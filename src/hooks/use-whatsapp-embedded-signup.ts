@@ -105,8 +105,11 @@ export function useWhatsAppEmbeddedSignup() {
                 { timeout: COMPLETE_TIMEOUT_MS }
             ),
         onSuccess: () => {
+            setStatus('idle');
             qc.invalidateQueries({ queryKey: ['settings', 'current', 'providers'] });
         },
+        // Without this the button stayed on "Finishing setup" after a success or failure.
+        onError: () => setStatus('idle'),
     });
 
     const resetMutation = completeMutation.reset;
