@@ -1,12 +1,20 @@
 'use client';
 
 import { Badge, Button, Card, CardContent, Switch } from '@/components/ui/base';
-import { useTenantProviders, useTestTenantProvider, useWebhookConfig } from '@/hooks/use-settings';
+import {
+    settingsKeys,
+    useSyncTenantWhatsAppTemplates,
+    useTenantProviders,
+    useTenantWhatsAppTemplates,
+    useTestTenantProvider,
+    useWebhookConfig,
+    type TemplateSyncProgress,
+} from '@/hooks/use-settings';
 import { useWhatsAppEmbeddedSignup } from '@/hooks/use-whatsapp-embedded-signup';
 import { settingsApi } from '@/lib/api/settings';
 import { cn } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, Check, CheckCircle2, ChevronDown, Copy, ExternalLink, Globe, Loader2, Lock, Mail, MessageCircle, MessageSquare, PlugZap, Save, Webhook, XCircle } from 'lucide-react';
+import { AlertCircle, Check, CheckCircle2, ChevronDown, Copy, ExternalLink, Globe, Loader2, Lock, Mail, MessageCircle, MessageSquare, PlugZap, RefreshCw, Save, UploadCloud, Webhook, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -219,11 +227,14 @@ function WebhookConfigCard({ kind }: { kind: 'whatsapp' | 'sms' }) {
 }
 
 function WhatsAppConnectButton({ onConnected, connectedPhoneId }: { onConnected?: () => void; connectedPhoneId?: string }) {
-    const { configured, missing, launchSignup, status, isCompleting, completeError, completeSuccess } = useWhatsAppEmbeddedSignup();
+    const { configured, missing, launchSignup, status, isCompleting, completeError, completeSuccess, paymentMethodMissing } = useWhatsAppEmbeddedSignup();
 
     useEffect(() => {
         if (completeSuccess) {
             toast.success('WhatsApp number connected');
+            if (paymentMethodMissing) {
+                toast.warning('Almost there: our team is adding the payment setup for your WhatsApp account. Order and reminder messages start once it is in place.', { duration: 12000 });
+            }
             // The form below holds its values in local state, so reload it to show the new number.
             onConnected?.();
         }
@@ -270,6 +281,127 @@ function WhatsAppConnectButton({ onConnected, connectedPhoneId }: { onConnected?
                         <> Missing: <code className="font-mono">{missing.join(', ')}</code>.</>
                     )}
                 </p>
+            )}
+        </div>
+    );
+}
+
+const TEMPLATE_STATUS_VARIANT: Record<string, 'success' | 'warning' | 'error' | 'outline' | 'secondary'> = {
+    APPROVED: 'success',
+    PENDING: 'warning',
+    IN_APPEAL: 'warning',
+    REJECTED: 'error',
+    PAUSED: 'error',
+    DISABLED: 'error',
+    MISSING: 'outline',
+};
+
+const TEMPLATE_STATUS_LABEL: Record<string, string> = {
+    APPROVED: 'Approved',
+    PENDING: 'Pending review',
+    IN_APPEAL: 'In appeal',
+    REJECTED: 'Rejected',
+    PAUSED: 'Paused',
+    DISABLED: 'Disabled',
+    MISSING: 'Not submitted',
+};
+
+// The WhatsApp message templates this tenant uses, on its own WhatsApp Business Account. Meta
+// approves templates per account, so a newly connected number has none of ours until they are
+// submitted (done automatically on connect, and again here on demand).
+function WhatsAppTemplatesCard() {
+    const { data, isLoading, isError, error, refetch, isFetching } = useTenantWhatsAppTemplates(true);
+    const [progress, setProgress] = useState<TemplateSyncProgress | null>(null);
+    const sync = useSyncTenantWhatsAppTemplates(setProgress);
+
+    const runSync = () => {
+        setProgress(null);
+        sync.mutate(undefined, {
+            onSuccess: (p) => {
+                if (p.failed > 0) {
+                    toast.warning(`${p.created} submitted, ${p.failed} refused by Meta. See the reasons below.`);
+                } else if (p.created > 0) {
+                    toast.success(`${p.created} template${p.created === 1 ? '' : 's'} submitted to Meta`);
+                } else {
+                    toast.success('All templates are already on your account');
+                }
+            },
+            onError: (e: any) => toast.error(e?.response?.data?.error ?? 'Template sync failed'),
+        });
+    };
+
+    const templates = data?.templates ?? [];
+    const missing = data?.summary?.MISSING ?? 0;
+    const approved = data?.summary?.APPROVED ?? 0;
+
+    return (
+        <div className="mb-4 p-4 rounded-lg bg-accent/10 border border-border space-y-3">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                    <h4 className="text-sm font-bold flex items-center gap-1.5">
+                        <MessageSquare className="h-4 w-4 text-primary" />
+                        Message templates
+                    </h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                        WhatsApp only delivers our notifications from your number once Meta approves each template on
+                        your account. Meta usually approves within minutes to a few hours.
+                    </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                    <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => refetch()} disabled={isFetching || sync.isPending}>
+                        <RefreshCw className={cn('h-3.5 w-3.5', isFetching && 'animate-spin')} />
+                        Refresh
+                    </Button>
+                    <Button type="button" size="sm" className="gap-1.5" onClick={runSync} disabled={sync.isPending || isLoading || isError}>
+                        {sync.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UploadCloud className="h-3.5 w-3.5" />}
+                        {sync.isPending ? 'Syncing…' : 'Sync templates'}
+                    </Button>
+                </div>
+            </div>
+
+            {sync.isPending && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    {progress
+                        ? `Submitted ${progress.created} so far${progress.remaining > 0 ? `, ${progress.remaining} still to go` : ''}…`
+                        : 'Submitting templates to Meta…'}
+                </p>
+            )}
+
+            {isLoading && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Checking your templates with Meta…
+                </p>
+            )}
+
+            {isError && (
+                <div className="flex items-start gap-2 p-3 rounded-lg border bg-destructive/5 border-destructive/20 text-destructive text-xs">
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                    <span>{(error as any)?.response?.data?.error ?? 'Could not load your templates from Meta'}</span>
+                </div>
+            )}
+
+            {data && (
+                <>
+                    <p className="text-xs text-muted-foreground">
+                        {approved} of {templates.length} approved
+                        {missing > 0 && <>, {missing} not submitted yet</>}
+                        {(data.services?.length ?? 0) > 0 && <> · for {data.services.join(', ')}</>}
+                    </p>
+                    <div className="max-h-72 overflow-y-auto rounded-lg border border-border divide-y divide-border bg-card">
+                        {templates.map((t) => (
+                            <div key={t.name} className="flex items-start justify-between gap-3 px-3 py-2">
+                                <div className="min-w-0">
+                                    <p className="text-xs font-mono truncate">{t.name}</p>
+                                    {t.reason && <p className="text-[11px] text-destructive mt-0.5">Meta: {t.reason}</p>}
+                                </div>
+                                <Badge variant={TEMPLATE_STATUS_VARIANT[t.status] ?? 'secondary'} className="shrink-0">
+                                    {TEMPLATE_STATUS_LABEL[t.status] ?? t.status}
+                                </Badge>
+                            </div>
+                        ))}
+                    </div>
+                </>
             )}
         </div>
     );
@@ -487,9 +619,16 @@ export default function ProvidersPage() {
                                                 {!isChanging && <>
                                                     {config.provider_name === 'meta_cloud' && (
                                                         <WhatsAppConnectButton
-                                                            onConnected={() => loadProviderSettings('whatsapp', 'meta_cloud', true)}
+                                                            onConnected={() => {
+                                                                loadProviderSettings('whatsapp', 'meta_cloud', true);
+                                                                // The template sync starts on connect; show its first results.
+                                                                queryClient.invalidateQueries({ queryKey: settingsKeys.tenantWhatsAppTemplates() });
+                                                            }}
                                                             connectedPhoneId={savedProviderSettings['whatsapp:meta_cloud']?.phone_number_id || undefined}
                                                         />
+                                                    )}
+                                                    {config.provider_name === 'meta_cloud' && savedProviderSettings['whatsapp:meta_cloud']?.phone_number_id && (
+                                                        <WhatsAppTemplatesCard />
                                                     )}
                                                     {config.provider_name === 'meta_cloud' && <WebhookConfigCard kind="whatsapp" />}
                                                     {config.provider_name === 'africastalking' && <WebhookConfigCard kind="sms" />}

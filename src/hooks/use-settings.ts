@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { settingsApi, type ProviderSetting } from '@/lib/api/settings';
+import { whatsappApi } from '@/lib/api/whatsapp';
 
 const STALE_MS = 5 * 60 * 1000;
 
@@ -9,7 +10,58 @@ export const settingsKeys = {
   platformTenants: () => ['settings', 'platform', 'tenants'] as const,
   platformProviders: () => ['settings', 'platform', 'providers'] as const,
   tenantProviders: () => ['settings', 'current', 'providers'] as const,
+  tenantWhatsAppTemplates: () => ['settings', 'current', 'whatsapp-templates'] as const,
 };
+
+/** The templates this tenant uses and their status on its own WhatsApp Business Account. */
+export function useTenantWhatsAppTemplates(enabled: boolean) {
+  return useQuery({
+    queryKey: settingsKeys.tenantWhatsAppTemplates(),
+    queryFn: () => whatsappApi.tenantTemplates(),
+    enabled,
+    staleTime: 30 * 1000,
+    retry: false,
+  });
+}
+
+export interface TemplateSyncProgress {
+  created: number;
+  failed: number;
+  remaining: number;
+}
+
+/**
+ * Submits the tenant's missing templates to its own WABA. The API takes one batch per call, so
+ * this calls again while templates remain and a batch still makes progress, reporting as it goes.
+ */
+export function useSyncTenantWhatsAppTemplates(onProgress?: (p: TemplateSyncProgress) => void) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (): Promise<TemplateSyncProgress> => {
+      let created = 0;
+      const failed = new Set<string>();
+      let remaining = 0;
+      let last = -1;
+      for (let i = 0; i < 20; i++) {
+        const res = await whatsappApi.syncTenantTemplates(false);
+        for (const r of res.results ?? []) {
+          if (r.outcome === 'created') {
+            created++;
+            failed.delete(r.name);
+          } else if (r.outcome === 'failed') {
+            failed.add(r.name);
+          }
+        }
+        remaining = res.remaining ?? 0;
+        onProgress?.({ created, failed: failed.size, remaining });
+        if (remaining === 0 || remaining === last) break;
+        last = remaining;
+      }
+      return { created, failed: failed.size, remaining };
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: settingsKeys.tenantWhatsAppTemplates() }),
+  });
+}
 
 export function usePlatformTenants(enabled = true) {
   return useQuery({

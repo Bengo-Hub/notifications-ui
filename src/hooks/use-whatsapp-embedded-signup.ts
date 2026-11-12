@@ -99,7 +99,7 @@ export function useWhatsAppEmbeddedSignup() {
 
     const completeMutation = useMutation({
         mutationFn: (result: EmbeddedSignupResult) =>
-            apiClient.post<{ message: string; phone_number_id: string }>(
+            apiClient.post<{ message: string; phone_number_id: string; payment_method_missing?: boolean }>(
                 '/api/v1/billing/whatsapp/embedded-signup/complete',
                 result,
                 { timeout: COMPLETE_TIMEOUT_MS }
@@ -188,5 +188,7 @@ export function useWhatsAppEmbeddedSignup() {
         isCompleting: completeMutation.isPending || status === 'completing',
         completeError: completeMutation.error as Error | null,
         completeSuccess: completeMutation.isSuccess,
+        // Meta refuses paid template messages until the new account has a payment method.
+        paymentMethodMissing: !!completeMutation.data?.payment_method_missing,
     };
 }
