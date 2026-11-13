@@ -112,6 +112,9 @@ export async function fetchProfile(accessToken: string): Promise<UserProfile> {
     tenantId: data.tenant_id ?? data.primary_tenant ?? '',
     tenantSlug: slug,
     isPlatformOwner: data.is_platform_owner === true || slug === 'codevertex',
+    // The signed claim alone, without the slug shortcut above: pages that show every tenant's
+    // money (Platform > WhatsApp costs) gate on this, as the API does.
+    isPlatformOwnerClaim: data.is_platform_owner === true,
     isSuperUser: roles.includes('superuser'),
   };
 }

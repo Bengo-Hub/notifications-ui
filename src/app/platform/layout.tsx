@@ -3,7 +3,7 @@
 import { ReactNode, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { MessagesSquare, Server, Settings2 } from 'lucide-react';
+import { MessagesSquare, Receipt, Server, Settings2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMe } from '@/hooks/useMe';
 import { isPlatformOwnerOrSuperuser } from '@/lib/auth/permissions';
@@ -11,6 +11,7 @@ import { isPlatformOwnerOrSuperuser } from '@/lib/auth/permissions';
 const platformTabs = [
     { label: 'Providers', href: '/platform/providers', icon: Server },
     { label: 'Messaging', href: '/platform/messaging', icon: MessagesSquare },
+    { label: 'WhatsApp costs', href: '/platform/whatsapp-costs', icon: Receipt, ownerOnly: true },
     { label: 'Configuration', href: '/platform/configuration', icon: Settings2 },
 ];
 
@@ -43,7 +44,7 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
 
             <nav className="border-b border-border overflow-x-auto">
                 <div className="flex items-center gap-1 min-w-max">
-                    {platformTabs.map((tab) => {
+                    {platformTabs.filter((tab) => !tab.ownerOnly || user.isPlatformOwnerClaim === true).map((tab) => {
                         const Icon = tab.icon;
                         const active = pathname.startsWith(tab.href);
                         return (

@@ -39,5 +39,7 @@ export interface UserProfile {
   tenantId: string;
   tenantSlug: string;
   isPlatformOwner?: boolean;
+  /** The signed is_platform_owner claim only (isPlatformOwner also trusts the codevertex slug). */
+  isPlatformOwnerClaim?: boolean;
   isSuperUser?: boolean;
 }
