@@ -16,6 +16,8 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import { whatsappApi } from '@/lib/api/whatsapp';
 import { settingsApi } from '@/lib/api/settings';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/store/auth';
+import { useTenantFilterStore } from '@/store/tenant-filter';
 import { useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, Check, CheckCircle2, ChevronDown, Copy, ExternalLink, Globe, Loader2, Lock, Mail, MessageCircle, MessageSquare, PlugZap, RefreshCw, Save, UploadCloud, Webhook, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -288,9 +290,9 @@ function WhatsAppConnectButton({ onConnected, onDisconnected, connectedPhoneId }
                         ) : (
                             <>
                                 Register your own WhatsApp number in a few clicks. When Meta asks for a business
-                                portfolio, choose the existing <strong>Codevertex Africa Limited</strong> business.
-                                Do not create a new one: a new, unverified business hides your name in chats and
-                                limits you to 250 new customers a day.
+                                portfolio, choose your own business, or create one with your real business name
+                                (never Codevertex). Then verify that business with Meta to get the full sending
+                                limits and your name shown in chats.
                             </>
                         )}
                     </p>
@@ -331,6 +333,88 @@ function WhatsAppConnectButton({ onConnected, onDisconnected, connectedPhoneId }
                     )}
                 </p>
             )}
+        </div>
+    );
+}
+
+/**
+ * Platform owners only: links a number that Codevertex set up in a WhatsApp account inside its own verified
+ * portfolio (Meta's Embedded Signup never offers that portfolio). The tenant is the one picked in the tenant
+ * switcher; the API refuses anyone who is not a platform owner.
+ */
+function WhatsAppManagedLinkSection({ onLinked }: { onLinked?: () => void }) {
+    const isPlatformOwner = useAuthStore((s) => s.user?.isPlatformOwner === true);
+    const selectedTenant = useTenantFilterStore((s) => s.selectedTenant);
+    const [phoneNumberId, setPhoneNumberId] = useState('');
+    const [wabaId, setWabaId] = useState('');
+    const [linking, setLinking] = useState(false);
+
+    if (!isPlatformOwner) return null;
+
+    const canLink = !!selectedTenant && phoneNumberId.trim() !== '' && wabaId.trim() !== '' && !linking;
+
+    const link = async () => {
+        setLinking(true);
+        try {
+            const res = await whatsappApi.managedLink({ phone_number_id: phoneNumberId.trim(), waba_id: wabaId.trim() });
+            toast.success(res.message || 'WhatsApp number linked', {
+                description: [res.verified_name, res.display_phone_number].filter(Boolean).join(', ') || undefined,
+            });
+            if (res.payment_method_missing) {
+                toast.warning('This WhatsApp account has no payment method yet. Attach the card in WhatsApp Manager before template messages can go out.', { duration: 12000 });
+            }
+            setPhoneNumberId('');
+            setWabaId('');
+            onLinked?.();
+        } catch (error: any) {
+            toast.error(error?.response?.data?.error || 'Could not link the WhatsApp number');
+        } finally {
+            setLinking(false);
+        }
+    };
+
+    return (
+        <div className="mb-4 p-4 rounded-lg bg-primary/5 border border-primary/20 space-y-3">
+            <div>
+                <h4 className="text-sm font-bold flex items-center gap-1.5">
+                    <Lock className="h-4 w-4 text-primary" />
+                    Link a number from our portfolio
+                </h4>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                    For a number Codevertex runs for this business. The number must be in a WhatsApp account inside the
+                    Codevertex verified portfolio, with our system user assigned to that account and the card attached.
+                    Messages then go out from that number with the platform&apos;s access.
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                    {selectedTenant
+                        ? <>Links to <strong>{selectedTenant.name}</strong>.</>
+                        : <>Pick the business in the tenant switcher first.</>}
+                </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <input
+                    type="text"
+                    inputMode="numeric"
+                    value={phoneNumberId}
+                    onChange={(e) => setPhoneNumberId(e.target.value)}
+                    placeholder="Phone Number ID"
+                    aria-label="Phone Number ID"
+                    className="bg-accent/20 p-2.5 rounded-lg border border-border text-sm font-mono focus:ring-1 focus:ring-primary outline-none"
+                />
+                <input
+                    type="text"
+                    inputMode="numeric"
+                    value={wabaId}
+                    onChange={(e) => setWabaId(e.target.value)}
+                    placeholder="WhatsApp account ID"
+                    aria-label="WhatsApp account ID"
+                    className="bg-accent/20 p-2.5 rounded-lg border border-border text-sm font-mono focus:ring-1 focus:ring-primary outline-none"
+                />
+            </div>
+            <Button type="button" size="sm" className="gap-1.5" disabled={!canLink} onClick={link}>
+                {linking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PlugZap className="h-3.5 w-3.5" />}
+                {linking ? 'Linking…' : 'Link'}
+            </Button>
         </div>
     );
 }
@@ -678,6 +762,14 @@ export default function ProvidersPage() {
                                                                 queryClient.invalidateQueries({ queryKey: settingsKeys.tenantWhatsAppTemplates() });
                                                             }}
                                                             connectedPhoneId={savedProviderSettings['whatsapp:meta_cloud']?.phone_number_id || undefined}
+                                                        />
+                                                    )}
+                                                    {config.provider_name === 'meta_cloud' && (
+                                                        <WhatsAppManagedLinkSection
+                                                            onLinked={() => {
+                                                                loadProviderSettings('whatsapp', 'meta_cloud', true);
+                                                                queryClient.invalidateQueries({ queryKey: settingsKeys.tenantWhatsAppTemplates() });
+                                                            }}
                                                         />
                                                     )}
                                                     {config.provider_name === 'meta_cloud' && (

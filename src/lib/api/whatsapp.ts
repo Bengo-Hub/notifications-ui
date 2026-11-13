@@ -122,10 +122,26 @@ export interface WhatsAppDisconnectResult {
     notes?: string[];
 }
 
+/** A number from the Codevertex portfolio linked to the tenant (platform owners only). */
+export interface WhatsAppManagedLinkResult {
+    message: string;
+    phone_number_id: string;
+    waba_id: string;
+    display_phone_number?: string;
+    verified_name?: string;
+    token_source: 'platform';
+    /** The WhatsApp account has no payment method yet: attach the card in WhatsApp Manager. */
+    payment_method_missing?: boolean;
+}
+
 export const whatsappApi = {
     // Releases the number on Meta (when the account still exists) and removes the saved connection.
     disconnect: () =>
         apiClient.delete<WhatsAppDisconnectResult>('/api/v1/billing/whatsapp/connection', { timeout: TENANT_SYNC_TIMEOUT_MS }),
+    // Links a number from a WhatsApp account in the Codevertex verified portfolio to the tenant picked in the
+    // tenant switcher (sent as X-Tenant-ID). Meta's register call can be slow, hence the long timeout.
+    managedLink: (body: { phone_number_id: string; waba_id: string }) =>
+        apiClient.post<WhatsAppManagedLinkResult>('/api/v1/billing/whatsapp/managed-link', body, { timeout: TENANT_SYNC_TIMEOUT_MS }),
     // The templates this tenant uses, with their status on the tenant's own WABA.
     tenantTemplates: () => apiClient.get<TenantTemplateStatusResponse>('/api/v1/settings/whatsapp/templates'),
     // Submits the missing ones to the tenant's own WABA, one batch per call; repeat while remaining > 0.
