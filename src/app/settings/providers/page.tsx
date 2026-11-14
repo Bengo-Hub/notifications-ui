@@ -231,7 +231,19 @@ function WebhookConfigCard({ kind }: { kind: 'whatsapp' | 'sms' }) {
     );
 }
 
-function WhatsAppConnectButton({ onConnected, onDisconnected, connectedPhoneId }: { onConnected?: () => void; onDisconnected?: () => void; connectedPhoneId?: string }) {
+/**
+ * A saved phone number ID counts as connected only with something to send it with: its WhatsApp account,
+ * a token, or the portfolio link marker. A number ID on its own (typed into the old manual field) cannot
+ * send, sync templates or edit the profile, so it is shown as not linked yet.
+ */
+function whatsAppNumberState(s?: Record<string, string>): { linked?: string; unlinked?: string } {
+    const id = s?.phone_number_id?.trim();
+    if (!id) return {};
+    if (s?.waba_id?.trim() || s?.access_token?.trim() || s?.token_source === 'platform') return { linked: id };
+    return { unlinked: id };
+}
+
+function WhatsAppConnectButton({ onConnected, onDisconnected, connectedPhoneId, unlinkedPhoneId }: { onConnected?: () => void; onDisconnected?: () => void; connectedPhoneId?: string; unlinkedPhoneId?: string }) {
     const { configured, missing, launchSignup, status, isCompleting, completeError, completeSuccess, paymentMethodMissing } = useWhatsAppEmbeddedSignup();
     const { confirm, dialog } = useConfirm();
     const [disconnecting, setDisconnecting] = useState(false);
@@ -282,11 +294,17 @@ function WhatsAppConnectButton({ onConnected, onDisconnected, connectedPhoneId }
                 <div>
                     <h4 className="text-sm font-bold flex items-center gap-1.5">
                         <MessageCircle className="h-4 w-4 text-emerald-600" />
-                        {connectedPhoneId ? 'WhatsApp number connected' : 'Connect via WhatsApp'}
+                        {connectedPhoneId ? 'WhatsApp number connected' : unlinkedPhoneId ? 'Number saved but not linked yet' : 'Connect via WhatsApp'}
                     </h4>
                     <p className="text-xs text-muted-foreground mt-0.5">
                         {connectedPhoneId ? (
                             <>Your messages go out from your own number (Phone Number ID <span className="font-mono">{connectedPhoneId}</span>).</>
+                        ) : unlinkedPhoneId ? (
+                            <span className="text-amber-600">
+                                Phone Number ID <span className="font-mono">{unlinkedPhoneId}</span> was saved without its WhatsApp
+                                account, so nothing can be sent from it yet. Codevertex has to link it from our portfolio (phone
+                                number ID and WhatsApp account ID), or you can connect it with the button.
+                            </span>
                         ) : (
                             <>
                                 Register your own WhatsApp number in a few clicks. When Meta asks for a business
@@ -327,7 +345,7 @@ function WhatsAppConnectButton({ onConnected, onDisconnected, connectedPhoneId }
             {!configured && (
                 <p className="text-[11px] text-muted-foreground">
                     Not yet available — waiting on Meta to approve CodeVertex for Embedded Signup (business
-                    verification + app review). Use the Phone Number ID field below in the meantime.
+                    verification + app review). In the meantime Codevertex can link a number from our portfolio for you.
                     {process.env.NODE_ENV !== 'production' && missing.length > 0 && (
                         <> Missing: <code className="font-mono">{missing.join(', ')}</code>.</>
                     )}
@@ -613,10 +631,8 @@ export default function ProvidersPage() {
             { key: 'web_app_id', label: 'Web App ID', type: 'text', placeholder: 'e.g. 1:123456789012:web:abc123' },
             { key: 'web_vapid_key', label: 'Web Push Certificate (VAPID public key)', type: 'text', placeholder: 'Cloud Messaging > Web configuration > Key pair' },
         ],
-        meta_cloud: [
-            { key: '_meta_guide', label: 'Manual Setup', type: 'banner', placeholder: 'If Connect above isn’t available yet, our team can set your number up manually — paste the Phone Number ID they give you below.' },
-            { key: 'phone_number_id', label: 'Phone Number ID', type: 'text', placeholder: 'e.g. 1262404020292374' },
-        ],
+        // No manual fields for WhatsApp: a phone number ID typed on its own left a number that could not
+        // send. It is connected with Embedded Signup, or linked by a platform owner from our portfolio.
     };
 
     const loadProviderSettings = async (providerType: string, providerName: string, force = false) => {
@@ -761,7 +777,8 @@ export default function ProvidersPage() {
                                                                 loadProviderSettings('whatsapp', 'meta_cloud', true);
                                                                 queryClient.invalidateQueries({ queryKey: settingsKeys.tenantWhatsAppTemplates() });
                                                             }}
-                                                            connectedPhoneId={savedProviderSettings['whatsapp:meta_cloud']?.phone_number_id || undefined}
+                                                            connectedPhoneId={whatsAppNumberState(savedProviderSettings['whatsapp:meta_cloud']).linked}
+                                                            unlinkedPhoneId={whatsAppNumberState(savedProviderSettings['whatsapp:meta_cloud']).unlinked}
                                                         />
                                                     )}
                                                     {config.provider_name === 'meta_cloud' && (
@@ -774,15 +791,15 @@ export default function ProvidersPage() {
                                                     )}
                                                     {config.provider_name === 'meta_cloud' && (
                                                         <WhatsAppBusinessProfileSection
-                                                            phoneNumberId={savedProviderSettings['whatsapp:meta_cloud']?.phone_number_id || undefined}
+                                                            phoneNumberId={whatsAppNumberState(savedProviderSettings['whatsapp:meta_cloud']).linked}
                                                         />
                                                     )}
-                                                    {config.provider_name === 'meta_cloud' && savedProviderSettings['whatsapp:meta_cloud']?.phone_number_id && (
+                                                    {config.provider_name === 'meta_cloud' && whatsAppNumberState(savedProviderSettings['whatsapp:meta_cloud']).linked && (
                                                         <WhatsAppTemplatesCard />
                                                     )}
                                                     {config.provider_name === 'meta_cloud' && <WebhookConfigCard kind="whatsapp" />}
                                                     {config.provider_name === 'africastalking' && <WebhookConfigCard kind="sms" />}
-                                                    <ProviderSettingsForm
+                                                    {config.provider_name !== 'meta_cloud' && <ProviderSettingsForm
                                                         fields={PROVIDER_FIELDS[config.provider_name] ?? []}
                                                         settings={providerSettings[`${channel.id}:${config.provider_name}`] ?? {}}
                                                         savedSettings={savedProviderSettings[`${channel.id}:${config.provider_name}`]}
@@ -790,7 +807,7 @@ export default function ProvidersPage() {
                                                         isSaving={savingSettings === `${channel.id}:${config.provider_name}`}
                                                         onFieldChange={(key, value) => updateSettingField(channel.id, config.provider_name, key, value)}
                                                         onSave={() => handleSaveSettings(channel.id, config.provider_name)}
-                                                    />
+                                                    />}
                                                     <TestConnectionSection channelId={channel.id} providerName={config.provider_name} />
                                                 </>}
                                             </div>
