@@ -114,6 +114,26 @@ export const whatsappProfileApi = {
         apiClient.post<WhatsAppBrandingSyncResult>('/api/v1/settings/whatsapp/profile/sync-branding', undefined, { timeout: PROFILE_TIMEOUT_MS }),
 };
 
+/** The tenant's number as Meta sees it now. known is false when Meta could not be asked. */
+export interface WhatsAppRegistrationState {
+    phone_number_id: string;
+    known: boolean;
+    registered: boolean;
+    status?: string;
+    platform_type?: string;
+}
+
+/**
+ * The message for a failed WhatsApp call: the API's error (which carries Meta's own words and what to do),
+ * else a fallback naming the HTTP status, so a refusal never shows as a bare "could not".
+ */
+export function whatsappErrorMessage(error: any, fallback: string): string {
+    const data = error?.response?.data;
+    if (data && typeof data === 'object' && typeof data.error === 'string' && data.error) return data.error;
+    const status = error?.response?.status;
+    return status ? `${fallback} (HTTP ${status})` : fallback;
+}
+
 /** What Disconnect undid on Meta; the saved connection is always removed. */
 export interface WhatsAppDisconnectResult {
     message: string;
@@ -135,9 +155,15 @@ export interface WhatsAppManagedLinkResult {
 }
 
 export const whatsappApi = {
-    // Releases the number on Meta (when the account still exists) and removes the saved connection.
-    disconnect: () =>
-        apiClient.delete<WhatsAppDisconnectResult>('/api/v1/billing/whatsapp/connection', { timeout: TENANT_SYNC_TIMEOUT_MS }),
+    // Removes the saved connection. With release, the number is also deregistered from Cloud API;
+    // the API never releases the platform's own number, or a number or account another tenant uses.
+    disconnect: (release = false) =>
+        apiClient.delete<WhatsAppDisconnectResult>(`/api/v1/billing/whatsapp/connection?release=${release}`, { timeout: TENANT_SYNC_TIMEOUT_MS }),
+    // Registers the linked number on Cloud API again with its saved PIN (platform owners only).
+    reregister: () =>
+        apiClient.post<{ message: string; phone_number_id: string }>('/api/v1/billing/whatsapp/reregister', undefined, { timeout: TENANT_SYNC_TIMEOUT_MS }),
+    // The number's live state on Meta: registered is false for a number linked here but not on Cloud API.
+    registration: () => apiClient.get<WhatsAppRegistrationState>('/api/v1/billing/whatsapp/registration'),
     // Links a number from a WhatsApp account in the Codevertex verified portfolio to the tenant picked in the
     // tenant switcher (sent as X-Tenant-ID). Meta's register call can be slow, hence the long timeout.
     managedLink: (body: { phone_number_id: string; waba_id: string }) =>

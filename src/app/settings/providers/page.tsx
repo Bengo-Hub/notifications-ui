@@ -13,14 +13,14 @@ import {
 } from '@/hooks/use-settings';
 import { useWhatsAppEmbeddedSignup } from '@/hooks/use-whatsapp-embedded-signup';
 import { useConfirm } from '@/components/ui/confirm-dialog';
-import { whatsappApi } from '@/lib/api/whatsapp';
+import { whatsappApi, whatsappErrorMessage, type WhatsAppRegistrationState } from '@/lib/api/whatsapp';
 import { settingsApi } from '@/lib/api/settings';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth';
 import { useTenantFilterStore } from '@/store/tenant-filter';
 import { useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, Check, CheckCircle2, ChevronDown, Copy, ExternalLink, Globe, Loader2, Lock, Mail, MessageCircle, MessageSquare, PlugZap, RefreshCw, Save, UploadCloud, Webhook, XCircle } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 const EMAIL_PROVIDERS = ['smtp', 'brevo'];
@@ -246,30 +246,62 @@ function whatsAppNumberState(s?: Record<string, string>): { linked?: string; unl
 function WhatsAppConnectButton({ onConnected, onDisconnected, connectedPhoneId, unlinkedPhoneId }: { onConnected?: () => void; onDisconnected?: () => void; connectedPhoneId?: string; unlinkedPhoneId?: string }) {
     const { configured, missing, launchSignup, status, isCompleting, completeError, completeSuccess, paymentMethodMissing } = useWhatsAppEmbeddedSignup();
     const { confirm, dialog } = useConfirm();
+    const isPlatformOwner = useAuthStore((s) => s.user?.isPlatformOwner === true);
     const [disconnecting, setDisconnecting] = useState(false);
+    const [releaseOnMeta, setReleaseOnMeta] = useState(false);
+    const [loadedRegistration, setRegistration] = useState<WhatsAppRegistrationState | null>(null);
+    const [reregistering, setReregistering] = useState(false);
 
-    // Releases the number on Meta (when its account still exists) and removes the saved connection,
-    // so messages stop going out from it and a fresh connection starts clean.
+    // A number linked here can still be missing on Meta (deregistered): ask Meta, so the panel says so
+    // and offers Re-register number instead of showing it as connected. An answer for another number
+    // (before a switch) is ignored.
+    useEffect(() => {
+        let live = true;
+        if (!connectedPhoneId) return;
+        whatsappApi.registration().then((r) => { if (live) setRegistration(r); }).catch(() => {});
+        return () => { live = false; };
+    }, [connectedPhoneId]);
+    const registration = loadedRegistration?.phone_number_id === connectedPhoneId ? loadedRegistration : null;
+    const notRegistered = !!connectedPhoneId && registration?.known === true && !registration.registered;
+
+    // Removes the saved connection so messages stop going out from it. The number stays registered on
+    // Meta unless releasing it is ticked, so it can be connected or linked again at once.
     const disconnect = async () => {
         const { ok } = await confirm({
             title: 'Disconnect this WhatsApp number?',
-            description:
-                'Messages stop going out from this number straight away. We release the number on Meta and remove it here. To delete the WhatsApp account itself, remove it in WhatsApp Manager afterwards.',
+            description: releaseOnMeta
+                ? 'Messages stop going out from this number straight away. We also release the number from Cloud API on Meta (never one another business still uses) and remove it here.'
+                : 'Messages stop going out from this number straight away and it is removed here. The number stays registered on Meta, so it can be linked again at once.',
             confirmLabel: 'Disconnect',
             tone: 'destructive',
         });
         if (!ok) return;
         setDisconnecting(true);
         try {
-            const res = await whatsappApi.disconnect();
+            const res = await whatsappApi.disconnect(releaseOnMeta);
             toast.success('WhatsApp number disconnected', {
                 description: res.notes?.filter((n) => !n.startsWith('to delete')).join('. ') || undefined,
             });
+            setReleaseOnMeta(false);
             onDisconnected?.();
         } catch (error: any) {
-            toast.error(error?.response?.data?.error || 'Could not disconnect the WhatsApp number');
+            toast.error(whatsappErrorMessage(error, 'Could not disconnect the WhatsApp number'));
         } finally {
             setDisconnecting(false);
+        }
+    };
+
+    // Registers the linked number on Cloud API again with its saved PIN, without disconnecting it.
+    const reregister = async () => {
+        setReregistering(true);
+        try {
+            const res = await whatsappApi.reregister();
+            toast.success(res.message || 'WhatsApp number registered');
+            setRegistration(await whatsappApi.registration().catch(() => null));
+        } catch (error: any) {
+            toast.error(whatsappErrorMessage(error, 'Could not register the WhatsApp number'), { duration: 12000 });
+        } finally {
+            setReregistering(false);
         }
     };
 
@@ -294,10 +326,16 @@ function WhatsAppConnectButton({ onConnected, onDisconnected, connectedPhoneId, 
                 <div>
                     <h4 className="text-sm font-bold flex items-center gap-1.5">
                         <MessageCircle className="h-4 w-4 text-emerald-600" />
-                        {connectedPhoneId ? 'WhatsApp number connected' : unlinkedPhoneId ? 'Number saved but not linked yet' : 'Connect via WhatsApp'}
+                        {notRegistered ? 'Number not registered on Meta' : connectedPhoneId ? 'WhatsApp number connected' : unlinkedPhoneId ? 'Number saved but not linked yet' : 'Connect via WhatsApp'}
                     </h4>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                        {connectedPhoneId ? (
+                        {notRegistered ? (
+                            <span className="text-amber-600">
+                                Phone Number ID <span className="font-mono">{connectedPhoneId}</span> is linked here, but Meta
+                                reports it as not registered on Cloud API ({registration?.status || 'unknown'}), so nothing can be
+                                sent from it. {isPlatformOwner ? 'Use Re-register number.' : 'Ask Codevertex support to register it again.'}
+                            </span>
+                        ) : connectedPhoneId ? (
                             <>Your messages go out from your own number (Phone Number ID <span className="font-mono">{connectedPhoneId}</span>).</>
                         ) : unlinkedPhoneId ? (
                             <span className="text-amber-600">
@@ -327,6 +365,19 @@ function WhatsAppConnectButton({ onConnected, onDisconnected, connectedPhoneId, 
                         ? 'Finishing setup…'
                         : connectedPhoneId ? 'Connect a different number' : 'Connect WhatsApp Number'}
                 </Button>
+                {connectedPhoneId && isPlatformOwner && (
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 shrink-0"
+                        disabled={busy || reregistering}
+                        onClick={reregister}
+                    >
+                        {reregistering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                        Re-register number
+                    </Button>
+                )}
                 {connectedPhoneId && (
                     <Button
                         type="button"
@@ -342,6 +393,17 @@ function WhatsAppConnectButton({ onConnected, onDisconnected, connectedPhoneId, 
                 )}
                 {dialog}
             </div>
+            {connectedPhoneId && (
+                <label className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                    <input
+                        type="checkbox"
+                        checked={releaseOnMeta}
+                        onChange={(e) => setReleaseOnMeta(e.target.checked)}
+                        className="h-3.5 w-3.5 accent-destructive"
+                    />
+                    On Disconnect, also release the number from Cloud API (it then needs registering again before it can send)
+                </label>
+            )}
             {!configured && (
                 <p className="text-[11px] text-muted-foreground">
                     Not yet available — waiting on Meta to approve CodeVertex for Embedded Signup (business
@@ -355,10 +417,13 @@ function WhatsAppConnectButton({ onConnected, onDisconnected, connectedPhoneId, 
     );
 }
 
+/** The platform tenant's slug (auth-api), the tenant the platform's own WhatsApp number belongs to. */
+const PLATFORM_TENANT_SLUG = 'codevertex';
+
 /**
  * Platform owners only: links a number that Codevertex set up in a WhatsApp account inside its own verified
  * portfolio (Meta's Embedded Signup never offers that portfolio). The tenant is the one picked in the tenant
- * switcher; the API refuses anyone who is not a platform owner.
+ * switcher, or the platform itself with All Tenants; the API refuses anyone who is not a platform owner.
  */
 function WhatsAppManagedLinkSection({ onLinked }: { onLinked?: () => void }) {
     const isPlatformOwner = useAuthStore((s) => s.user?.isPlatformOwner === true);
@@ -369,7 +434,9 @@ function WhatsAppManagedLinkSection({ onLinked }: { onLinked?: () => void }) {
 
     if (!isPlatformOwner) return null;
 
-    const canLink = !!selectedTenant && phoneNumberId.trim() !== '' && wabaId.trim() !== '' && !linking;
+    // With All Tenants selected (or the codevertex tenant picked) the number links to the platform itself.
+    const toPlatform = !selectedTenant || selectedTenant.slug === PLATFORM_TENANT_SLUG;
+    const canLink = phoneNumberId.trim() !== '' && wabaId.trim() !== '' && !linking;
 
     const link = async () => {
         setLinking(true);
@@ -385,7 +452,7 @@ function WhatsAppManagedLinkSection({ onLinked }: { onLinked?: () => void }) {
             setWabaId('');
             onLinked?.();
         } catch (error: any) {
-            toast.error(error?.response?.data?.error || 'Could not link the WhatsApp number');
+            toast.error(whatsappErrorMessage(error, 'Could not link the WhatsApp number'), { duration: 12000 });
         } finally {
             setLinking(false);
         }
@@ -404,9 +471,9 @@ function WhatsAppManagedLinkSection({ onLinked }: { onLinked?: () => void }) {
                     Messages then go out from that number with the platform&apos;s access.
                 </p>
                 <p className="text-[11px] text-muted-foreground mt-1">
-                    {selectedTenant
-                        ? <>Links to <strong>{selectedTenant.name}</strong>.</>
-                        : <>Pick the business in the tenant switcher first.</>}
+                    {toPlatform
+                        ? <>Links to the platform (<strong>Codevertex</strong>), for the platform&apos;s own number. To link a business&apos;s number, pick it in the tenant switcher first.</>
+                        : <>Links to <strong>{selectedTenant?.name}</strong>.</>}
                 </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -567,6 +634,8 @@ export default function ProvidersPage() {
     const [savedProviderSettings, setSavedProviderSettings] = useState<Record<string, Record<string, string>>>({});
     const [loadingSettings, setLoadingSettings] = useState<string | null>(null);
     const [savingSettings, setSavingSettings] = useState<string | null>(null);
+    const selectedTenantId = useTenantFilterStore((s) => s.selectedTenant?.id ?? '');
+    const tenantRef = useRef(selectedTenantId);
 
     // Push (FCM) is platform-level — managed at /platform/providers by superadmin
     const channels = [
@@ -638,9 +707,12 @@ export default function ProvidersPage() {
     const loadProviderSettings = async (providerType: string, providerName: string, force = false) => {
         const settingsKey = `${providerType}:${providerName}`;
         if (providerSettings[settingsKey] && !force) return;
+        const forTenant = tenantRef.current;
         try {
             setLoadingSettings(settingsKey);
             const res = await settingsApi.getProviderSettings(providerType, providerName);
+            // An answer for the tenant selected before a switch is dropped, never shown for the new one.
+            if (tenantRef.current !== forTenant) return;
             const loaded = res.settings ?? {};
             setProviderSettings(prev => ({ ...prev, [settingsKey]: loaded }));
             setSavedProviderSettings(prev => ({ ...prev, [settingsKey]: { ...loaded } }));
@@ -673,6 +745,21 @@ export default function ProvidersPage() {
             [settingsKey]: { ...(prev[settingsKey] ?? {}), [key]: value },
         }));
     };
+
+    // Switching tenant drops the settings loaded for the previous one and loads the new tenant's own.
+    // They used to stay cached, so with Hadia picked the panel showed the platform's phone number.
+    useEffect(() => {
+        if (tenantRef.current === selectedTenantId) return;
+        tenantRef.current = selectedTenantId;
+        setProviderSettings({});
+        setSavedProviderSettings({});
+        providers.forEach((p: any) => {
+            const type = p.channel ?? p.provider_type;
+            const name = p.provider_name;
+            if (type && name) loadProviderSettings(type, name, true);
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedTenantId]);
 
     // Load settings when a provider is active
     useEffect(() => {
