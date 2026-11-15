@@ -121,6 +121,15 @@ export interface WhatsAppRegistrationState {
     registered: boolean;
     status?: string;
     platform_type?: string;
+    /** VERIFIED, or NOT_VERIFIED / EXPIRED when Meta wants the number verified with a code again. */
+    code_verification_status?: string;
+    /** Not registered and not verified: verify it with a code before registering. */
+    needs_verification?: boolean;
+}
+
+/** Link or Re-register refused because Meta wants the number verified again (133006). */
+export function needsWhatsAppVerification(error: any): boolean {
+    return error?.response?.data?.needs_verification === true;
 }
 
 /**
@@ -162,6 +171,12 @@ export const whatsappApi = {
     // Registers the linked number on Cloud API again with its saved PIN (platform owners only).
     reregister: () =>
         apiClient.post<{ message: string; phone_number_id: string }>('/api/v1/billing/whatsapp/reregister', undefined, { timeout: TENANT_SYNC_TIMEOUT_MS }),
+    // Asks Meta to send the linked number a verification code (platform owners only, rate limited).
+    requestVerificationCode: (codeMethod: 'SMS' | 'VOICE', language = 'en_US') =>
+        apiClient.post<{ message: string }>('/api/v1/billing/whatsapp/verification/request', { code_method: codeMethod, language }, { timeout: TENANT_SYNC_TIMEOUT_MS }),
+    // Checks the code with Meta, then registers the number again; answers with the live state.
+    verifyCode: (code: string) =>
+        apiClient.post<WhatsAppRegistrationState & { message: string }>('/api/v1/billing/whatsapp/verification/verify', { code }, { timeout: TENANT_SYNC_TIMEOUT_MS }),
     // The number's live state on Meta: registered is false for a number linked here but not on Cloud API.
     registration: () => apiClient.get<WhatsAppRegistrationState>('/api/v1/billing/whatsapp/registration'),
     // Links a number from a WhatsApp account in the Codevertex verified portfolio to the tenant picked in the

@@ -13,7 +13,7 @@ import {
 } from '@/hooks/use-settings';
 import { useWhatsAppEmbeddedSignup } from '@/hooks/use-whatsapp-embedded-signup';
 import { useConfirm } from '@/components/ui/confirm-dialog';
-import { whatsappApi, whatsappErrorMessage, type WhatsAppRegistrationState } from '@/lib/api/whatsapp';
+import { needsWhatsAppVerification, whatsappApi, whatsappErrorMessage, type WhatsAppRegistrationState } from '@/lib/api/whatsapp';
 import { settingsApi } from '@/lib/api/settings';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth';
@@ -243,6 +243,88 @@ function whatsAppNumberState(s?: Record<string, string>): { linked?: string; unl
     return { unlinked: id };
 }
 
+/**
+ * Platform owners only: verifies a number again with a code Meta sends by SMS or voice, then the API
+ * registers it with its saved PIN, so nobody has to open WhatsApp Manager for it.
+ */
+function WhatsAppVerifyStep({ phoneNumberId, onVerified }: { phoneNumberId: string; onVerified: (state: WhatsAppRegistrationState) => void }) {
+    const [method, setMethod] = useState<'SMS' | 'VOICE'>('SMS');
+    const [code, setCode] = useState('');
+    const [sent, setSent] = useState(false);
+    const [sending, setSending] = useState(false);
+    const [verifying, setVerifying] = useState(false);
+
+    const send = async () => {
+        setSending(true);
+        try {
+            const res = await whatsappApi.requestVerificationCode(method);
+            toast.success(res.message || 'Verification code sent');
+            setSent(true);
+        } catch (error: any) {
+            toast.error(whatsappErrorMessage(error, 'Could not send the code'), { duration: 12000 });
+        } finally {
+            setSending(false);
+        }
+    };
+
+    const verify = async () => {
+        setVerifying(true);
+        try {
+            const res = await whatsappApi.verifyCode(code.trim());
+            toast.success(res.registered ? 'WhatsApp number verified and connected' : res.message || 'Number verified');
+            setCode('');
+            onVerified({ ...res, known: true, phone_number_id: res.phone_number_id || phoneNumberId });
+        } catch (error: any) {
+            toast.error(whatsappErrorMessage(error, 'Could not verify the code'), { duration: 12000 });
+        } finally {
+            setVerifying(false);
+        }
+    };
+
+    const codeOk = /^\d{6}$/.test(code.replace(/\s/g, ''));
+
+    return (
+        <div className="p-3 rounded-lg border border-amber-500/30 bg-amber-500/5 space-y-2">
+            <h5 className="text-xs font-bold">Verify this number</h5>
+            <p className="text-[11px] text-muted-foreground">
+                Meta needs Phone Number ID <span className="font-mono">{phoneNumberId}</span> verified again before it can
+                be registered. Send a code to the number, then enter it here.
+            </p>
+            <div className="flex items-center gap-3 flex-wrap text-xs">
+                {(['SMS', 'VOICE'] as const).map((m) => (
+                    <label key={m} className="flex items-center gap-1.5">
+                        <input type="radio" name="wa-code-method" checked={method === m} onChange={() => setMethod(m)} />
+                        {m === 'SMS' ? 'SMS' : 'Voice call'}
+                    </label>
+                ))}
+                <Button type="button" size="sm" variant="outline" className="gap-1.5" disabled={sending} onClick={send}>
+                    {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MessageSquare className="h-3.5 w-3.5" />}
+                    {sent ? 'Send a new code' : 'Send code'}
+                </Button>
+            </div>
+            {sent && (
+                <div className="flex items-center gap-2 flex-wrap">
+                    <input
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        maxLength={7}
+                        value={code}
+                        onChange={(e) => setCode(e.target.value)}
+                        placeholder="6-digit code"
+                        aria-label="Verification code"
+                        className="w-32 bg-accent/20 p-2 rounded-lg border border-border text-sm font-mono tracking-widest focus:ring-1 focus:ring-primary outline-none"
+                    />
+                    <Button type="button" size="sm" className="gap-1.5" disabled={!codeOk || verifying} onClick={verify}>
+                        {verifying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                        Verify
+                    </Button>
+                </div>
+            )}
+        </div>
+    );
+}
+
 function WhatsAppConnectButton({ onConnected, onDisconnected, connectedPhoneId, unlinkedPhoneId }: { onConnected?: () => void; onDisconnected?: () => void; connectedPhoneId?: string; unlinkedPhoneId?: string }) {
     const { configured, missing, launchSignup, status, isCompleting, completeError, completeSuccess, paymentMethodMissing } = useWhatsAppEmbeddedSignup();
     const { confirm, dialog } = useConfirm();
@@ -263,6 +345,9 @@ function WhatsAppConnectButton({ onConnected, onDisconnected, connectedPhoneId, 
     }, [connectedPhoneId]);
     const registration = loadedRegistration?.phone_number_id === connectedPhoneId ? loadedRegistration : null;
     const notRegistered = !!connectedPhoneId && registration?.known === true && !registration.registered;
+    // Meta wants the number verified with a code again (133006 on Re-register, or its live state).
+    const [verifyAsked, setVerifyAsked] = useState('');
+    const showVerify = !!connectedPhoneId && isPlatformOwner && (registration?.needs_verification === true || verifyAsked === connectedPhoneId);
 
     // Removes the saved connection so messages stop going out from it. The number stays registered on
     // Meta unless releasing it is ticked, so it can be connected or linked again at once.
@@ -299,7 +384,12 @@ function WhatsAppConnectButton({ onConnected, onDisconnected, connectedPhoneId, 
             toast.success(res.message || 'WhatsApp number registered');
             setRegistration(await whatsappApi.registration().catch(() => null));
         } catch (error: any) {
-            toast.error(whatsappErrorMessage(error, 'Could not register the WhatsApp number'), { duration: 12000 });
+            if (needsWhatsAppVerification(error)) {
+                setVerifyAsked(connectedPhoneId ?? '');
+                toast.warning('Meta needs this number verified again: send a code by SMS or voice below.', { duration: 12000 });
+            } else {
+                toast.error(whatsappErrorMessage(error, 'Could not register the WhatsApp number'), { duration: 12000 });
+            }
         } finally {
             setReregistering(false);
         }
@@ -404,6 +494,15 @@ function WhatsAppConnectButton({ onConnected, onDisconnected, connectedPhoneId, 
                     On Disconnect, also release the number from Cloud API (it then needs registering again before it can send)
                 </label>
             )}
+            {showVerify && (
+                <WhatsAppVerifyStep
+                    phoneNumberId={connectedPhoneId ?? ''}
+                    onVerified={(state) => {
+                        setVerifyAsked('');
+                        setRegistration(state);
+                    }}
+                />
+            )}
             {!configured && (
                 <p className="text-[11px] text-muted-foreground">
                     Not yet available — waiting on Meta to approve CodeVertex for Embedded Signup (business
@@ -452,7 +551,15 @@ function WhatsAppManagedLinkSection({ onLinked }: { onLinked?: () => void }) {
             setWabaId('');
             onLinked?.();
         } catch (error: any) {
-            toast.error(whatsappErrorMessage(error, 'Could not link the WhatsApp number'), { duration: 12000 });
+            if (needsWhatsAppVerification(error)) {
+                // The link is saved; the panel above now offers Verify this number.
+                toast.warning('Linked. Meta needs this number verified again: use Verify this number above to send a code.', { duration: 12000 });
+                setPhoneNumberId('');
+                setWabaId('');
+                onLinked?.();
+            } else {
+                toast.error(whatsappErrorMessage(error, 'Could not link the WhatsApp number'), { duration: 12000 });
+            }
         } finally {
             setLinking(false);
         }
