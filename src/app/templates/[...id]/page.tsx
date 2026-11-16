@@ -149,7 +149,7 @@ export default function TemplateEditorPage() {
         '.brand_primary_color': '#0F766E',
         '.brand_secondary_color': '#134E4A',
         '.brand_logo_url': '',
-        '.brand_email': 'hello@codevertex.com',
+        '.brand_email': 'info@codevertexafrica.com',
         '.brand_phone': '+254 700 000 000',
         '.action_url': '#',
         '.getting_started_link': '#',
