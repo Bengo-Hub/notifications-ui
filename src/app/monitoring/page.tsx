@@ -5,7 +5,7 @@ import { useMe } from '@/hooks/useMe';
 import { useActivityLogs, useDeliveryStats } from '@/hooks/use-analytics';
 import type { ActivityLog } from '@/lib/api/analytics';
 import { isPlatformOwnerOrSuperuser } from '@/lib/auth/permissions';
-import { DELIVERY_STATUS, deliveryRate, deliveryStatus } from '@/lib/delivery-status';
+import { DELIVERY_STATUS, deliveryRate, deliveryStatus, whatsAppFailureReason } from '@/lib/delivery-status';
 import { cn } from '@/lib/utils';
 import { DataTable, type DataTableColumn } from '@bengo-hub/shared-ui-lib/data-table';
 import { Activity, AlertCircle, ArrowUpRight, BarChart3, CheckCircle2, Clock, Filter, Mail, MessageCircle, MessageSquare, Smartphone, Zap } from 'lucide-react';
@@ -141,9 +141,16 @@ export default function MonitoringPage() {
             filterOptions: Object.entries(DELIVERY_STATUS).map(([value, meta]) => ({ value, label: meta.label })),
             accessor: (log) => log.status,
             render: (log) => (
-                <Badge variant={deliveryStatus(log.status).variant} className="text-[10px] py-0 px-1.5 leading-tight uppercase">
-                    {deliveryStatus(log.status).label}
-                </Badge>
+                <div className="flex flex-col items-start gap-0.5">
+                    <Badge variant={deliveryStatus(log.status).variant} className="text-[10px] py-0 px-1.5 leading-tight uppercase">
+                        {deliveryStatus(log.status).label}
+                    </Badge>
+                    {log.status === 'failed' && (log.errorCode || log.errorDetail) && (
+                        <span className="text-[11px] leading-tight text-muted-foreground max-w-[18rem]" title={log.errorDetail}>
+                            {whatsAppFailureReason(log.errorCode, log.errorDetail)}
+                        </span>
+                    )}
+                </div>
             ),
         },
         {

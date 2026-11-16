@@ -24,8 +24,11 @@ export interface ActivityLog {
     channel: string;
     /** Always masked by the API (t***@example.com, +254*****678, "2 devices"). */
     recipient: string;
-    status: 'sent' | 'delivered' | 'failed' | 'skipped';
+    status: 'sent' | 'delivered' | 'read' | 'failed' | 'skipped';
     timestamp: string;
+    /** The provider's reason for a send it accepted and later refused (Meta 131049, 131026 ...). */
+    errorCode?: string;
+    errorDetail?: string;
 }
 
 export interface ActivityLogsPage {
