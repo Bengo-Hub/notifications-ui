@@ -52,3 +52,20 @@ export function useMarkRead() {
         },
     });
 }
+
+/** Whether Convert to ticket is offered: the workspace's plan includes ticketing. */
+export function useTicketingStatus(enabled = true) {
+    return useQuery({
+        queryKey: [...whatsappInboxKeys.all(), 'ticketing'] as const,
+        queryFn: () => whatsappInboxApi.ticketingStatus(),
+        enabled,
+        staleTime: 5 * 60_000,
+    });
+}
+
+/** Turns a customer message (or the conversation's latest one) into a support ticket. */
+export function useConvertToTicket(conversationId: string) {
+    return useMutation({
+        mutationFn: (messageId?: string) => whatsappInboxApi.convertToTicket(conversationId, messageId),
+    });
+}

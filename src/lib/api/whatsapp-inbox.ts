@@ -21,7 +21,32 @@ export interface WhatsAppMessage {
     sent_by_user_id?: string;
 }
 
+/** The support ticket a customer message was turned into (ticketing-api owns it). */
+export interface ConvertedTicket {
+    ticket_id: string;
+    ticket_number: string;
+    status: string;
+    /** false when the message already had a ticket (converted before, or opened by auto-ticketing). */
+    created: boolean;
+    /** The ticket in the ticketing console; absent when the tenant slug is unknown. */
+    url?: string;
+}
+
 export const whatsappInboxApi = {
+    /** Whether this workspace's plan includes ticketing, so the inbox offers Convert to ticket. */
+    ticketingStatus: () => apiClient.get<{ available: boolean }>('/api/v1/whatsapp/conversations/ticketing'),
+
+    /**
+     * Opens (or finds) the support ticket for one customer message, or for the conversation's
+     * latest customer message when no message id is given. Safe to repeat: the same message
+     * always answers with the same ticket.
+     */
+    convertToTicket: (conversationId: string, messageId?: string) =>
+        apiClient.post<ConvertedTicket>(
+            `/api/v1/whatsapp/conversations/${conversationId}/ticket`,
+            messageId ? { message_id: messageId } : {}
+        ),
+
     listConversations: (params?: { page?: number; limit?: number }) => {
         const q = new URLSearchParams();
         if (params?.page) q.set('page', String(params.page));

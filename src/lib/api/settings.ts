@@ -16,6 +16,21 @@ export interface ProviderSetting {
     status: 'active' | 'inactive' | 'error';
 }
 
+/**
+ * A tenant's own settings for one provider. When the tenant has no account of its own and sends
+ * with the platform's (Platform > Providers), inherited_from is "platform", effective holds the
+ * non-secret values in force (the platform account's host and username only for a platform owner)
+ * and inherited_keys names the keys of effective that come from the platform.
+ */
+export interface ProviderSettingsResponse {
+    provider_type: string;
+    provider_name: string;
+    settings: Record<string, string>;
+    inherited_from?: 'platform';
+    effective?: Record<string, string>;
+    inherited_keys?: string[];
+}
+
 export interface TenantListItem {
     id: string;
     name: string;
@@ -57,7 +72,7 @@ export const settingsApi = {
         apiClient.post('/api/v1/providers/select', setting),
 
     getProviderSettings: (providerType: string, providerName: string) =>
-        apiClient.get<{ provider_type: string; provider_name: string; settings: Record<string, string> }>(
+        apiClient.get<ProviderSettingsResponse>(
             `/api/v1/providers/settings?provider_type=${providerType}&provider_name=${providerName}`
         ),
 

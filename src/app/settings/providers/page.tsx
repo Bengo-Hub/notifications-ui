@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth';
 import { useTenantFilterStore } from '@/store/tenant-filter';
 import { useQueryClient } from '@tanstack/react-query';
+import Link from 'next/link';
 import { AlertCircle, Check, CheckCircle2, ChevronDown, Copy, ExternalLink, Globe, Loader2, Lock, Mail, MessageCircle, MessageSquare, PlugZap, RefreshCw, Save, UploadCloud, Webhook, XCircle } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -40,10 +41,11 @@ function getProvidersForChannel(channelId: string): string[] {
     }
 }
 
+// Values the form shows before the tenant types anything. No SMTP host: a sample host looked like a
+// saved one, so a tenant on the platform's account seemed to send through smtp.gmail.com.
 const FIELD_DEFAULTS: Record<string, string> = {
     port: '587',
     start_tls: 'true',
-    host: 'smtp.gmail.com',
 };
 
 function ProviderSettingsForm({ fields, settings, savedSettings, isLoading, isSaving, onFieldChange, onSave }: {
@@ -110,6 +112,60 @@ function ProviderSettingsForm({ fields, settings, savedSettings, isLoading, isSa
                 >
                     {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                     {isSaving ? 'Saving...' : 'Save Settings'}
+                </Button>
+            </div>
+        </div>
+    );
+}
+
+type InheritedProviderSettings = { effective: Record<string, string>; keys: string[] };
+
+// The values a tenant without its own account sends with: the platform's account (Platform >
+// Providers), read only. Secrets never reach the page; a tenant other than a platform owner gets
+// only the sender values, so the account rows it cannot see are left out rather than shown empty.
+function InheritedSettingsPanel({ fields, inherited, onCustomize }: {
+    fields: { key: string; label: string; type: string; placeholder: string }[];
+    inherited: InheritedProviderSettings;
+    onCustomize: () => void;
+}) {
+    const isPlatformOwner = useAuthStore((s) => s.user?.isPlatformOwner === true);
+    const shown = fields.filter((f) => f.type !== 'banner' && f.type !== 'password' && f.type !== 'switch'
+        && (isPlatformOwner || inherited.effective[f.key] !== undefined));
+    return (
+        <div className="space-y-4">
+            <div className="rounded-lg bg-primary/10 border border-primary/30 p-3 text-xs text-foreground leading-relaxed flex flex-wrap items-center gap-x-2 gap-y-1">
+                <Lock className="h-3 w-3 text-primary shrink-0" />
+                <span className="font-bold text-primary">Inherited from Platform &gt; Providers.</span>
+                <span>This organization has no account of its own here, so messages go out through the platform&apos;s.</span>
+                {isPlatformOwner && (
+                    <Link href="/platform/providers" className="inline-flex items-center gap-1 font-semibold text-primary hover:underline">
+                        Open Platform &gt; Providers <ExternalLink className="h-3 w-3" />
+                    </Link>
+                )}
+            </div>
+            {shown.length > 0 && (
+                <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {shown.map((field) => {
+                        const value = inherited.effective[field.key];
+                        const fromPlatform = inherited.keys.includes(field.key);
+                        return (
+                            <div key={field.key} className="space-y-1.5 min-w-0">
+                                <dt className="text-xs font-bold text-muted-foreground flex items-center gap-1">
+                                    <Globe className="h-3 w-3" />
+                                    {field.label}
+                                    {value !== undefined && !fromPlatform && <Badge variant="outline" className="text-[10px] ml-1">This organization</Badge>}
+                                </dt>
+                                <dd className={cn('w-full bg-muted/30 p-2.5 rounded-lg border border-border text-sm font-mono break-all', value === undefined && 'text-muted-foreground italic font-sans')}>
+                                    {value ?? 'Not set'}
+                                </dd>
+                            </div>
+                        );
+                    })}
+                </dl>
+            )}
+            <div className="pt-2 flex justify-end">
+                <Button size="sm" variant="outline" className="gap-2" onClick={onCustomize}>
+                    Use custom settings for this tenant
                 </Button>
             </div>
         </div>
@@ -739,6 +795,10 @@ export default function ProvidersPage() {
     const [saving, setSaving] = useState<string | null>(null);
     const [providerSettings, setProviderSettings] = useState<Record<string, Record<string, string>>>({});
     const [savedProviderSettings, setSavedProviderSettings] = useState<Record<string, Record<string, string>>>({});
+    // Per provider, the platform's settings in force when this tenant has no account of its own, and
+    // whether the user chose to enter the tenant's own instead (the editable form).
+    const [inheritedSettings, setInheritedSettings] = useState<Record<string, InheritedProviderSettings | undefined>>({});
+    const [customSettings, setCustomSettings] = useState<Record<string, boolean>>({});
     const [loadingSettings, setLoadingSettings] = useState<string | null>(null);
     const [savingSettings, setSavingSettings] = useState<string | null>(null);
     const selectedTenantId = useTenantFilterStore((s) => s.selectedTenant?.id ?? '');
@@ -823,8 +883,13 @@ export default function ProvidersPage() {
             const loaded = res.settings ?? {};
             setProviderSettings(prev => ({ ...prev, [settingsKey]: loaded }));
             setSavedProviderSettings(prev => ({ ...prev, [settingsKey]: { ...loaded } }));
+            const inherited = res.inherited_from === 'platform'
+                ? { effective: res.effective ?? {}, keys: res.inherited_keys ?? [] }
+                : undefined;
+            setInheritedSettings(prev => ({ ...prev, [settingsKey]: inherited }));
         } catch {
             setProviderSettings(prev => ({ ...prev, [settingsKey]: {} }));
+            setInheritedSettings(prev => ({ ...prev, [settingsKey]: undefined }));
         } finally {
             setLoadingSettings(null);
         }
@@ -832,11 +897,22 @@ export default function ProvidersPage() {
 
     const handleSaveSettings = async (providerType: string, providerName: string) => {
         const settingsKey = `${providerType}:${providerName}`;
-        const settings = providerSettings[settingsKey] ?? {};
+        const settings = { ...(providerSettings[settingsKey] ?? {}) };
+        // A tenant entering its own SMTP host saves the port and TLS values the form showed, which
+        // were only display defaults until now. Empty values are never saved, so the platform's
+        // settings are never blanked by this form.
+        if (providerName === 'smtp' && settings.host?.trim()) {
+            for (const key of ['port', 'start_tls']) {
+                if (!settings[key]) settings[key] = FIELD_DEFAULTS[key];
+            }
+        }
         try {
             setSavingSettings(settingsKey);
             await settingsApi.saveProviderSettings({ provider_type: providerType, provider_name: providerName, settings });
             toast.success('Provider settings saved');
+            // Reload: once the tenant has its own account the inherited view gives way to its values.
+            setCustomSettings(prev => ({ ...prev, [settingsKey]: false }));
+            loadProviderSettings(providerType, providerName, true);
         } catch (error: any) {
             const msg = error?.response?.data?.error || 'Failed to save settings';
             toast.error(msg);
@@ -860,6 +936,8 @@ export default function ProvidersPage() {
         tenantRef.current = selectedTenantId;
         setProviderSettings({});
         setSavedProviderSettings({});
+        setInheritedSettings({});
+        setCustomSettings({});
         providers.forEach((p: any) => {
             const type = p.channel ?? p.provider_type;
             const name = p.provider_name;
@@ -993,7 +1071,31 @@ export default function ProvidersPage() {
                                                     )}
                                                     {config.provider_name === 'meta_cloud' && <WebhookConfigCard kind="whatsapp" />}
                                                     {config.provider_name === 'africastalking' && <WebhookConfigCard kind="sms" />}
-                                                    {config.provider_name !== 'meta_cloud' && <ProviderSettingsForm
+                                                    {config.provider_name !== 'meta_cloud' && inheritedSettings[`${channel.id}:${config.provider_name}`] && !customSettings[`${channel.id}:${config.provider_name}`] && (
+                                                        <InheritedSettingsPanel
+                                                            fields={PROVIDER_FIELDS[config.provider_name] ?? []}
+                                                            inherited={inheritedSettings[`${channel.id}:${config.provider_name}`]!}
+                                                            onCustomize={() => setCustomSettings(prev => ({ ...prev, [`${channel.id}:${config.provider_name}`]: true }))}
+                                                        />
+                                                    )}
+                                                    {config.provider_name !== 'meta_cloud' && inheritedSettings[`${channel.id}:${config.provider_name}`] && customSettings[`${channel.id}:${config.provider_name}`] && (
+                                                        <div className="flex items-center justify-between gap-3 flex-wrap rounded-lg bg-muted/30 border border-border p-3 text-xs text-muted-foreground">
+                                                            <span>Custom settings for this tenant. Until you save them, messages keep going out through the platform&apos;s account.</span>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                className="text-primary hover:bg-primary/10 shrink-0"
+                                                                onClick={() => {
+                                                                    const key = `${channel.id}:${config.provider_name}`;
+                                                                    setCustomSettings(prev => ({ ...prev, [key]: false }));
+                                                                    setProviderSettings(prev => ({ ...prev, [key]: { ...(savedProviderSettings[key] ?? {}) } }));
+                                                                }}
+                                                            >
+                                                                Keep the inherited settings
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                    {config.provider_name !== 'meta_cloud' && (!inheritedSettings[`${channel.id}:${config.provider_name}`] || customSettings[`${channel.id}:${config.provider_name}`]) && <ProviderSettingsForm
                                                         fields={PROVIDER_FIELDS[config.provider_name] ?? []}
                                                         settings={providerSettings[`${channel.id}:${config.provider_name}`] ?? {}}
                                                         savedSettings={savedProviderSettings[`${channel.id}:${config.provider_name}`]}

@@ -2,18 +2,49 @@
 
 import { Button } from '@/components/ui/base';
 import { useMe } from '@/hooks/useMe';
-import { useConversationMessages, useMarkRead, useSendReply } from '@/hooks/use-whatsapp-inbox';
-import { useConversations } from '@/hooks/use-whatsapp-inbox';
+import {
+    useConversationMessages,
+    useConversations,
+    useConvertToTicket,
+    useMarkRead,
+    useSendReply,
+    useTicketingStatus,
+} from '@/hooks/use-whatsapp-inbox';
 import { useWhatsAppInboxStream } from '@/hooks/use-whatsapp-inbox-stream';
+import type { ConvertedTicket } from '@/lib/api/whatsapp-inbox';
 import { cn } from '@/lib/utils';
 import { messageText } from '@/lib/whatsapp-message-text';
-import { AlertTriangle, ArrowLeft, Loader2, Send } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ExternalLink, Loader2, Send, Ticket } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 function formatTime(iso: string): string {
     return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+/** Key for a conversation-level conversion (the latest customer message, chosen by the API). */
+const LATEST = 'latest';
+
+/** The ticket number, linked to the ticketing console when the API gave a link. */
+function TicketLink({ ticket, className }: { ticket: ConvertedTicket; className?: string }) {
+    if (!ticket.url) {
+        return (
+            <span className={cn('inline-flex items-center gap-1 font-semibold', className)}>
+                <Ticket className="h-3 w-3" /> {ticket.ticket_number}
+            </span>
+        );
+    }
+    return (
+        <a
+            href={ticket.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn('inline-flex items-center gap-1 font-semibold underline-offset-2 hover:underline', className)}
+        >
+            <Ticket className="h-3 w-3" /> {ticket.ticket_number} <ExternalLink className="h-3 w-3" />
+        </a>
+    );
 }
 
 export default function WhatsAppThreadPage() {
@@ -32,6 +63,14 @@ export default function WhatsAppThreadPage() {
 
     const sendReply = useSendReply(conversationId);
     const markRead = useMarkRead();
+    // Convert to ticket needs the reply permission and a plan that includes ticketing.
+    const { data: ticketing } = useTicketingStatus(canReply);
+    const canConvert = canReply && ticketing?.available === true;
+    const convert = useConvertToTicket(conversationId);
+    const [converting, setConverting] = useState<string | null>(null);
+    // Tickets opened in this visit, by message id (or LATEST). Nothing about a ticket is stored in
+    // notifications; converting again simply answers with the same ticket.
+    const [tickets, setTickets] = useState<Record<string, ConvertedTicket>>({});
     const [draft, setDraft] = useState('');
     const bottomRef = useRef<HTMLDivElement>(null);
     const markedRef = useRef(false);
@@ -65,18 +104,56 @@ export default function WhatsAppThreadPage() {
         });
     };
 
+    const handleConvert = (messageId?: string) => {
+        const key = messageId ?? LATEST;
+        setConverting(key);
+        convert.mutate(messageId, {
+            onSuccess: (ticket) => {
+                setTickets((prev) => ({ ...prev, [key]: ticket }));
+                const text = ticket.created
+                    ? `Ticket ${ticket.ticket_number} opened`
+                    : `This message is already on ticket ${ticket.ticket_number}`;
+                toast.success(text, ticket.url
+                    ? { action: { label: 'Open', onClick: () => window.open(ticket.url, '_blank', 'noopener,noreferrer') } }
+                    : undefined);
+            },
+            onError: (err: any) => {
+                toast.error(err?.response?.data?.message ?? err?.response?.data?.error ?? 'The ticket could not be opened');
+            },
+            onSettled: () => setConverting(null),
+        });
+    };
+    const hasInbound = messages.some((m) => m.direction === 'inbound');
+
     return (
         <div className="mx-auto flex h-[calc(100dvh-4rem)] w-full max-w-4xl flex-col">
             <div className="flex items-center gap-3 p-4 border-b border-border">
                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => router.push('/whatsapp/inbox')}>
                     <ArrowLeft className="h-4 w-4" />
                 </Button>
-                <div>
+                <div className="min-w-0 flex-1">
                     <h2 className="font-bold">{conversation?.customer_name || `+${conversation?.customer_wa_id ?? '...'}`}</h2>
                     {conversation?.customer_name && (
                         <p className="text-xs text-muted-foreground">+{conversation.customer_wa_id}</p>
                     )}
                 </div>
+                {canConvert && (
+                    tickets[LATEST] ? (
+                        <TicketLink ticket={tickets[LATEST]} className="shrink-0 text-xs text-primary" />
+                    ) : (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="shrink-0 gap-1.5"
+                            disabled={!hasInbound || converting !== null}
+                            title="Open a support ticket from the customer's latest message"
+                            onClick={() => handleConvert()}
+                        >
+                            {converting === LATEST ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Ticket className="h-3.5 w-3.5" />}
+                            <span className="hidden sm:inline">Convert to ticket</span>
+                        </Button>
+                    )
+                )}
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-accent/5">
@@ -99,6 +176,23 @@ export default function WhatsAppThreadPage() {
                             <p className={cn('text-[10px] mt-1 text-right', m.direction === 'outbound' ? 'opacity-70' : 'text-muted-foreground')}>
                                 {formatTime(m.created_at)}
                             </p>
+                            {canConvert && m.direction === 'inbound' && (
+                                <div className="mt-1 border-t border-border/60 pt-1 text-[11px]">
+                                    {tickets[m.id] ? (
+                                        <TicketLink ticket={tickets[m.id]} className="text-primary" />
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            className="inline-flex items-center gap-1 text-muted-foreground hover:text-primary disabled:opacity-50"
+                                            disabled={converting !== null}
+                                            onClick={() => handleConvert(m.id)}
+                                        >
+                                            {converting === m.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Ticket className="h-3 w-3" />}
+                                            Convert to ticket
+                                        </button>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 ))}
