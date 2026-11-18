@@ -13,6 +13,8 @@ export const ANNOUNCEMENT_APPS = [
     { key: 'pos', label: 'POS' },
     { key: 'treasury', label: 'Treasury' },
     { key: 'inventory', label: 'Inventory' },
+    // Hadia shows them on registry owners' dashboards and the staff console (18 November 2026).
+    { key: 'hadia', label: 'Hadia (registry owners)' },
 ];
 
 const inputCls = 'w-full bg-accent/20 p-2.5 rounded-lg border border-border text-sm focus:ring-1 focus:ring-primary outline-none';
