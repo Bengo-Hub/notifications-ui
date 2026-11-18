@@ -28,6 +28,10 @@ COPY . .
 # Build-time args for Next.js
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+# Sign-in keeps tokens out of browser storage on *.codevertexafrica.com (sso cookie session, fleet
+# plan G11); a tenant's custom domain keeps stored tokens. "false" goes back to stored tokens.
+ARG NEXT_PUBLIC_COOKIE_SESSION=true
+ENV NEXT_PUBLIC_COOKIE_SESSION=$NEXT_PUBLIC_COOKIE_SESSION
 
 # WhatsApp Embedded Signup (use-whatsapp-embedded-signup.ts) — Meta App ID and the Embedded
 # Signup config_id (App Dashboard -> WhatsApp -> Embedded Signup -> Configurations). Not secrets:
