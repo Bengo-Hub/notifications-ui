@@ -1,35 +1,35 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { settingsApi, type NotificationPreference } from '@/lib/api/settings';
+import { settingsApi, type NotificationPreference, type PreferenceScope } from '@/lib/api/settings';
 
 const STALE_MS = 60 * 1000;
 
 export const notificationPreferenceKeys = {
-  list: () => ['notification-preferences'] as const,
+  all: ['notification-preferences'] as const,
+  list: (scope: PreferenceScope = 'tenant') => ['notification-preferences', scope] as const,
 };
 
-export function useNotificationPreferences() {
+export function useNotificationPreferences(scope: PreferenceScope = 'tenant') {
   return useQuery({
-    queryKey: notificationPreferenceKeys.list(),
-    queryFn: () => settingsApi.listNotificationPreferences(),
+    queryKey: notificationPreferenceKeys.list(scope),
+    queryFn: () => settingsApi.listNotificationPreferences(scope),
     staleTime: STALE_MS,
   });
 }
 
-export function useUpdateNotificationPreference() {
+export function useUpdateNotificationPreference(scope: PreferenceScope = 'tenant') {
   const queryClient = useQueryClient();
+  const key = notificationPreferenceKeys.list(scope);
   return useMutation({
     mutationFn: (body: { key: string; enabled?: boolean; channels?: string[] }) =>
-      settingsApi.updateNotificationPreference(body),
+      settingsApi.updateNotificationPreference(body, scope),
     // Optimistic toggle so the switch feels instant; rolled back on error.
     onMutate: async (body) => {
-      await queryClient.cancelQueries({ queryKey: notificationPreferenceKeys.list() });
-      const previous = queryClient.getQueryData<{ data: NotificationPreference[]; total: number }>(
-        notificationPreferenceKeys.list()
-      );
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData<{ data: NotificationPreference[]; total: number }>(key);
       if (previous) {
-        queryClient.setQueryData(notificationPreferenceKeys.list(), {
+        queryClient.setQueryData(key, {
           ...previous,
           data: previous.data.map((p) => {
             if (p.key !== body.key) return p;
@@ -50,21 +50,22 @@ export function useUpdateNotificationPreference() {
     },
     onError: (_err, _body, ctx) => {
       if (ctx?.previous) {
-        queryClient.setQueryData(notificationPreferenceKeys.list(), ctx.previous);
+        queryClient.setQueryData(key, ctx.previous);
       }
     },
+    // A platform default changes what every tenant view inherits, so both lists refresh.
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: notificationPreferenceKeys.list() });
+      queryClient.invalidateQueries({ queryKey: notificationPreferenceKeys.all });
     },
   });
 }
 
-export function useResetNotificationPreference() {
+export function useResetNotificationPreference(scope: PreferenceScope = 'tenant') {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (key: string) => settingsApi.resetNotificationPreference(key),
+    mutationFn: (key: string) => settingsApi.resetNotificationPreference(key, scope),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: notificationPreferenceKeys.list() });
+      queryClient.invalidateQueries({ queryKey: notificationPreferenceKeys.all });
     },
   });
 }

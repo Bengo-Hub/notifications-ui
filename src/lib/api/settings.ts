@@ -101,18 +101,28 @@ export const settingsApi = {
     rotateMailDeliveryKey: () =>
         apiClient.put<MailDeliveryKeyStatus>('/api/v1/platform/mail-delivery-key', { generate: true }),
 
-    // Per-tenant notification-type toggles (feed the worker's dispatch gate).
-    listNotificationPreferences: () =>
-        apiClient.get<{ data: NotificationPreference[]; total: number }>('/api/v1/notification-preferences'),
+    // Notification-type toggles (feed the worker's dispatch gate). Scope "platform" (platform
+    // owners only) edits the defaults every tenant inherits instead of this tenant's overrides.
+    listNotificationPreferences: (scope: PreferenceScope = 'tenant') =>
+        apiClient.get<{ data: NotificationPreference[]; total: number; scope?: PreferenceScope }>(
+            `/api/v1/notification-preferences${scopeQuery(scope)}`),
 
-    updateNotificationPreference: (body: { key: string; enabled?: boolean; channels?: string[] }) =>
-        apiClient.put<{ key: string; enabled: boolean | null; channels: string[] | null }>('/api/v1/notification-preferences', body),
+    updateNotificationPreference: (body: { key: string; enabled?: boolean; channels?: string[] }, scope: PreferenceScope = 'tenant') =>
+        apiClient.put<{ key: string; enabled: boolean | null; channels: string[] | null }>(
+            `/api/v1/notification-preferences${scopeQuery(scope)}`, body),
 
-    // key contains a literal "/" (e.g. "finance/payment_success") — pass it raw, unencoded, so it
+    // key contains a literal "/" (e.g. "finance/payment_success"): pass it raw, unencoded, so it
     // matches the backend's chi wildcard route rather than being escaped into a single segment.
-    resetNotificationPreference: (key: string) =>
-        apiClient.delete<{ key: string; label: string; status: string }>(`/api/v1/notification-preferences/${key}`),
+    resetNotificationPreference: (key: string, scope: PreferenceScope = 'tenant') =>
+        apiClient.delete<{ key: string; label: string; status: string }>(
+            `/api/v1/notification-preferences/${key}${scopeQuery(scope)}`),
 };
+
+export type PreferenceScope = 'tenant' | 'platform';
+
+function scopeQuery(scope: PreferenceScope): string {
+    return scope === 'platform' ? '?scope=platform' : '';
+}
 
 export interface NotificationPreference {
     key: string;

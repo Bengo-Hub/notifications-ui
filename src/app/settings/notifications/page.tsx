@@ -3,11 +3,13 @@
 import { Card, CardContent } from '@/components/ui/base';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { cn } from '@/lib/utils';
-import { Bell, Mail, MessageCircle, MessageSquare, RefreshCw, RotateCcw, Smartphone } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Bell, Globe2, Mail, MessageCircle, MessageSquare, RefreshCw, RotateCcw, Search, Smartphone } from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { DataTable, cellText, compareValues, type FilterMap, type SortState } from '@bengo-hub/shared-ui-lib/data-table';
-import type { NotificationPreference } from '@/lib/api/settings';
+import type { NotificationPreference, PreferenceScope } from '@/lib/api/settings';
+import { useMe } from '@/hooks/useMe';
+import { isPlatformOwnerOrSuperuser } from '@/lib/auth/permissions';
 import {
     useNotificationPreferences,
     useResetNotificationPreference,
@@ -27,16 +29,22 @@ const CHANNEL_TABS: { value: ChannelFilter; label: string; icon: typeof Bell }[]
 ];
 
 export default function NotificationPreferencesPage() {
-    const { data, isLoading, isError, refetch } = useNotificationPreferences();
-    const update = useUpdateNotificationPreference();
-    const resetPref = useResetNotificationPreference();
+    const { user } = useMe();
+    const isOwner = isPlatformOwnerOrSuperuser(user ?? null);
+    // Platform owners can switch to the platform defaults every tenant inherits.
+    const [scope, setScope] = useState<PreferenceScope>('tenant');
+    const activeScope: PreferenceScope = isOwner ? scope : 'tenant';
+    const { data, isLoading, isError, refetch } = useNotificationPreferences(activeScope);
+    const update = useUpdateNotificationPreference(activeScope);
+    const resetPref = useResetNotificationPreference(activeScope);
     const { confirm, dialog } = useConfirm();
     const [channel, setChannel] = useState<ChannelFilter>('all');
+    const [search, setSearch] = useState('');
     const [pendingKey, setPendingKey] = useState<string | null>(null);
     const [resettingKey, setResettingKey] = useState<string | null>(null);
     const [editingPref, setEditingPref] = useState<NotificationPreference | null>(null);
     const [pageSize, setPageSize] = useState(15);
-    const [page, setPage] = useState(1);
+    const [pageState, setPageState] = useState<{ view: string; page: number }>({ view: '', page: 1 });
 
     // Defensive: normalize array fields to [] even if a stale cached response (or a backend
     // hiccup) ever serializes one as null — every consumer below iterates/joins/includes()'s
@@ -116,6 +124,13 @@ export default function NotificationPreferencesPage() {
     const filtered = useMemo(() => {
         let out = channel === 'all' ? rows : rows.filter((p) => p.channels.includes(channel));
 
+        // Free-text search over the label, the template key (e.g. billing/provider_balance_low)
+        // and the group, so any notification can be found by the name its template carries.
+        const q = search.trim().toLowerCase();
+        if (q) {
+            out = out.filter((p) => `${p.label} ${p.key} ${p.group}`.toLowerCase().includes(q));
+        }
+
         // Mirrors DataTable's own internal funnel-filter matching exactly (values-checklist +
         // free-text query per column), reusing its exported cellText so this can't drift from
         // what the funnel icon's checklist/search box actually promises.
@@ -143,7 +158,7 @@ export default function NotificationPreferencesPage() {
 
         return out;
         // eslint-disable-next-line react-hooks/exhaustive-deps -- `columns` is stable per [handleToggle, pendingKey, groupOptions] and re-declaring it here would just re-derive the same array on every filtered/sort computation
-    }, [rows, channel, filters, sort]);
+    }, [rows, channel, filters, sort, search]);
 
     // The shared DataTable only slices/paginates rows when the host drives page state itself
     // (its footer renders solely off page/totalPages/onPageChange) — without this, "Show N
@@ -151,9 +166,10 @@ export default function NotificationPreferencesPage() {
     // switching channel tabs looked like a no-op: the top of an unpaginated list barely changes
     // when only later rows get filtered out. Reset to page 1 whenever the visible set changes
     // shape so a filter/page-size change can never strand the view on a now-empty page.
-    useEffect(() => {
-        setPage(1);
-    }, [channel, filters, sort, pageSize]);
+    // The page is remembered per view: a new filter, sort, size, search or scope starts at page 1.
+    const viewKey = JSON.stringify([channel, filters, sort, pageSize, search, activeScope]);
+    const page = pageState.view === viewKey ? pageState.page : 1;
+    const setPage = useCallback((p: number) => setPageState({ view: viewKey, page: p }), [viewKey]);
 
     const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
     const paginated = useMemo(
@@ -191,12 +207,27 @@ export default function NotificationPreferencesPage() {
                         <Bell className="h-5 w-5 text-primary" /> Notification Preferences
                     </h2>
                     <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-                        Choose which notifications this organization sends. Security-critical messages
-                        (password resets, one-time codes) are always delivered. Essential business
-                        notifications are on by default; optional ones stay off until you enable them.
+                        {activeScope === 'platform'
+                            ? 'Platform defaults: what every organization gets until it changes a notification itself. Switching a notification or one of its channels off here stops it for every organization that has not set its own choice.'
+                            : 'Choose which notifications this organization sends and on which channels. A notification or channel you switch off is not sent until you switch it back on. Security-critical messages (password resets, one-time codes) are always delivered.'}
                     </p>
                 </div>
                 <div className="flex items-center gap-4 shrink-0">
+                    {isOwner && (
+                        <button
+                            type="button"
+                            onClick={() => setScope(activeScope === 'platform' ? 'tenant' : 'platform')}
+                            aria-pressed={activeScope === 'platform'}
+                            className={cn(
+                                'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                                activeScope === 'platform'
+                                    ? 'bg-primary text-primary-foreground border-primary'
+                                    : 'text-muted-foreground border-border hover:text-foreground'
+                            )}
+                        >
+                            <Globe2 className="h-3.5 w-3.5" /> Platform defaults
+                        </button>
+                    )}
                     {overriddenKeys.length > 0 && (
                         <button
                             onClick={handleResetAll}
@@ -212,6 +243,18 @@ export default function NotificationPreferencesPage() {
                         <RefreshCw className="h-3.5 w-3.5" /> Refresh
                     </button>
                 </div>
+            </div>
+
+            <div className="relative max-w-md">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+                <input
+                    type="search"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search by name or template, e.g. provider_balance_low"
+                    aria-label="Search notifications"
+                    className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
             </div>
 
             <div className="flex flex-wrap gap-2">
