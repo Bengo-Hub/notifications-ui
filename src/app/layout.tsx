@@ -21,7 +21,11 @@ export const metadata: Metadata = {
     },
     description: 'Multi-channel notification management platform',
     icons: {
-        icon: '/favicon.svg',
+        icon: [
+            { url: '/favicon.svg', type: 'image/svg+xml' },
+            { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+        ],
+        apple: '/icons/apple-touch-icon.png',
     },
     appleWebApp: {
         capable: true,

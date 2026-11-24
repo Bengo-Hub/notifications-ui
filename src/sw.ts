@@ -12,8 +12,8 @@ self.addEventListener('push', (event: PushEvent) => {
         const data = event.data.json();
         const options: NotificationOptions = {
             body: data.body || 'New notification',
-            icon: '/logo.svg',
-            badge: '/logo.svg',
+            icon: '/icons/icon-192.png',
+            badge: '/icons/icon-192.png',
             data: {
                 url: data.url || '/',
             },
